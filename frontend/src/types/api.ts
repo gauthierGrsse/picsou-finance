@@ -735,6 +735,9 @@ export interface FinaryAutoSyncResponse {
   newAccountCount: number
 }
 
+export type ProStatus = 'PERSO' | 'PRO_A_REMBOURSER' | 'PRO_ABSORBE' | 'NON_CLASSE'
+export type ReimbursementStatusType = 'EN_ATTENTE' | 'REMBOURSE'
+
 export interface Transaction {
   id: number
   date: string
@@ -750,6 +753,67 @@ export interface Transaction {
   quantity: number | null
   pricePerUnit: number | null
   fees: number | null
+  proStatus: ProStatus
+  expenseCategoryId: number | null
+  reimbursementStatus: ReimbursementStatusType | null
+  reimbursementId: number | null
+}
+
+export interface ExpenseCategory {
+  id: number
+  name: string
+  color: string
+}
+
+export interface ExpenseCategoryRequest {
+  name: string
+  color?: string
+}
+
+export interface TransactionClassificationRequest {
+  proStatus: ProStatus
+  expenseCategoryId: number | null
+}
+
+export interface Reimbursement {
+  id: number
+  creditTransaction: Transaction
+  expenses: Transaction[]
+  totalLinked: number
+  createdAt: string
+}
+
+export interface ReimbursementRequest {
+  creditTransactionId: number
+  expenseTransactionIds: number[]
+}
+
+export interface LinkExpensesRequest {
+  expenseTransactionIds: number[]
+}
+
+export interface PendingReimbursements {
+  expenses: Transaction[]
+  totalOwed: number
+}
+
+export interface MonthlyExpenseTotal {
+  yearMonth: string
+  total: number
+}
+
+export interface CategoryBreakdownItem {
+  categoryId: number | null
+  categoryName: string | null
+  categoryColor: string | null
+  proStatus: ProStatus
+  total: number
+}
+
+export interface ExpenseDashboardResponse {
+  monthlyEvolution: MonthlyExpenseTotal[]
+  categoryBreakdown: CategoryBreakdownItem[]
+  totalProAbsorbe: number
 }
 
 export interface TransactionRequest {

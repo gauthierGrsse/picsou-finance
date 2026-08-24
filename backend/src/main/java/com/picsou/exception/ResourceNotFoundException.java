@@ -24,4 +24,12 @@ public class ResourceNotFoundException extends RuntimeException {
     public static ResourceNotFoundException transaction(Long id) {
         return new ResourceNotFoundException("Transaction not found");
     }
+
+    public static ResourceNotFoundException expenseCategory(Long id) {
+        return new ResourceNotFoundException("Expense category not found");
+    }
+
+    public static ResourceNotFoundException reimbursement(Long id) {
+        return new ResourceNotFoundException("Reimbursement not found");
+    }
 }

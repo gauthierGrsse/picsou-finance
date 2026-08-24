@@ -1,5 +1,7 @@
 package com.picsou.dto;
 
+import com.picsou.model.ProStatus;
+import com.picsou.model.ReimbursementStatus;
 import com.picsou.model.Transaction;
 import com.picsou.model.TransactionType;
 
@@ -22,7 +24,11 @@ public record TransactionResponse(
     String name,
     BigDecimal quantity,
     BigDecimal pricePerUnit,
-    BigDecimal fees
+    BigDecimal fees,
+    ProStatus proStatus,
+    Long expenseCategoryId,
+    ReimbursementStatus reimbursementStatus,
+    Long reimbursementId
 ) {
     public static TransactionResponse from(Transaction t) {
         return new TransactionResponse(
@@ -40,7 +46,11 @@ public record TransactionResponse(
             t.getName(),
             t.getQuantity(),
             t.getPricePerUnit(),
-            t.getFees()
+            t.getFees(),
+            t.getProStatus(),
+            t.getExpenseCategoryId(),
+            t.getReimbursementStatus(),
+            t.getReimbursementId()
         );
     }
 }

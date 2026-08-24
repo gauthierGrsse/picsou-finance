@@ -35,6 +35,8 @@
     "dashboard.desc": "Vue d'ensemble",
     "accounts": "Comptes",
     "accounts.desc": "Soldes & transactions",
+    "expenses": "Dépenses",
+    "expenses.desc": "Catégorisation & suivi",
     "goals": "Objectifs",
     "goals.desc": "Suivi de vos épargnes",
     "sync": "Synchronisation",
@@ -1488,5 +1490,55 @@
       "notEstimable": "Ce type de bien n'a pas de prix au m² fiable : sa valeur restera saisie manuellement.",
       "error": "Impossible de créer le bien"
     }
+  },
+  "expenseCategories": {
+    "sectionTitle": "Catégories de dépenses",
+    "sectionDescription": "Personnalise les catégories utilisées pour classer tes transactions",
+    "newCategory": "Nouvelle catégorie",
+    "editCategory": "Modifier la catégorie",
+    "nameLabel": "Nom",
+    "colorLabel": "Couleur",
+    "loading": "Chargement…",
+    "empty": "Aucune catégorie.",
+    "error": "Impossible d'enregistrer la catégorie",
+    "deleteTitle": "Supprimer la catégorie ?",
+    "deleteDescription": "Les transactions classées dans cette catégorie redeviennent non catégorisées."
+  },
+  "proStatus": {
+    "perso": "Personnel",
+    "proARembourser": "Pro à rembourser",
+    "proAbsorbe": "Pro absorbé",
+    "nonClasse": "Non classé"
+  },
+  "classification": {
+    "title": "Classer la transaction",
+    "statusLabel": "Statut",
+    "categoryLabel": "Catégorie",
+    "noCategory": "Aucune catégorie"
+  },
+  "reimbursements": {
+    "linkTitle": "Lier un remboursement",
+    "creditLabel": "Virement reçu",
+    "creditPlaceholder": "Choisir un virement…",
+    "noCandidateCredits": "Aucun virement disponible pour un rapprochement.",
+    "expensesLabel": "Dépenses à rembourser",
+    "noPendingExpenses": "Aucune dépense en attente de remboursement.",
+    "selectedTotal": "Total sélectionné",
+    "link": "Lier",
+    "loading": "Chargement…",
+    "emptyList": "Aucun remboursement enregistré.",
+    "deleteTitle": "Supprimer ce remboursement ?",
+    "deleteDescription": "Les dépenses liées repassent en attente de remboursement."
+  },
+  "expenseDashboard": {
+    "monthlyEvolutionTitle": "Évolution mensuelle",
+    "categoryBreakdownTitle": "Répartition par catégorie",
+    "noExpenses": "Aucune dépense sur cette période.",
+    "uncategorized": "Non catégorisé",
+    "totalPeriodLabel": "Total ce mois-ci",
+    "totalProAbsorbeLabel": "Pro absorbé",
+    "pendingReimbursementsTitle": "Remboursements en attente",
+    "totalOwedLabel": "Total dû",
+    "linkedReimbursementsTitle": "Remboursements liés"
   }
 }

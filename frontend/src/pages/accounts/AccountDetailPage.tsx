@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next'
 import {
   useAccount, useAccountHistory, useHoldingsWithLivePrices, useAccountPositions,
   useAccountTransactions, useAddTransaction, useDeleteTransaction,
-  useUpdateTransaction, useUpdateHolding, useDeleteHolding
+  useUpdateTransaction, useUpdateTransactionClassification, useUpdateHolding, useDeleteHolding
 } from '@/features/accounts/hooks'
+import { useExpenseCategories } from '@/features/expenseCategories/hooks'
 import { useHistory } from '@/features/history/hooks'
 import { BalanceHistoryChart } from '@/components/shared/BalanceHistoryChart'
 import { NetWorthChart } from '@/components/shared/NetWorthChart'
@@ -14,6 +15,7 @@ import { PositionsByProduct } from '@/components/shared/PositionsByProduct'
 import { RealizedPnlSection } from '@/components/shared/RealizedPnlSection'
 import { TransactionsList } from '@/components/shared/TransactionsList'
 import { AddTransactionModal } from '@/components/shared/AddTransactionModal'
+import { TransactionClassificationModal } from '@/components/shared/TransactionClassificationModal'
 import { ImportTransactionsModal } from '@/components/shared/ImportTransactionsModal'
 import { EditHoldingModal } from '@/components/shared/EditHoldingModal'
 import { MonthEndBalanceModal } from '@/components/shared/MonthEndBalanceModal'
@@ -47,14 +49,17 @@ export function AccountDetailPage() {
   const addTxMutation = useAddTransaction(accountId)
   const deleteTxMutation = useDeleteTransaction(accountId)
   const updateTxMutation = useUpdateTransaction(accountId)
+  const classifyTxMutation = useUpdateTransactionClassification(accountId)
   const updateHoldingMutation = useUpdateHolding(accountId)
   const deleteHoldingMutation = useDeleteHolding(accountId)
+  const { data: categories } = useExpenseCategories()
   const { data: pnlData } = useHistory(accountId ? [accountId] : [], 12)
 
   const [showHistory, setShowHistory] = useState(false)
   const [showAddTx, setShowAddTx] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [editingTx, setEditingTx] = useState<Transaction | null>(null)
+  const [classifyingTx, setClassifyingTx] = useState<Transaction | null>(null)
   const [editingHolding, setEditingHolding] = useState<HoldingResponse | null>(null)
   const [range, setRange] = useState<TimeRange>('1Y')
 
@@ -235,6 +240,8 @@ export function AccountDetailPage() {
             transactions={transactions}
             onDelete={(txId) => deleteTxMutation.mutate(txId)}
             onEdit={(tx) => setEditingTx(tx)}
+            onClassify={(tx) => setClassifyingTx(tx)}
+            categories={categories}
           />
         </>
       ) : (
@@ -314,6 +321,19 @@ export function AccountDetailPage() {
           isLoading={updateTxMutation.isPending}
         />
       )}
+
+      {/* Classify Transaction modal */}
+      <TransactionClassificationModal
+        open={!!classifyingTx}
+        onOpenChange={(open) => { if (!open) setClassifyingTx(null) }}
+        transaction={classifyingTx}
+        categories={categories ?? []}
+        onSubmit={async (data) => {
+          await classifyTxMutation.mutateAsync({ txId: classifyingTx!.id, data })
+          setClassifyingTx(null)
+        }}
+        isLoading={classifyTxMutation.isPending}
+      />
 
       {/* Edit Holding modal */}
       <EditHoldingModal

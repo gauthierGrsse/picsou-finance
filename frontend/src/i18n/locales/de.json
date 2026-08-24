@@ -35,6 +35,8 @@
     "dashboard.desc": "Überblick & Vermögen",
     "accounts": "Konten",
     "accounts.desc": "Salden & Transaktionen",
+    "expenses": "Ausgaben",
+    "expenses.desc": "Kategorisierung & Nachverfolgung",
     "goals": "Ziele",
     "goals.desc": "Verfolge deine Sparziele",
     "sync": "Sync",
@@ -1488,5 +1490,55 @@
       "notEstimable": "Für diese Objektart gibt es keinen verlässlichen Quadratmeterpreis; der Wert bleibt manuell.",
       "error": "Immobilie konnte nicht angelegt werden"
     }
+  },
+  "expenseCategories": {
+    "sectionTitle": "Ausgabenkategorien",
+    "sectionDescription": "Passe die Kategorien an, mit denen deine Transaktionen eingeordnet werden",
+    "newCategory": "Neue Kategorie",
+    "editCategory": "Kategorie bearbeiten",
+    "nameLabel": "Name",
+    "colorLabel": "Farbe",
+    "loading": "Wird geladen…",
+    "empty": "Keine Kategorien.",
+    "error": "Kategorie konnte nicht gespeichert werden",
+    "deleteTitle": "Kategorie löschen?",
+    "deleteDescription": "Transaktionen in dieser Kategorie werden wieder unkategorisiert."
+  },
+  "proStatus": {
+    "perso": "Privat",
+    "proARembourser": "Geschäftlich (zu erstatten)",
+    "proAbsorbe": "Geschäftlich (übernommen)",
+    "nonClasse": "Nicht eingeordnet"
+  },
+  "classification": {
+    "title": "Transaktion einordnen",
+    "statusLabel": "Status",
+    "categoryLabel": "Kategorie",
+    "noCategory": "Keine Kategorie"
+  },
+  "reimbursements": {
+    "linkTitle": "Erstattung verknüpfen",
+    "creditLabel": "Eingehende Überweisung",
+    "creditPlaceholder": "Überweisung wählen…",
+    "noCandidateCredits": "Keine Überweisung zum Abgleich verfügbar.",
+    "expensesLabel": "Zu erstattende Ausgaben",
+    "noPendingExpenses": "Keine Ausgaben in Erwartung einer Erstattung.",
+    "selectedTotal": "Ausgewählter Betrag",
+    "link": "Verknüpfen",
+    "loading": "Wird geladen…",
+    "emptyList": "Keine Erstattungen erfasst.",
+    "deleteTitle": "Diese Erstattung löschen?",
+    "deleteDescription": "Verknüpfte Ausgaben werden wieder auf ausstehend gesetzt."
+  },
+  "expenseDashboard": {
+    "monthlyEvolutionTitle": "Monatliche Entwicklung",
+    "categoryBreakdownTitle": "Aufteilung nach Kategorie",
+    "noExpenses": "Keine Ausgaben in diesem Zeitraum.",
+    "uncategorized": "Nicht kategorisiert",
+    "totalPeriodLabel": "Gesamt diesen Monat",
+    "totalProAbsorbeLabel": "Übernommene Geschäftsausgaben",
+    "pendingReimbursementsTitle": "Ausstehende Erstattungen",
+    "totalOwedLabel": "Ausstehender Betrag",
+    "linkedReimbursementsTitle": "Verknüpfte Erstattungen"
   }
 }

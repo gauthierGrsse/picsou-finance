@@ -49,5 +49,9 @@ CREATE TABLE transaction (
     name            VARCHAR(100),
     quantity        DECIMAL(20, 8),
     price_per_unit  DECIMAL(20, 8),
-    fees            DECIMAL(20, 8)
+    fees            DECIMAL(20, 8),
+    pro_status           VARCHAR(20) NOT NULL DEFAULT 'NON_CLASSE',
+    expense_category_id  BIGINT,
+    reimbursement_status VARCHAR(20),
+    reimbursement_id     BIGINT
 );

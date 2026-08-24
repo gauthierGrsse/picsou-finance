@@ -27,6 +27,11 @@ export const AccountDetailPage = lazy(() =>
     default: m.AccountDetailPage,
   }))
 )
+export const ExpenseDashboardPage = lazy(() =>
+  import('@/pages/expenses/ExpenseDashboardPage').then((m) => ({
+    default: m.ExpenseDashboardPage,
+  }))
+)
 export const GoalsPage = lazy(() =>
   import('@/pages/goals/GoalsPage').then((m) => ({ default: m.GoalsPage }))
 )

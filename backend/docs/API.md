@@ -45,6 +45,14 @@
 
 `SKIP` · `MAP_EXISTING` · `CREATE_NEW`
 
+### ProStatus
+
+`PERSO` · `PRO_A_REMBOURSER` · `PRO_ABSORBE` · `NON_CLASSE`
+
+### ReimbursementStatus
+
+`EN_ATTENTE` · `REMBOURSE`
+
 ## Error Format
 
 All errors use [RFC 7807 ProblemDetail](https://datatracker.ietf.org/doc/html/rfc7807):
@@ -374,10 +382,42 @@ priced — a manually entered position, or one whose ticker no provider resolves
     "amount": -1500.00,
     "type": "buy",
     "category": "stock",
-    "nativeCurrency": "EUR"
+    "nativeCurrency": "EUR",
+    "proStatus": "NON_CLASSE",
+    "expenseCategoryId": null,
+    "reimbursementStatus": null,
+    "reimbursementId": null
   }
 ]
 ```
+
+`proStatus`, `expenseCategoryId`, `reimbursementStatus` and `reimbursementId` are set via
+`PUT /api/accounts/{id}/transactions/{txId}/classification` (below) — independently of the
+core transaction fields, and on synced transactions too (unlike `PUT /transactions/{txId}`,
+which is manual-only).
+
+#### `PUT /api/accounts/{id}/transactions/{txId}/classification`
+
+Sets a transaction's expense classification. Works on **any** transaction, manual or synced —
+this is the primary way to categorize bank-synced transactions, which have no other edit path.
+
+- **Auth:** Required
+
+**Request body — `TransactionClassificationRequest`:**
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `proStatus` | `ProStatus` | @NotNull | Who pays / status |
+| `expenseCategoryId` | `number` | optional | Must belong to the caller; `null` clears it |
+
+Setting `proStatus` to `PRO_A_REMBOURSER` for the first time defaults `reimbursementStatus` to
+`EN_ATTENTE`. Setting it to anything else clears any reimbursement link and
+`reimbursementStatus`.
+
+**Response `200` — `TransactionDto`** (same shape as above).
+
+**Errors:** 404 (account, transaction, or category not found)
+
+---
 
 #### `POST /api/accounts/{id}/valuation/refresh`
 
@@ -1385,3 +1425,192 @@ Domain failures use `422` RFC 7807 responses. Unlike Bourse Direct and Amundi,
 DEGIRO does not yet set a stable `code` property — clients should treat the
 absence of a code as a generic sync failure rather than parsing `detail`.
 Authentication rate limiting returns `429`.
+
+---
+
+### 14. Expense Categories — `/api/expense-categories`
+
+User-editable lookup table for the expense-category dimension (independent of `ProStatus`).
+Scoped per member. `GET` lazily seeds 9 starter categories (Restauration, Courses,
+Abonnements, Transport, Logement, Santé, Loisirs, Matériel/Équipement, Autre) the first time
+a member has none.
+
+#### `GET /api/expense-categories`
+
+- **Auth:** Required
+
+**Response `200` — `ExpenseCategoryResponse[]`:**
+```json
+[
+  { "id": 1, "name": "Restauration", "color": "#f97316" }
+]
+```
+
+#### `POST /api/expense-categories`
+
+- **Auth:** Required
+
+**Request body — `ExpenseCategoryRequest`:**
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `name` | `string` | @NotBlank, max 100, unique per member (case-insensitive) | Category name |
+| `color` | `string` | hex pattern `^#[0-9A-Fa-f]{6}$` | Display color |
+
+**Response `201` — `ExpenseCategoryResponse`.**
+
+**Errors:** 400 (duplicate name), 422 (validation)
+
+---
+
+#### `PUT /api/expense-categories/{id}`
+
+- **Auth:** Required
+- **Body:** same `ExpenseCategoryRequest` as POST
+
+**Response `200` — `ExpenseCategoryResponse`.**
+
+**Errors:** 404, 400 (duplicate name), 422
+
+---
+
+#### `DELETE /api/expense-categories/{id}`
+
+- **Auth:** Required
+
+**Response `204`.** Transactions referencing the deleted category have `expenseCategoryId`
+cleared (`ON DELETE SET NULL`) — they are not deleted or reclassified.
+
+**Errors:** 404
+
+---
+
+### 15. Reimbursements — `/api/reimbursements`
+
+Links a credit transaction (an incoming transfer) to one or more `PRO_A_REMBOURSER` expense
+transactions it settles — a many-expenses-to-one-credit relationship (e.g. a monthly expense
+report reimbursing several meals at once).
+
+#### `GET /api/reimbursements`
+
+- **Auth:** Required
+
+**Response `200` — `ReimbursementResponse[]`**, newest first.
+
+#### `GET /api/reimbursements/{id}`
+
+- **Auth:** Required
+
+**Response `200` — `ReimbursementResponse`:**
+```json
+{
+  "id": 1,
+  "creditTransaction": { "id": 50, "amount": 75.00, "...": "TransactionDto fields" },
+  "expenses": [{ "id": 12, "amount": -25.00, "...": "TransactionDto fields" }],
+  "totalLinked": 25.00,
+  "createdAt": "2026-01-10T09:00:00Z"
+}
+```
+
+**Errors:** 404
+
+#### `GET /api/reimbursements/pending`
+
+Every `PRO_A_REMBOURSER` expense still `EN_ATTENTE`, with the total owed.
+
+- **Auth:** Required
+
+**Response `200` — `PendingReimbursementsResponse`:**
+```json
+{ "expenses": [{ "...": "TransactionDto" }], "totalOwed": 65.00 }
+```
+
+#### `GET /api/reimbursements/candidate-credits`
+
+Positive-amount transactions not already used as a reimbursement's credit side — the picklist
+for creating a new reimbursement.
+
+- **Auth:** Required
+
+**Response `200` — `TransactionDto[]`.**
+
+#### `POST /api/reimbursements`
+
+- **Auth:** Required
+
+**Request body — `ReimbursementRequest`:**
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `creditTransactionId` | `number` | @NotNull | Must be positive-amount, member-owned, not already used |
+| `expenseTransactionIds` | `number[]` | @NotEmpty | Each must be member-owned, `proStatus = PRO_A_REMBOURSER`, currently unlinked |
+
+**Response `201` — `ReimbursementResponse`.**
+
+**Errors:** 400 (credit not positive / already used / an expense not eligible), 404
+
+---
+
+#### `POST /api/reimbursements/{id}/expenses`
+
+Adds more expenses to an existing reimbursement.
+
+- **Auth:** Required
+
+**Request body — `LinkExpensesRequest`:** `{ "expenseTransactionIds": [13, 14] }`
+
+**Response `200` — `ReimbursementResponse`.**
+
+**Errors:** 400, 404
+
+---
+
+#### `DELETE /api/reimbursements/{id}/expenses/{txId}`
+
+Un-links one expense, resetting it to `EN_ATTENTE`.
+
+- **Auth:** Required
+
+**Response `204`.**
+
+**Errors:** 400 (expense not linked to this reimbursement), 404
+
+---
+
+#### `DELETE /api/reimbursements/{id}`
+
+Un-links every remaining expense (back to `EN_ATTENTE`) before deleting the reimbursement.
+
+- **Auth:** Required
+
+**Response `204`.**
+
+**Errors:** 404
+
+---
+
+### 16. Expense Dashboard — `/api/expense-dashboard`
+
+#### `GET /api/expense-dashboard?months=&period=`
+
+- **Auth:** Required
+- **Query params:** `months` (default `6`) -- size of the monthly-evolution window ending at
+  `period`. `period` (default: current month) -- `"YYYY-MM"`.
+
+**Response `200` — `ExpenseDashboardResponse`:**
+```json
+{
+  "monthlyEvolution": [
+    { "yearMonth": "2025-12", "total": 850.00 },
+    { "yearMonth": "2026-01", "total": 920.50 }
+  ],
+  "categoryBreakdown": [
+    { "categoryId": 1, "categoryName": "Restauration", "categoryColor": "#f97316", "proStatus": "PERSO", "total": 180.00 },
+    { "categoryId": null, "categoryName": null, "categoryColor": null, "proStatus": "NON_CLASSE", "total": 42.00 }
+  ],
+  "totalProAbsorbe": 95.00
+}
+```
+
+`monthlyEvolution` sums negative-amount (expense) transactions per month over the window --
+every month is present even at zero. `categoryBreakdown` groups the requested `period`'s
+expenses by (category, `ProStatus`); a null `categoryId`/`categoryName` means uncategorized.
+`totalProAbsorbe` sums `PRO_ABSORBE` expenses for `period` only.

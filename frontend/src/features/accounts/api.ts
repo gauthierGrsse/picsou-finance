@@ -1,5 +1,5 @@
 import { api } from '@/lib/api-client'
-import type { Account, AccountDeletionImpact, AccountRequest, BalanceSnapshot, DebtRequest, DebtInfo, HoldingResponse, LoanScheduleResponse, Ownership, OwnershipRequest, PropertyValuation, PropertyValuationHistoryEntry, RealEstateMetadataRequest, RealEstateMetadata, RealEstateSummary, RealizedPnlResponse, SecurityInsight, Transaction, TransactionImportPreviewResponse, TransactionImportRequest, TransactionImportResultResponse, TransactionRequest, ExchangePositionResponse } from '@/types/api'
+import type { Account, AccountDeletionImpact, AccountRequest, BalanceSnapshot, DebtRequest, DebtInfo, HoldingResponse, LoanScheduleResponse, Ownership, OwnershipRequest, PropertyValuation, PropertyValuationHistoryEntry, RealEstateMetadataRequest, RealEstateMetadata, RealEstateSummary, RealizedPnlResponse, SecurityInsight, Transaction, TransactionClassificationRequest, TransactionImportPreviewResponse, TransactionImportRequest, TransactionImportResultResponse, TransactionRequest, ExchangePositionResponse } from '@/types/api'
 
 export const accountsApi = {
   list: () => api.get<Account[]>('/accounts').then(r => r.data),
@@ -44,6 +44,8 @@ export const accountsApi = {
     api.delete(`/accounts/${accountId}/transactions/${txId}`),
   updateTransaction: (accountId: number, txId: number, data: TransactionRequest) =>
     api.put<Transaction>(`/accounts/${accountId}/transactions/${txId}`, data).then(r => r.data),
+  updateClassification: (accountId: number, txId: number, data: TransactionClassificationRequest) =>
+    api.put<Transaction>(`/accounts/${accountId}/transactions/${txId}/classification`, data).then(r => r.data),
   updateHolding: (accountId: number, ticker: string, data: { quantity: number; averageBuyIn?: number }) =>
     api.put<HoldingResponse>(`/accounts/${accountId}/holdings/${ticker}`, data).then(r => r.data),
   deleteHolding: (accountId: number, ticker: string) =>

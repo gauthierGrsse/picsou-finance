@@ -35,6 +35,8 @@
     "dashboard.desc": "Resumen y patrimonio",
     "accounts": "Cuentas",
     "accounts.desc": "Saldos y transacciones",
+    "expenses": "Gastos",
+    "expenses.desc": "Categorización y seguimiento",
     "goals": "Objetivos",
     "goals.desc": "Sigue tu ahorro",
     "sync": "Sincronización",
@@ -1488,5 +1490,55 @@
       "notEstimable": "Este tipo de inmueble no tiene un precio por m² fiable; su valor se introduce manualmente.",
       "error": "No se pudo crear el inmueble"
     }
+  },
+  "expenseCategories": {
+    "sectionTitle": "Categorías de gastos",
+    "sectionDescription": "Personaliza las categorías usadas para clasificar tus transacciones",
+    "newCategory": "Nueva categoría",
+    "editCategory": "Editar categoría",
+    "nameLabel": "Nombre",
+    "colorLabel": "Color",
+    "loading": "Cargando…",
+    "empty": "Sin categorías.",
+    "error": "No se pudo guardar la categoría",
+    "deleteTitle": "¿Eliminar categoría?",
+    "deleteDescription": "Las transacciones de esta categoría vuelven a quedar sin categorizar."
+  },
+  "proStatus": {
+    "perso": "Personal",
+    "proARembourser": "Profesional (a reembolsar)",
+    "proAbsorbe": "Profesional (asumido)",
+    "nonClasse": "Sin clasificar"
+  },
+  "classification": {
+    "title": "Clasificar transacción",
+    "statusLabel": "Estado",
+    "categoryLabel": "Categoría",
+    "noCategory": "Sin categoría"
+  },
+  "reimbursements": {
+    "linkTitle": "Vincular un reembolso",
+    "creditLabel": "Transferencia recibida",
+    "creditPlaceholder": "Elegir una transferencia…",
+    "noCandidateCredits": "No hay transferencias disponibles para conciliar.",
+    "expensesLabel": "Gastos a reembolsar",
+    "noPendingExpenses": "No hay gastos pendientes de reembolso.",
+    "selectedTotal": "Total seleccionado",
+    "link": "Vincular",
+    "loading": "Cargando…",
+    "emptyList": "No hay reembolsos registrados.",
+    "deleteTitle": "¿Eliminar este reembolso?",
+    "deleteDescription": "Los gastos vinculados vuelven a quedar pendientes."
+  },
+  "expenseDashboard": {
+    "monthlyEvolutionTitle": "Evolución mensual",
+    "categoryBreakdownTitle": "Desglose por categoría",
+    "noExpenses": "Sin gastos en este período.",
+    "uncategorized": "Sin categorizar",
+    "totalPeriodLabel": "Total este mes",
+    "totalProAbsorbeLabel": "Gastos profesionales asumidos",
+    "pendingReimbursementsTitle": "Reembolsos pendientes",
+    "totalOwedLabel": "Total adeudado",
+    "linkedReimbursementsTitle": "Reembolsos vinculados"
   }
 }
