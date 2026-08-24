@@ -4,7 +4,11 @@
 # ============================================================
 
 # ---------- Stage 1: Build frontend ----------
-FROM oven/bun:alpine AS frontend-build
+# Pinned to the build machine's own platform (not the final target): this stage's
+# output is plain JS/CSS with no native code, so cross-compiling it gains nothing
+# and buildx's QEMU emulation of Bun's binary can SIGILL on some host/target
+# architecture combinations. Building natively avoids that entirely.
+FROM --platform=$BUILDPLATFORM oven/bun:alpine AS frontend-build
 
 WORKDIR /build/frontend
 
