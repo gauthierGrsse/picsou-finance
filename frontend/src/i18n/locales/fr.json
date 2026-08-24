@@ -1488,5 +1488,30 @@
       "notEstimable": "Ce type de bien n'a pas de prix au m² fiable : sa valeur restera saisie manuellement.",
       "error": "Impossible de créer le bien"
     }
+  },
+  "expenseCategories": {
+    "sectionTitle": "Catégories de dépenses",
+    "sectionDescription": "Personnalise les catégories utilisées pour classer tes transactions",
+    "newCategory": "Nouvelle catégorie",
+    "editCategory": "Modifier la catégorie",
+    "nameLabel": "Nom",
+    "colorLabel": "Couleur",
+    "loading": "Chargement…",
+    "empty": "Aucune catégorie.",
+    "error": "Impossible d'enregistrer la catégorie",
+    "deleteTitle": "Supprimer la catégorie ?",
+    "deleteDescription": "Les transactions classées dans cette catégorie redeviennent non catégorisées."
+  },
+  "proStatus": {
+    "perso": "Personnel",
+    "proARembourser": "Pro à rembourser",
+    "proAbsorbe": "Pro absorbé",
+    "nonClasse": "Non classé"
+  },
+  "classification": {
+    "title": "Classer la transaction",
+    "statusLabel": "Statut",
+    "categoryLabel": "Catégorie",
+    "noCategory": "Aucune catégorie"
   }
 }

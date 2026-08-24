@@ -1,21 +1,25 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Transaction } from '@/types/api'
+import type { ExpenseCategory, Transaction } from '@/types/api'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
+import { ExpenseCategoryBadge } from '@/components/shared/ExpenseCategoryBadge'
+import { ProStatusBadge } from '@/components/shared/ProStatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Trash2, Pencil } from 'lucide-react'
+import { Trash2, Pencil, Tags } from 'lucide-react'
 import { cn, localeFromLanguage } from '@/lib/utils'
 
 interface TransactionsListProps {
   transactions: Transaction[]
   onDelete?: (txId: number) => void
   onEdit?: (tx: Transaction) => void
+  onClassify?: (tx: Transaction) => void
+  categories?: ExpenseCategory[]
 }
 
-export function TransactionsList({ transactions, onDelete, onEdit }: TransactionsListProps) {
+export function TransactionsList({ transactions, onDelete, onEdit, onClassify, categories = [] }: TransactionsListProps) {
   const { t, i18n } = useTranslation()
   const [search, setSearch] = useState('')
   const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
@@ -73,6 +77,8 @@ export function TransactionsList({ transactions, onDelete, onEdit }: Transaction
                         {t('accounts.manual')}
                       </span>
                     )}
+                    {tr.proStatus !== 'NON_CLASSE' && <ProStatusBadge status={tr.proStatus} />}
+                    <ExpenseCategoryBadge categoryId={tr.expenseCategoryId} categories={categories} />
                   </div>
                   <div className="flex items-center gap-2 ml-4">
                     <CurrencyDisplay
@@ -83,6 +89,16 @@ export function TransactionsList({ transactions, onDelete, onEdit }: Transaction
                         tr.amount >= 0 ? 'text-emerald-500' : 'text-foreground',
                       )}
                     />
+                    {onClassify && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => onClassify(tr)}
+                      >
+                        <Tags className="size-4" />
+                      </Button>
+                    )}
                     {tr.isManual && onEdit && (
                       <Button
                         variant="ghost"

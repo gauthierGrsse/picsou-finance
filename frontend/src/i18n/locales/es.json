@@ -1488,5 +1488,30 @@
       "notEstimable": "Este tipo de inmueble no tiene un precio por m² fiable; su valor se introduce manualmente.",
       "error": "No se pudo crear el inmueble"
     }
+  },
+  "expenseCategories": {
+    "sectionTitle": "Categorías de gastos",
+    "sectionDescription": "Personaliza las categorías usadas para clasificar tus transacciones",
+    "newCategory": "Nueva categoría",
+    "editCategory": "Editar categoría",
+    "nameLabel": "Nombre",
+    "colorLabel": "Color",
+    "loading": "Cargando…",
+    "empty": "Sin categorías.",
+    "error": "No se pudo guardar la categoría",
+    "deleteTitle": "¿Eliminar categoría?",
+    "deleteDescription": "Las transacciones de esta categoría vuelven a quedar sin categorizar."
+  },
+  "proStatus": {
+    "perso": "Personal",
+    "proARembourser": "Profesional (a reembolsar)",
+    "proAbsorbe": "Profesional (asumido)",
+    "nonClasse": "Sin clasificar"
+  },
+  "classification": {
+    "title": "Clasificar transacción",
+    "statusLabel": "Estado",
+    "categoryLabel": "Categoría",
+    "noCategory": "Sin categoría"
   }
 }

@@ -735,6 +735,9 @@ export interface FinaryAutoSyncResponse {
   newAccountCount: number
 }
 
+export type ProStatus = 'PERSO' | 'PRO_A_REMBOURSER' | 'PRO_ABSORBE' | 'NON_CLASSE'
+export type ReimbursementStatusType = 'EN_ATTENTE' | 'REMBOURSE'
+
 export interface Transaction {
   id: number
   date: string
@@ -750,6 +753,26 @@ export interface Transaction {
   quantity: number | null
   pricePerUnit: number | null
   fees: number | null
+  proStatus: ProStatus
+  expenseCategoryId: number | null
+  reimbursementStatus: ReimbursementStatusType | null
+  reimbursementId: number | null
+}
+
+export interface ExpenseCategory {
+  id: number
+  name: string
+  color: string
+}
+
+export interface ExpenseCategoryRequest {
+  name: string
+  color?: string
+}
+
+export interface TransactionClassificationRequest {
+  proStatus: ProStatus
+  expenseCategoryId: number | null
 }
 
 export interface TransactionRequest {

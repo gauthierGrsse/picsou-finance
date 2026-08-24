@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { accountsApi, realEstateApi } from './api'
-import type { AccountRequest, Account, DebtRequest, HoldingResponse, OwnershipRequest, RealEstateMetadataRequest, TransactionImportRequest, TransactionRequest } from '@/types/api'
+import type { AccountRequest, Account, DebtRequest, HoldingResponse, OwnershipRequest, RealEstateMetadataRequest, TransactionClassificationRequest, TransactionImportRequest, TransactionRequest } from '@/types/api'
 import { QUERY_STALE_TIMES } from '@/lib/constants'
 
 export interface HoldingWithAccount extends HoldingResponse {
@@ -420,6 +420,19 @@ export function useUpdateTransaction(accountId: number) {
       queryClient.invalidateQueries({ queryKey: ['accounts', accountId, 'history'] })
       queryClient.invalidateQueries({ queryKey: ['accounts', accountId] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+export function useUpdateTransactionClassification(accountId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ txId, data }: { txId: number; data: TransactionClassificationRequest }) =>
+      accountsApi.updateClassification(accountId, txId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts', accountId, 'transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['reimbursements'] })
+      queryClient.invalidateQueries({ queryKey: ['expenseDashboard'] })
     },
   })
 }

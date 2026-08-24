@@ -31,12 +31,14 @@ import {
   Shield,
   KeyRound,
   ExternalLink,
+  Tags,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { api } from '@/lib/api-client'
 import { APP_VERSION } from '@/lib/app-version'
 import { SecuritySection } from './security/SecuritySection'
 import { AccessKeysSection } from './sections/AccessKeysSection'
+import { ExpenseCategoriesSection } from './sections/ExpenseCategoriesSection'
 
 // ---------------------------------------------------------------------------
 // Toggle group button (theme / language)
@@ -318,6 +320,15 @@ export function SettingsPage() {
         description={t('accessKeys.sectionDescription')}
       >
         <AccessKeysSection />
+      </SectionCard>
+
+      {/* Expense categories ------------------------------------------------ */}
+      <SectionCard
+        icon={Tags}
+        title={t('expenseCategories.sectionTitle')}
+        description={t('expenseCategories.sectionDescription')}
+      >
+        <ExpenseCategoriesSection />
       </SectionCard>
 
       {/* Family ----------------------------------------------------------- */}

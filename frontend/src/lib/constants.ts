@@ -1,4 +1,16 @@
-import type { AccountType } from '@/types/api'
+import type { AccountType, ProStatus } from '@/types/api'
+
+export const PRO_STATUS_OPTIONS: { value: ProStatus; labelKey: string }[] = [
+  { value: 'NON_CLASSE', labelKey: 'proStatus.nonClasse' },
+  { value: 'PERSO', labelKey: 'proStatus.perso' },
+  { value: 'PRO_A_REMBOURSER', labelKey: 'proStatus.proARembourser' },
+  { value: 'PRO_ABSORBE', labelKey: 'proStatus.proAbsorbe' },
+]
+
+/** Translation key for a pro_status value's display label. */
+export function proStatusLabelKey(status: ProStatus): string {
+  return PRO_STATUS_OPTIONS.find((s) => s.value === status)?.labelKey ?? 'proStatus.nonClasse'
+}
 
 export const ACCOUNT_TYPES: { value: AccountType; labelKey: string }[] = [
   { value: 'CHECKING', labelKey: 'accountTypes.checking' },
@@ -50,6 +62,7 @@ export const QUERY_STALE_TIMES = {
   // Property valuations refresh monthly at most -- the underlying open data is published
   // twice a year -- so anything shorter would just re-fetch an identical answer.
   realEstate: 10 * 60 * 1000,
+  expenseCategories: 2 * 60 * 1000,
 } as const
 
 /**

@@ -1488,5 +1488,30 @@
       "notEstimable": "This property type has no reliable price per m², so its value stays manually entered.",
       "error": "Could not create the property"
     }
+  },
+  "expenseCategories": {
+    "sectionTitle": "Expense categories",
+    "sectionDescription": "Customize the categories used to classify your transactions",
+    "newCategory": "New category",
+    "editCategory": "Edit category",
+    "nameLabel": "Name",
+    "colorLabel": "Color",
+    "loading": "Loading…",
+    "empty": "No categories.",
+    "error": "Could not save the category",
+    "deleteTitle": "Delete category?",
+    "deleteDescription": "Transactions in this category become uncategorized."
+  },
+  "proStatus": {
+    "perso": "Personal",
+    "proARembourser": "Business (to be reimbursed)",
+    "proAbsorbe": "Business (absorbed)",
+    "nonClasse": "Unclassified"
+  },
+  "classification": {
+    "title": "Classify transaction",
+    "statusLabel": "Status",
+    "categoryLabel": "Category",
+    "noCategory": "No category"
   }
 }
