@@ -33,11 +33,6 @@ export function ExpenseDashboardPage() {
   const [month, setMonth] = useState(currentMonthValue)
   const [year, setYear] = useState(currentYear)
 
-  const years = useMemo(
-    () => Array.from({ length: YEAR_OPTIONS_BACK + 1 }, (_, i) => currentYear - i),
-    [currentYear],
-  )
-
   const { periodStart, periodEnd, months } = useMemo(() => {
     if (mode === 'year') {
       return { periodStart: `${year}-01-01`, periodEnd: `${year}-12-31`, months: 12 }
@@ -67,76 +62,53 @@ export function ExpenseDashboardPage() {
         onMonthChange={setMonth}
         year={year}
         onYearChange={setYear}
-        years={years}
+        minYear={currentYear - YEAR_OPTIONS_BACK}
+        maxYear={currentYear}
       />
 
-      {/* Hero stats */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              {t(mode === 'year' ? 'expenseDashboard.totalPeriodYearLabel' : 'expenseDashboard.totalPeriodLabel')}
-            </p>
-            <CurrencyDisplay value={totalThisPeriod} className="text-3xl font-bold" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">{t('expenseDashboard.totalProAbsorbeLabel')}</p>
-            <CurrencyDisplay value={data.totalProAbsorbe} className="text-3xl font-bold" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts row */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t('expenseDashboard.monthlyEvolutionTitle')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MonthlyExpenseChart data={data.monthlyEvolution} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t('expenseDashboard.categoryBreakdownTitle')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CategoryProStatusBreakdown data={data.categoryBreakdown} />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Suggested internal transfers awaiting confirmation */}
+      {/* Hero: the period's total is the one number that matters most here, so it stands
+          alone rather than sharing equal weight with the (often-zero) absorbed-business total. */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t('internalTransfers.suggestedTitle')}</CardTitle>
-        </CardHeader>
         <CardContent>
-          <SuggestedTransfersCard />
+          <p className="text-sm text-muted-foreground">
+            {t(mode === 'year' ? 'expenseDashboard.totalPeriodYearLabel' : 'expenseDashboard.totalPeriodLabel')}
+          </p>
+          <CurrencyDisplay value={totalThisPeriod} className="text-4xl font-bold" />
+          {data.totalProAbsorbe > 0 && (
+            <div className="mt-2 flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">{t('expenseDashboard.totalProAbsorbeLabel')}:</span>
+              <CurrencyDisplay value={data.totalProAbsorbe} />
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Pending reimbursements */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('expenseDashboard.pendingReimbursementsTitle')}</CardTitle>
+          <CardTitle className="text-base">{t('expenseDashboard.monthlyEvolutionTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <PendingReimbursementsCard />
+          <MonthlyExpenseChart
+            data={data.monthlyEvolution}
+            highlightMonth={mode === 'month' ? month : undefined}
+          />
         </CardContent>
       </Card>
 
-      {/* Linked reimbursements, with unlink/delete to correct a mistaken rapprochement */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('expenseDashboard.linkedReimbursementsTitle')}</CardTitle>
+          <CardTitle className="text-base">{t('expenseDashboard.categoryBreakdownTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <ReimbursementsList />
+          <CategoryProStatusBreakdown data={data.categoryBreakdown} />
         </CardContent>
       </Card>
+
+      {/* Self-contained cards below: each renders nothing when it has nothing to show,
+          so the page doesn't carry permanently-empty sections as filler. */}
+      <SuggestedTransfersCard />
+      <PendingReimbursementsCard />
+      <ReimbursementsList />
     </div>
   )
 }

@@ -1,8 +1,6 @@
 import { useMemo } from 'react'
-import { Cell, Pie, PieChart } from 'recharts'
 import { useTranslation } from 'react-i18next'
-import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { formatCurrency, localeFromLanguage } from '@/lib/utils'
+import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { proStatusLabelKey } from '@/lib/constants'
 import type { CategoryBreakdownItem } from '@/types/api'
 
@@ -10,17 +8,12 @@ interface CategoryProStatusBreakdownProps {
   data: CategoryBreakdownItem[]
 }
 
-const chartConfig = {
-  total: { label: 'Total' },
-} satisfies ChartConfig
-
-/** One slice per non-zero (category, pro_status) pair -- e.g. "Restauration perso" and
- * "Restauration pro_absorbe" render as separate slices. Cell color comes straight from the
- * category's own stored hex, same as Account.color feeding DistributionPie: there are only
- * 5 --chart-N tokens, not enough for an open-ended category list. */
+/** Ranked list with proportional bars, one row per non-zero (category, pro_status) pair --
+ * e.g. "Restauration · Personnel" and "Restauration · Pro absorbé" sit as separate rows.
+ * A bar-list reads its own ranking directly, without the reader triangulating angles and a
+ * separate legend the way a pie/donut forces them to. */
 export function CategoryProStatusBreakdown({ data }: CategoryProStatusBreakdownProps) {
-  const { t, i18n } = useTranslation()
-  const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
+  const { t } = useTranslation()
 
   const items = useMemo(
     () =>
@@ -28,10 +21,12 @@ export function CategoryProStatusBreakdown({ data }: CategoryProStatusBreakdownP
         .filter((d) => d.total > 0)
         .map((d) => ({
           id: `${d.categoryId ?? 'none'}-${d.proStatus}`,
-          name: `${d.categoryName ?? t('expenseDashboard.uncategorized')} · ${t(proStatusLabelKey(d.proStatus))}`,
+          name: d.categoryName ?? t('expenseDashboard.uncategorized'),
+          statusLabel: t(proStatusLabelKey(d.proStatus)),
           color: d.categoryColor ?? 'var(--chart-5)',
           total: d.total,
-        })),
+        }))
+        .sort((a, b) => b.total - a.total),
     [data, t],
   )
 
@@ -39,29 +34,28 @@ export function CategoryProStatusBreakdown({ data }: CategoryProStatusBreakdownP
     return <p className="text-sm text-muted-foreground">{t('expenseDashboard.noExpenses')}</p>
   }
 
+  const max = Math.max(...items.map((i) => i.total))
+
   return (
-    <div>
-      <ChartContainer config={chartConfig} className="mx-auto h-[240px] w-full">
-        <PieChart>
-          <ChartTooltip
-            content={<ChartTooltipContent hideLabel formatter={(value) => formatCurrency(value as number, 'EUR', locale)} />}
-          />
-          <Pie data={items} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} strokeWidth={0}>
-            {items.map((item) => (
-              <Cell key={item.id} fill={item.color} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ChartContainer>
-      <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-        {items.map((item) => (
-          <div key={item.id} className="flex items-center gap-2 text-sm">
-            <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-            <span className="truncate">{item.name}</span>
-            <span className="ml-auto shrink-0 text-muted-foreground">{formatCurrency(item.total, 'EUR', locale)}</span>
+    <div className="space-y-4">
+      {items.map((item) => (
+        <div key={item.id} className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+              <span className="truncate font-medium">{item.name}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">{item.statusLabel}</span>
+            </span>
+            <CurrencyDisplay value={item.total} className="shrink-0 tabular-nums" />
           </div>
-        ))}
-      </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${(item.total / max) * 100}%`, backgroundColor: item.color }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

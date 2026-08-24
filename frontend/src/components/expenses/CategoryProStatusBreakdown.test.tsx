@@ -27,9 +27,22 @@ describe('CategoryProStatusBreakdown', () => {
 
     render(<CategoryProStatusBreakdown data={data} />)
 
-    expect(screen.getByText(/Restauration.*proStatus\.perso/)).toBeInTheDocument()
-    expect(screen.getByText(/Restauration.*proStatus\.proAbsorbe/)).toBeInTheDocument()
-    expect(screen.getByText(/expenseDashboard\.uncategorized/)).toBeInTheDocument()
-    expect(screen.queryByText(/Courses/)).not.toBeInTheDocument()
+    expect(screen.getAllByText('Restauration')).toHaveLength(2)
+    expect(screen.getByText('proStatus.perso')).toBeInTheDocument()
+    expect(screen.getByText('proStatus.proAbsorbe')).toBeInTheDocument()
+    expect(screen.getByText('expenseDashboard.uncategorized')).toBeInTheDocument()
+    expect(screen.queryByText('Courses')).not.toBeInTheDocument()
+  })
+
+  it('sorts rows by total descending', () => {
+    const data: CategoryBreakdownItem[] = [
+      { categoryId: 1, categoryName: 'Small', categoryColor: '#f97316', proStatus: 'PERSO', total: 10 },
+      { categoryId: 2, categoryName: 'Big', categoryColor: '#22c55e', proStatus: 'PERSO', total: 500 },
+    ]
+
+    render(<CategoryProStatusBreakdown data={data} />)
+
+    const names = screen.getAllByText(/Small|Big/).map(el => el.textContent)
+    expect(names).toEqual(['Big', 'Small'])
   })
 })
