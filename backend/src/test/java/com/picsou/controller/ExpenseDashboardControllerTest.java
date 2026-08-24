@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -25,23 +26,38 @@ class ExpenseDashboardControllerTest {
     @InjectMocks ExpenseDashboardController controller;
 
     @Test
-    void getDashboard_defaultsToSixMonthsAndCurrentPeriod() {
+    void getDashboard_defaultsToSixMonthsAndCurrentMonth() {
         when(userContext.currentMemberId()).thenReturn(10L);
         ExpenseDashboardResponse expected = new ExpenseDashboardResponse(List.of(), List.of(), BigDecimal.ZERO);
-        when(expenseDashboardService.getDashboard(10L, 6, YearMonth.now())).thenReturn(expected);
+        YearMonth currentMonth = YearMonth.now();
+        when(expenseDashboardService.getDashboard(10L, 6, currentMonth.atDay(1), currentMonth.atEndOfMonth()))
+            .thenReturn(expected);
 
-        ExpenseDashboardResponse actual = controller.getDashboard(6, null);
+        ExpenseDashboardResponse actual = controller.getDashboard(6, null, null);
 
         assertThat(actual).isSameAs(expected);
     }
 
     @Test
-    void getDashboard_usesExplicitMonthsAndPeriod() {
+    void getDashboard_usesExplicitMonthsAndPeriodRange() {
         when(userContext.currentMemberId()).thenReturn(10L);
         ExpenseDashboardResponse expected = new ExpenseDashboardResponse(List.of(), List.of(), BigDecimal.ZERO);
-        when(expenseDashboardService.getDashboard(10L, 3, YearMonth.of(2026, 1))).thenReturn(expected);
+        when(expenseDashboardService.getDashboard(10L, 3, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31)))
+            .thenReturn(expected);
 
-        ExpenseDashboardResponse actual = controller.getDashboard(3, "2026-01");
+        ExpenseDashboardResponse actual = controller.getDashboard(3, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31));
+
+        assertThat(actual).isSameAs(expected);
+    }
+
+    @Test
+    void getDashboard_acceptsAFullYearRange() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+        ExpenseDashboardResponse expected = new ExpenseDashboardResponse(List.of(), List.of(), BigDecimal.ZERO);
+        when(expenseDashboardService.getDashboard(10L, 12, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31)))
+            .thenReturn(expected);
+
+        ExpenseDashboardResponse actual = controller.getDashboard(12, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
 
         assertThat(actual).isSameAs(expected);
     }

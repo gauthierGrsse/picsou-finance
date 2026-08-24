@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ExpenseCategory, Transaction } from '@/types/api'
+import type { ExpenseCategory, ProStatus, Transaction } from '@/types/api'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { ExpenseCategoryBadge } from '@/components/shared/ExpenseCategoryBadge'
 import { ProStatusBadge } from '@/components/shared/ProStatusBadge'
@@ -8,8 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { Trash2, Pencil, Tags, Unlink, ArrowLeftRight } from 'lucide-react'
 import { cn, localeFromLanguage } from '@/lib/utils'
+import { proStatusLabelKey } from '@/lib/constants'
+
+const selectClassName = "flex h-10 items-center rounded-xl border border-input bg-background text-foreground px-3 text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]"
+
+const FILTERABLE_STATUSES: ProStatus[] = ['NON_CLASSE', 'PERSO', 'PRO_A_REMBOURSER', 'PRO_ABSORBE', 'VIREMENT_INTERNE']
 
 interface TransactionsListProps {
   transactions: Transaction[]
@@ -24,13 +30,19 @@ interface TransactionsListProps {
 export function TransactionsList({ transactions, onDelete, onEdit, onClassify, onUnlinkTransfer, onLinkTransfer, categories = [] }: TransactionsListProps) {
   const { t, i18n } = useTranslation()
   const [search, setSearch] = useState('')
+  const [hideInternal, setHideInternal] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<'all' | ProStatus>('all')
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'uncategorized' | number>('all')
   const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
 
-  const filtered = search
-    ? transactions.filter(tr =>
-        tr.description.toLowerCase().includes(search.toLowerCase())
-      )
-    : transactions
+  const filtered = transactions.filter(tr => {
+    if (search && !tr.description.toLowerCase().includes(search.toLowerCase())) return false
+    if (hideInternal && tr.proStatus === 'VIREMENT_INTERNE') return false
+    if (statusFilter !== 'all' && tr.proStatus !== statusFilter) return false
+    if (categoryFilter === 'uncategorized' && tr.expenseCategoryId !== null) return false
+    if (typeof categoryFilter === 'number' && tr.expenseCategoryId !== categoryFilter) return false
+    return true
+  })
 
   // Group by date
   const grouped = filtered.reduce<Record<string, Transaction[]>>((acc, tr) => {
@@ -54,9 +66,40 @@ export function TransactionsList({ transactions, onDelete, onEdit, onClassify, o
           placeholder={t('common.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mb-4"
+          className="mb-3"
         />
-        {sortedDates.map((date, dateIdx) => (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Switch checked={hideInternal} onCheckedChange={setHideInternal} aria-label={t('accounts.filterHideInternal')} />
+            {t('accounts.filterHideInternal')}
+          </label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | ProStatus)}
+            className={selectClassName}
+          >
+            <option value="all">{t('accounts.filterAllStatuses')}</option>
+            {FILTERABLE_STATUSES.map(status => (
+              <option key={status} value={status}>{t(proStatusLabelKey(status))}</option>
+            ))}
+          </select>
+          {categories.length > 0 && (
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value === 'all' || e.target.value === 'uncategorized' ? e.target.value : Number(e.target.value))}
+              className={selectClassName}
+            >
+              <option value="all">{t('accounts.filterAllCategories')}</option>
+              <option value="uncategorized">{t('accounts.filterUncategorized')}</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+        {filtered.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">{t('common.noResults')}</p>
+        ) : sortedDates.map((date, dateIdx) => (
           <div key={date}>
             {dateIdx > 0 && <Separator className="my-3" />}
             <p className="mb-2 text-sm font-medium text-muted-foreground">

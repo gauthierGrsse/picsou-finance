@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,19 +34,30 @@ public class ExpenseDashboardService {
         this.expenseCategoryRepository = expenseCategoryRepository;
     }
 
-    public ExpenseDashboardResponse getDashboard(Long memberId, int months, YearMonth period) {
-        YearMonth evolutionStart = period.minusMonths(months - 1L);
+    /**
+     * {@code periodStart}/{@code periodEnd} scope the breakdown and PRO_ABSORBE total --
+     * a single month, or a full calendar year (Jan 1 to Dec 31), or any other range the
+     * caller wants to drill into. The trailing evolution chart is independent of that
+     * range's width: it always shows {@code months} months ending in the month containing
+     * {@code periodEnd}, so a year view naturally requests {@code months=12} to show every
+     * bar in the selected year.
+     */
+    public ExpenseDashboardResponse getDashboard(Long memberId, int months, LocalDate periodStart, LocalDate periodEnd) {
+        YearMonth periodEndMonth = YearMonth.from(periodEnd);
+        YearMonth evolutionStart = periodEndMonth.minusMonths(months - 1L);
+        LocalDate evolutionStartDate = evolutionStart.atDay(1);
+        LocalDate windowStart = evolutionStartDate.isBefore(periodStart) ? evolutionStartDate : periodStart;
 
-        // One query spanning the whole evolution window; the period-only views below
-        // (breakdown, PRO_ABSORBE total) filter this same result set in memory rather
-        // than issuing a second query.
+        // One query spanning the whole evolution window plus the (possibly wider) period
+        // range; the period-only views below (breakdown, PRO_ABSORBE total) filter this
+        // same result set in memory rather than issuing a second query.
         List<Transaction> window = transactionRepository.findByAccount_Member_IdAndDateBetween(
-            memberId, evolutionStart.atDay(1), period.atEndOfMonth());
+            memberId, windowStart, periodEndMonth.atEndOfMonth());
 
-        List<MonthlyExpenseTotal> monthlyEvolution = buildMonthlyEvolution(window, evolutionStart, period);
+        List<MonthlyExpenseTotal> monthlyEvolution = buildMonthlyEvolution(window, evolutionStart, periodEndMonth);
 
         List<Transaction> periodTransactions = window.stream()
-            .filter(t -> YearMonth.from(t.getDate()).equals(period))
+            .filter(t -> !t.getDate().isBefore(periodStart) && !t.getDate().isAfter(periodEnd))
             .toList();
 
         Map<Long, ExpenseCategory> categoriesById = expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(memberId).stream()

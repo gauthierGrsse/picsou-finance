@@ -153,6 +153,10 @@
     "neverSynced": "Nie synchronisiert",
     "holdings": "Bestände",
     "transactions": "Transaktionen",
+    "filterHideInternal": "Interne Überweisungen ausblenden",
+    "filterAllStatuses": "Alle Status",
+    "filterAllCategories": "Alle Kategorien",
+    "filterUncategorized": "Nicht kategorisiert",
     "addTransaction": "Transaktion hinzufügen",
     "editTransaction": "Transaktion bearbeiten",
     "transactionDate": "Datum",
@@ -1537,10 +1541,15 @@
     "noExpenses": "Keine Ausgaben in diesem Zeitraum.",
     "uncategorized": "Nicht kategorisiert",
     "totalPeriodLabel": "Gesamt diesen Monat",
+    "totalPeriodYearLabel": "Gesamt dieses Jahr",
     "totalProAbsorbeLabel": "Übernommene Geschäftsausgaben",
     "pendingReimbursementsTitle": "Ausstehende Erstattungen",
     "totalOwedLabel": "Ausstehender Betrag",
-    "linkedReimbursementsTitle": "Verknüpfte Erstattungen"
+    "linkedReimbursementsTitle": "Verknüpfte Erstattungen",
+    "period": {
+      "month": "Monat",
+      "year": "Jahr"
+    }
   },
   "internalTransfers": {
     "suggestedTitle": "Vorgeschlagene interne Überweisungen",

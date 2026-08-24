@@ -20,6 +20,7 @@ import java.time.YearMonth;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,7 +55,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        var result = expenseDashboardService.getDashboard(10L, 6, period);
+        var result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth());
 
         var januaryTotal = result.monthlyEvolution().stream()
             .filter(m -> m.yearMonth().equals("2026-01")).findFirst().orElseThrow();
@@ -74,7 +75,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period);
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth());
 
         var januaryTotal = result.monthlyEvolution().stream()
             .filter(m -> m.yearMonth().equals("2026-01")).findFirst().orElseThrow();
@@ -90,7 +91,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(List.of());
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 3, period);
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 3, period.atDay(1), period.atEndOfMonth());
 
         assertThat(result.monthlyEvolution()).extracting("yearMonth")
             .containsExactly("2026-01", "2026-02", "2026-03");
@@ -107,7 +108,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period);
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth());
 
         assertThat(result.categoryBreakdown()).hasSize(1);
         assertThat(result.categoryBreakdown().get(0).categoryId()).isNull();
@@ -125,9 +126,44 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period);
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth());
 
         assertThat(result.totalProAbsorbe()).isEqualByComparingTo("30");
+    }
+
+    @Test
+    void getDashboard_yearRangeAggregatesBreakdownAcrossAllTwelveMonths() {
+        LocalDate periodStart = LocalDate.of(2026, 1, 1);
+        LocalDate periodEnd = LocalDate.of(2026, 12, 31);
+        List<Transaction> window = List.of(
+            expense(LocalDate.of(2026, 1, 5), new BigDecimal("-25"), ProStatus.PERSO, null),
+            expense(LocalDate.of(2026, 7, 15), new BigDecimal("-40"), ProStatus.PERSO, null),
+            expense(LocalDate.of(2025, 12, 20), new BigDecimal("-999"), ProStatus.PERSO, null) // just before the year, excluded
+        );
+        when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, periodStart, periodEnd))
+            .thenReturn(window);
+        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 12, periodStart, periodEnd);
+
+        assertThat(result.monthlyEvolution()).hasSize(12);
+        assertThat(result.categoryBreakdown()).hasSize(1);
+        assertThat(result.categoryBreakdown().get(0).total()).isEqualByComparingTo("65");
+    }
+
+    @Test
+    void getDashboard_queriesTheWiderOfEvolutionWindowAndPeriodRange() {
+        // months=1 makes the trailing evolution window narrower than the requested year
+        // range -- the repository call must still cover the full period, not just the window.
+        LocalDate periodStart = LocalDate.of(2026, 1, 1);
+        LocalDate periodEnd = LocalDate.of(2026, 12, 31);
+        when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, periodStart, periodEnd))
+            .thenReturn(List.of());
+        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+
+        expenseDashboardService.getDashboard(10L, 1, periodStart, periodEnd);
+
+        verify(transactionRepository).findByAccount_Member_IdAndDateBetween(10L, periodStart, periodEnd);
     }
 
     @Test
@@ -141,7 +177,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of(restauration));
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period);
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth());
 
         assertThat(result.categoryBreakdown().get(0).categoryName()).isEqualTo("Restauration");
         assertThat(result.categoryBreakdown().get(0).categoryColor()).isEqualTo("#f97316");

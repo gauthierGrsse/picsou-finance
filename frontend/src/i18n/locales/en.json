@@ -155,6 +155,10 @@
     "neverSynced": "Never synced",
     "holdings": "Holdings",
     "transactions": "Transactions",
+    "filterHideInternal": "Hide internal transfers",
+    "filterAllStatuses": "All statuses",
+    "filterAllCategories": "All categories",
+    "filterUncategorized": "Uncategorized",
     "addTransaction": "Add transaction",
     "editTransaction": "Edit transaction",
     "transactionDate": "Date",
@@ -1537,10 +1541,15 @@
     "noExpenses": "No expenses for this period.",
     "uncategorized": "Uncategorized",
     "totalPeriodLabel": "Total this month",
+    "totalPeriodYearLabel": "Total this year",
     "totalProAbsorbeLabel": "Absorbed business expenses",
     "pendingReimbursementsTitle": "Pending reimbursements",
     "totalOwedLabel": "Total owed",
-    "linkedReimbursementsTitle": "Linked reimbursements"
+    "linkedReimbursementsTitle": "Linked reimbursements",
+    "period": {
+      "month": "Month",
+      "year": "Year"
+    }
   },
   "internalTransfers": {
     "suggestedTitle": "Suggested internal transfers",

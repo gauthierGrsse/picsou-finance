@@ -155,6 +155,10 @@
     "neverSynced": "Jamais synchronisé",
     "holdings": "Positions",
     "transactions": "Transactions",
+    "filterHideInternal": "Masquer les virements internes",
+    "filterAllStatuses": "Tous les statuts",
+    "filterAllCategories": "Toutes les catégories",
+    "filterUncategorized": "Non catégorisé",
     "addTransaction": "Ajouter une transaction",
     "editTransaction": "Modifier la transaction",
     "transactionDate": "Date",
@@ -1537,10 +1541,15 @@
     "noExpenses": "Aucune dépense sur cette période.",
     "uncategorized": "Non catégorisé",
     "totalPeriodLabel": "Total ce mois-ci",
+    "totalPeriodYearLabel": "Total cette année",
     "totalProAbsorbeLabel": "Pro absorbé",
     "pendingReimbursementsTitle": "Remboursements en attente",
     "totalOwedLabel": "Total dû",
-    "linkedReimbursementsTitle": "Remboursements liés"
+    "linkedReimbursementsTitle": "Remboursements liés",
+    "period": {
+      "month": "Mois",
+      "year": "Année"
+    }
   },
   "internalTransfers": {
     "suggestedTitle": "Virements internes suggérés",
