@@ -19,6 +19,14 @@ export function useSuggestedTransfers() {
   })
 }
 
+export function useTransferCandidates() {
+  return useQuery({
+    queryKey: ['transfers', 'candidates'],
+    queryFn: () => internalTransfersApi.candidates(),
+    staleTime: QUERY_STALE_TIMES.internalTransfers,
+  })
+}
+
 export function useConfirmTransferLink() {
   const queryClient = useQueryClient()
   return useMutation({

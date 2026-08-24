@@ -1,6 +1,7 @@
 package com.picsou.controller;
 
 import com.picsou.dto.SuggestedTransferPairResponse;
+import com.picsou.dto.TransactionResponse;
 import com.picsou.dto.TransferLinkRequest;
 import com.picsou.service.InternalTransferService;
 import com.picsou.service.UserContext;
@@ -31,6 +32,17 @@ class InternalTransferControllerTest {
         when(internalTransferService.findSuggestions(10L)).thenReturn(expected);
 
         List<SuggestedTransferPairResponse> actual = controller.findSuggestions();
+
+        assertThat(actual).isSameAs(expected);
+    }
+
+    @Test
+    void findCandidates_usesMemberIdFromUserContext() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+        List<TransactionResponse> expected = List.of();
+        when(internalTransferService.findCandidates(10L)).thenReturn(expected);
+
+        List<TransactionResponse> actual = controller.findCandidates();
 
         assertThat(actual).isSameAs(expected);
     }

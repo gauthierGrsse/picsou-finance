@@ -110,6 +110,23 @@ class InternalTransferServiceTest {
         assertThat(linked).isZero();
     }
 
+    // ─── findCandidates ─────────────────────────────────────────────────────
+
+    @Test
+    void findCandidates_returnsUnclassifiedUnlinkedPoolSortedByDateDescending() {
+        Account accountA = account(1L);
+        Account accountB = account(2L);
+        Transaction older = tx(10L, accountA, LocalDate.of(2026, 8, 1), new BigDecimal("-40.00"), null);
+        Transaction newer = tx(20L, accountB, LocalDate.of(2026, 8, 20), new BigDecimal("40.00"), null);
+
+        when(transactionRepository.findByAccount_Member_IdAndProStatusAndLinkedTransactionIdIsNull(10L, ProStatus.NON_CLASSE))
+            .thenReturn(List.of(older, newer));
+
+        List<com.picsou.dto.TransactionResponse> candidates = internalTransferService.findCandidates(10L);
+
+        assertThat(candidates).extracting(com.picsou.dto.TransactionResponse::id).containsExactly(20L, 10L);
+    }
+
     // ─── findSuggestions ────────────────────────────────────────────────────
 
     @Test

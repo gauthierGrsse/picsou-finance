@@ -1,6 +1,7 @@
 package com.picsou.controller;
 
 import com.picsou.dto.SuggestedTransferPairResponse;
+import com.picsou.dto.TransactionResponse;
 import com.picsou.dto.TransferLinkRequest;
 import com.picsou.service.InternalTransferService;
 import com.picsou.service.UserContext;
@@ -27,6 +28,12 @@ public class InternalTransferController {
     @GetMapping("/suggested")
     public List<SuggestedTransferPairResponse> findSuggestions() {
         return internalTransferService.findSuggestions(userContext.currentMemberId());
+    }
+
+    /** Full unclassified/unlinked pool, for manually picking a counterpart to link. */
+    @GetMapping("/candidates")
+    public List<TransactionResponse> findCandidates() {
+        return internalTransferService.findCandidates(userContext.currentMemberId());
     }
 
     @PostMapping("/link")

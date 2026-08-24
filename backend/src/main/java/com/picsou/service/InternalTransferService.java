@@ -86,6 +86,19 @@ public class InternalTransferService {
     }
 
     /**
+     * The full unclassified, unlinked pool for manual linking -- e.g. a wire to a
+     * brokerage account that settles too late for {@link #findSuggestions}'s date window
+     * to catch. The frontend narrows this to opposite-amount matches for the one
+     * transaction the user is linking from; {@link #confirmLink} re-validates regardless.
+     */
+    public List<TransactionResponse> findCandidates(Long memberId) {
+        return unclassifiedUnlinkedPool(memberId).stream()
+            .sorted(Comparator.comparing(Transaction::getDate).reversed())
+            .map(TransactionResponse::from)
+            .toList();
+    }
+
+    /**
      * Same-amount, opposite-sign pairs across different accounts within
      * {@link #SUGGESTION_WINDOW_DAYS} days that {@link #autoLinkByReference} could not
      * already resolve (no shared reference) -- left for the user to confirm.

@@ -1546,6 +1546,10 @@
     "suggestedTitle": "Vorgeschlagene interne Überweisungen",
     "loading": "Wird geladen…",
     "empty": "Keine vorgeschlagenen Überweisungen.",
-    "confirm": "Bestätigen"
+    "confirm": "Bestätigen",
+    "linkTitle": "Als interne Überweisung verknüpfen",
+    "counterpartLabel": "Entsprechende Transaktion",
+    "counterpartPlaceholder": "Transaktion wählen…",
+    "noCandidates": "Keine passende Transaktion auf einem anderen Konto gefunden."
   }
 }

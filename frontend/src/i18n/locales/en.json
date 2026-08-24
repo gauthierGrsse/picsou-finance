@@ -1546,6 +1546,10 @@
     "suggestedTitle": "Suggested internal transfers",
     "loading": "Loading…",
     "empty": "No suggested transfers.",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "linkTitle": "Link as internal transfer",
+    "counterpartLabel": "Counterpart transaction",
+    "counterpartPlaceholder": "Choose a transaction…",
+    "noCandidates": "No matching transaction found on another account."
   }
 }

@@ -1546,6 +1546,10 @@
     "suggestedTitle": "Transferencias internas sugeridas",
     "loading": "Cargando…",
     "empty": "No hay transferencias sugeridas.",
-    "confirm": "Confirmar"
+    "confirm": "Confirmar",
+    "linkTitle": "Vincular como transferencia interna",
+    "counterpartLabel": "Transacción correspondiente",
+    "counterpartPlaceholder": "Elegir una transacción…",
+    "noCandidates": "No se encontró ninguna transacción correspondiente en otra cuenta."
   }
 }

@@ -1546,6 +1546,10 @@
     "suggestedTitle": "Virements internes suggérés",
     "loading": "Chargement…",
     "empty": "Aucun virement suggéré.",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "linkTitle": "Lier comme virement interne",
+    "counterpartLabel": "Transaction correspondante",
+    "counterpartPlaceholder": "Choisir une transaction…",
+    "noCandidates": "Aucune transaction correspondante trouvée sur un autre compte."
   }
 }

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Trash2, Pencil, Tags, Unlink } from 'lucide-react'
+import { Trash2, Pencil, Tags, Unlink, ArrowLeftRight } from 'lucide-react'
 import { cn, localeFromLanguage } from '@/lib/utils'
 
 interface TransactionsListProps {
@@ -17,10 +17,11 @@ interface TransactionsListProps {
   onEdit?: (tx: Transaction) => void
   onClassify?: (tx: Transaction) => void
   onUnlinkTransfer?: (txId: number) => void
+  onLinkTransfer?: (tx: Transaction) => void
   categories?: ExpenseCategory[]
 }
 
-export function TransactionsList({ transactions, onDelete, onEdit, onClassify, onUnlinkTransfer, categories = [] }: TransactionsListProps) {
+export function TransactionsList({ transactions, onDelete, onEdit, onClassify, onUnlinkTransfer, onLinkTransfer, categories = [] }: TransactionsListProps) {
   const { t, i18n } = useTranslation()
   const [search, setSearch] = useState('')
   const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
@@ -98,6 +99,16 @@ export function TransactionsList({ transactions, onDelete, onEdit, onClassify, o
                         onClick={() => onClassify(tr)}
                       >
                         <Tags className="size-4" />
+                      </Button>
+                    )}
+                    {onLinkTransfer && tr.proStatus === 'NON_CLASSE' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => onLinkTransfer(tr)}
+                      >
+                        <ArrowLeftRight className="size-4" />
                       </Button>
                     )}
                     {onUnlinkTransfer && tr.proStatus === 'VIREMENT_INTERNE' && (

@@ -17,6 +17,7 @@ import { RealizedPnlSection } from '@/components/shared/RealizedPnlSection'
 import { TransactionsList } from '@/components/shared/TransactionsList'
 import { AddTransactionModal } from '@/components/shared/AddTransactionModal'
 import { TransactionClassificationModal } from '@/components/shared/TransactionClassificationModal'
+import { InternalTransferLinkModal } from '@/components/shared/InternalTransferLinkModal'
 import { ImportTransactionsModal } from '@/components/shared/ImportTransactionsModal'
 import { EditHoldingModal } from '@/components/shared/EditHoldingModal'
 import { MonthEndBalanceModal } from '@/components/shared/MonthEndBalanceModal'
@@ -62,6 +63,7 @@ export function AccountDetailPage() {
   const [showImport, setShowImport] = useState(false)
   const [editingTx, setEditingTx] = useState<Transaction | null>(null)
   const [classifyingTx, setClassifyingTx] = useState<Transaction | null>(null)
+  const [linkingTransferTx, setLinkingTransferTx] = useState<Transaction | null>(null)
   const [editingHolding, setEditingHolding] = useState<HoldingResponse | null>(null)
   const [range, setRange] = useState<TimeRange>('1Y')
 
@@ -244,6 +246,7 @@ export function AccountDetailPage() {
             onEdit={(tx) => setEditingTx(tx)}
             onClassify={(tx) => setClassifyingTx(tx)}
             onUnlinkTransfer={(txId) => unlinkTransferMutation.mutate(txId)}
+            onLinkTransfer={(tx) => setLinkingTransferTx(tx)}
             categories={categories}
           />
         </>
@@ -336,6 +339,12 @@ export function AccountDetailPage() {
           setClassifyingTx(null)
         }}
         isLoading={classifyTxMutation.isPending}
+      />
+
+      {/* Link internal transfer modal */}
+      <InternalTransferLinkModal
+        transaction={linkingTransferTx}
+        onOpenChange={(open) => { if (!open) setLinkingTransferTx(null) }}
       />
 
       {/* Edit Holding modal */}
