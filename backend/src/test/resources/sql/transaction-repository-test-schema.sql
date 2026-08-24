@@ -53,5 +53,6 @@ CREATE TABLE transaction (
     pro_status           VARCHAR(20) NOT NULL DEFAULT 'NON_CLASSE',
     expense_category_id  BIGINT,
     reimbursement_status VARCHAR(20),
-    reimbursement_id     BIGINT
+    reimbursement_id     BIGINT,
+    external_transaction_id VARCHAR(100)
 );

@@ -17,7 +17,9 @@ Picsou syncs bank accounts from Enable Banking's ~29-country EEA coverage — ba
 
 ### Provider architecture
 
-Both providers implement the `BankConnectorPort` interface with five operations: `initiateConnection`, `exchangeCode`, `fetchBalances`, `searchInstitutions`, and `listCountries`. The service layer (`SyncService`) never imports adapters directly -- it depends only on the port.
+Both providers implement the `BankConnectorPort` interface with six operations: `initiateConnection`, `exchangeCode`, `fetchBalances`, `fetchTransactions`, `searchInstitutions`, and `listCountries`. The service layer (`SyncService`) never imports adapters directly -- it depends only on the port.
+
+`fetchTransactions` is Enable Banking-only for now -- Powens returns an empty list (it ships disabled and untested end-to-end; see its own class doc). Enable Banking transactions are deduped by `entry_reference`/`transaction_id` (falling back to a content hash when the provider supplies neither) stored as `transaction.external_transaction_id`, unique per account. Only `BOOK` (booked, not pending) transactions are fetched. Date range: 90 days back on an account's first-ever transaction sync, a 7-day trailing window on every sync after that -- the overlap is what catches a transaction that was still pending on the previous sync and has since booked.
 
 **Enable Banking** (`EnableBankingBankConnector`): Uses the PSD2 Bank Account Data API. Auth is JWT-based (RS256 signed with an RSA private key). Sessions are created via OAuth redirect. After the user authorizes, accounts are linked asynchronously and polled up to 3 times with 1.5-second delays (≤ 4.5 s total). If the session still has no accounts, the adapter returns an empty list rather than throwing; `SyncService` keeps the requisition in `FAILED` so the user can retry from the UI without losing the session id. The previous 24 s blocking poll caused 502 errors at the reverse proxy.
 
@@ -133,6 +135,12 @@ SyncController.complete() --> SyncService.completeConnection()
         |                         |
         |                         v
         |               AccountService.upsertSnapshot()
+        |                         |
+        |                         v
+        |               SyncService.syncTransactions() [swallows its own failures]
+        |                         |
+        |                         v
+        |               BankConnectorPort.fetchTransactions(session_id, account_id, from, to)
         |
         v
 SchedulerService.dailyBankSync() --> SyncService.resyncAll()

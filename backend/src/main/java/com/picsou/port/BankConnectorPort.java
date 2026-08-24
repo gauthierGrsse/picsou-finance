@@ -1,6 +1,7 @@
 package com.picsou.port;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -26,6 +27,13 @@ public interface BankConnectorPort {
 
     /** Fetch balances for all accounts linked to this session. */
     List<AccountData> fetchBalances(String sessionId);
+
+    /**
+     * Fetch booked transactions for one account, {@code dateFrom}-{@code dateTo} inclusive.
+     * Providers that don't yet support this return an empty list rather than throwing --
+     * balance sync must keep working even where transaction history isn't available.
+     */
+    List<TransactionData> fetchTransactions(String sessionId, String accountExternalId, LocalDate dateFrom, LocalDate dateTo);
 
     /** Search institutions by name/country. */
     List<InstitutionData> searchInstitutions(String query, String country);
@@ -70,6 +78,21 @@ public interface BankConnectorPort {
         String iban,
         String currency,
         BigDecimal balance
+    ) {}
+
+    /**
+     * @param externalId provider-assigned id, stable across repeated fetches of the same
+     *                    entry -- used to dedupe on resync. Never null: a provider with no
+     *                    stable id of its own must synthesize one (e.g. from date+amount+
+     *                    description) rather than return one that can't be deduped.
+     * @param amount      signed: positive = credit, negative = debit.
+     */
+    record TransactionData(
+        String externalId,
+        LocalDate date,
+        String description,
+        BigDecimal amount,
+        String currency
     ) {}
 
     /**

@@ -8,6 +8,7 @@ import com.picsou.port.BankConnectorPort;
 import com.picsou.repository.AccountRepository;
 import com.picsou.repository.FamilyMemberRepository;
 import com.picsou.repository.RequisitionRepository;
+import com.picsou.repository.TransactionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,8 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -32,6 +35,7 @@ public class SyncService {
     private final AccountService accountService;
     private final RequisitionLifecycleWriter requisitionLifecycleWriter;
     private final BankLogoResolver bankLogoResolver;
+    private final TransactionRepository transactionRepository;
 
     public SyncService(
         BankConnectorPort bankConnector,
@@ -40,7 +44,8 @@ public class SyncService {
         FamilyMemberRepository familyMemberRepository,
         AccountService accountService,
         RequisitionLifecycleWriter requisitionLifecycleWriter,
-        BankLogoResolver bankLogoResolver
+        BankLogoResolver bankLogoResolver,
+        TransactionRepository transactionRepository
     ) {
         this.bankConnector = bankConnector;
         this.accountRepository = accountRepository;
@@ -49,6 +54,7 @@ public class SyncService {
         this.accountService = accountService;
         this.requisitionLifecycleWriter = requisitionLifecycleWriter;
         this.bankLogoResolver = bankLogoResolver;
+        this.transactionRepository = transactionRepository;
     }
 
     /** Step 1: Initiate Enable Banking bank connection for a given institution. */
@@ -118,7 +124,7 @@ public class SyncService {
             FamilyMember member = requisition.getMember();
 
             List<AccountResponse> responses = accountDataList.stream()
-                .map(data -> upsertAccount(data, requisition, member))
+                .map(data -> upsertAccount(data, requisition, member, sessionId))
                 .flatMap(Optional::stream)
                 .toList();
 
@@ -190,7 +196,7 @@ public class SyncService {
         FamilyMember member = req.getMember();
 
         List<AccountResponse> responses = accountDataList.stream()
-            .map(data -> upsertAccount(data, req, member))
+            .map(data -> upsertAccount(data, req, member, req.getRequisitionId()))
             .flatMap(Optional::stream)
             .toList();
 
@@ -271,7 +277,7 @@ public class SyncService {
                     continue;
                 }
                 FamilyMember member = req.getMember();
-                accounts.forEach(data -> upsertAccount(data, req, member));
+                accounts.forEach(data -> upsertAccount(data, req, member, req.getRequisitionId()));
                 req.setLastSyncedAt(Instant.now());
                 requisitionRepository.save(req);
                 log.info("Auto-resync OK for {}: {} accounts", req.getInstitutionName(), accounts.size());
@@ -326,7 +332,7 @@ public class SyncService {
             return List.of();
         }
         List<AccountResponse> responses = accountDataList.stream()
-            .map(data -> upsertAccount(data, req, member))
+            .map(data -> upsertAccount(data, req, member, req.getRequisitionId()))
             .flatMap(Optional::stream)
             .toList();
         req.setLastSyncedAt(Instant.now());
@@ -397,7 +403,9 @@ public class SyncService {
      * by the user — we must not resurrect it on the next sync. The bank may keep
      * returning the same external id forever; that's not consent to bring it back.
      */
-    private Optional<AccountResponse> upsertAccount(BankConnectorPort.AccountData data, Requisition requisition, FamilyMember member) {
+    private Optional<AccountResponse> upsertAccount(
+        BankConnectorPort.AccountData data, Requisition requisition, FamilyMember member, String sessionId
+    ) {
         Optional<Account> existing = accountRepository
             .findByExternalAccountIdAndMemberId(data.externalId(), member.getId());
 
@@ -438,8 +446,65 @@ public class SyncService {
 
         account = accountRepository.save(account);
         accountService.upsertSnapshot(account, data.balance(), LocalDate.now());
+        syncTransactions(account, requisition, data.externalId(), sessionId);
 
         return Optional.of(accountService.toResponse(account));
+    }
+
+    /**
+     * Fetches and upserts booked transactions for one account. Failures here are logged
+     * and swallowed, never thrown: balances have already been saved by the time this
+     * runs, and a transaction-fetch hiccup (provider doesn't support it, a transient
+     * error) must not flip a healthy requisition to FAILED over data that's secondary
+     * to the balance itself.
+     *
+     * <p>Date range: 90 days back on an account's first-ever transaction sync (no
+     * external-id rows yet -- lastSyncedAt already gets set by plain balance syncs, so
+     * it can't tell "never transaction-synced" from "synced ten minutes ago"), otherwise
+     * a 7-day trailing window on every sync after that. The overlap is deliberate and
+     * cheap: re-fetched transactions just no-op against the dedup set, and it's what
+     * catches a transaction that was still PDNG (excluded) on the last sync and has
+     * since booked under the same entry_reference.
+     *
+     * <p>{@code sessionId} is passed explicitly rather than read off {@code requisition}:
+     * in {@code completeConnection}, {@code requisition.setRequisitionId(sessionId)} only
+     * happens *after* this runs (the in-memory entity is stale until every upsert
+     * succeeds), so reading it here would send the pre-exchange id instead of the live
+     * session.
+     */
+    private void syncTransactions(Account account, Requisition requisition, String accountExternalId, String sessionId) {
+        try {
+            Set<String> existingIds = new HashSet<>(
+                transactionRepository.findExternalTransactionIdsByAccountId(account.getId()));
+
+            LocalDate today = LocalDate.now();
+            LocalDate dateFrom = existingIds.isEmpty() ? today.minusDays(90) : today.minusDays(7);
+
+            List<BankConnectorPort.TransactionData> fetched = bankConnector.fetchTransactions(
+                sessionId, accountExternalId, dateFrom, today);
+
+            List<Transaction> toSave = fetched.stream()
+                .filter(t -> !existingIds.contains(t.externalId()))
+                .map(t -> Transaction.builder()
+                    .account(account)
+                    .date(t.date())
+                    .description(t.description())
+                    .amount(t.amount())
+                    .nativeCurrency(t.currency() != null ? t.currency() : account.getCurrency())
+                    .isManual(false)
+                    .externalTransactionId(t.externalId())
+                    .build())
+                .toList();
+
+            if (!toSave.isEmpty()) {
+                transactionRepository.saveAll(toSave);
+                log.info("Saved {} new transactions for account {} ({})",
+                    toSave.size(), account.getId(), requisition.getInstitutionName());
+            }
+        } catch (Exception ex) {
+            log.warn("Transaction sync failed for account {} ({}): {}",
+                account.getId(), requisition.getInstitutionName(), ex.getMessage());
+        }
     }
 
     public record InitiateResponse(String requisitionId, String authLink) {}

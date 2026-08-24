@@ -163,6 +163,19 @@ public class PowensBankConnector implements BankConnectorPort {
             .toList();
     }
 
+    /**
+     * Not implemented. Powens ships disabled ({@code @ConditionalOnExpression} above,
+     * never {@code @Primary}) and untested end-to-end -- adding transaction fetching here
+     * before the balance path itself has seen real traffic would be building on an
+     * unverified foundation. Returns empty rather than throwing so a sync that does reach
+     * this adapter still succeeds on balances.
+     */
+    @Override
+    public List<TransactionData> fetchTransactions(String sessionId, String accountExternalId, java.time.LocalDate dateFrom, java.time.LocalDate dateTo) {
+        log.info("Powens transaction fetch not implemented -- skipping");
+        return List.of();
+    }
+
     /** Searches Powens connectors (banks) by name and country. */
     @Override
     public List<InstitutionData> searchInstitutions(String query, String country) {

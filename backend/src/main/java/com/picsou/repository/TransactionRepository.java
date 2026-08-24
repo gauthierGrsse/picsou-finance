@@ -20,6 +20,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     Optional<Transaction> findByIdAndAccountId(Long id, Long accountId);
 
+    /** Provider ids already stored for this account, to dedupe an incoming sync batch
+     * in memory rather than one exists-query per fetched transaction. */
+    @Query("SELECT t.externalTransactionId FROM Transaction t "
+        + "WHERE t.account.id = :accountId AND t.externalTransactionId IS NOT NULL")
+    List<String> findExternalTransactionIdsByAccountId(@Param("accountId") Long accountId);
+
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.account.id = :accountId")
     BigDecimal sumAmountByAccountId(@Param("accountId") Long accountId);
 

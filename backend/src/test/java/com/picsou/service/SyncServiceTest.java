@@ -5,12 +5,15 @@ import com.picsou.model.Account;
 import com.picsou.model.FamilyMember;
 import com.picsou.model.Requisition;
 import com.picsou.model.RequisitionStatus;
+import com.picsou.model.Transaction;
 import com.picsou.port.BankConnectorPort;
 import com.picsou.port.BankConnectorPort.AccountData;
 import com.picsou.port.BankConnectorPort.InstitutionData;
+import com.picsou.port.BankConnectorPort.TransactionData;
 import com.picsou.repository.AccountRepository;
 import com.picsou.repository.FamilyMemberRepository;
 import com.picsou.repository.RequisitionRepository;
+import com.picsou.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,11 +23,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -39,6 +44,7 @@ class SyncServiceTest {
     @Mock FamilyMemberRepository familyMemberRepository;
     @Mock AccountService accountService;
     @Mock RequisitionLifecycleWriter requisitionLifecycleWriter;
+    @Mock TransactionRepository transactionRepository;
 
     SyncService syncService;
 
@@ -56,7 +62,8 @@ class SyncServiceTest {
             familyMemberRepository,
             accountService,
             requisitionLifecycleWriter,
-            new BankLogoResolver(bankConnector)
+            new BankLogoResolver(bankConnector),
+            transactionRepository
         );
     }
 
@@ -633,5 +640,110 @@ class SyncServiceTest {
         ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
         verify(accountRepository).save(captor.capture());
         assertThat(captor.getValue().getMember().getId()).isEqualTo(managedMemberId);
+    }
+
+    // ─── Transaction sync (upsertAccount → syncTransactions) ──────────────────
+
+    private void stubAccountUpsert(Long memberId, Long accountId) {
+        Requisition requisition = Requisition.builder()
+            .id(10L)
+            .member(FamilyMember.builder().id(memberId).displayName("Owner").build())
+            .requisitionId("code-123")
+            .institutionId("REVOLUT::FR")
+            .institutionName("Revolut")
+            .status(RequisitionStatus.CREATED)
+            .build();
+        when(requisitionRepository.findByStatusAndMemberIdOrderByCreatedAtDesc(RequisitionStatus.CREATED, memberId))
+            .thenReturn(List.of(requisition));
+        when(bankConnector.exchangeCode("oauth-code")).thenReturn("session-1");
+
+        AccountData accountData = new AccountData("ext-1", "Compte Courant", "FR76...", "EUR", new BigDecimal("100"));
+        when(bankConnector.fetchBalances("session-1")).thenReturn(List.of(accountData));
+        when(accountRepository.findByExternalAccountIdAndMemberId("ext-1", memberId)).thenReturn(Optional.empty());
+        lenient().when(accountRepository.existsSoftDeletedByExternalAccountIdAndMemberId("ext-1", memberId))
+            .thenReturn(false);
+        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> {
+            Account a = inv.getArgument(0);
+            a.setId(accountId);
+            return a;
+        });
+        lenient().when(accountService.toResponse(any(Account.class)))
+            .thenReturn(new AccountResponse(accountId, "Compte Courant", null, "Revolut", "EUR",
+                new BigDecimal("100"), new BigDecimal("100"), null, null, false, "#6366f1", null,
+                null, null, null, null, null, null, null));
+    }
+
+    @Test
+    void completeConnection_firstTransactionSync_usesNinetyDayLookback() {
+        Long memberId = 1L;
+        stubAccountUpsert(memberId, 99L);
+        when(transactionRepository.findExternalTransactionIdsByAccountId(99L)).thenReturn(List.of());
+        when(bankConnector.fetchTransactions(eq("session-1"), eq("ext-1"), any(), any())).thenReturn(List.of());
+
+        syncService.completeConnection("oauth-code", null, memberId);
+
+        ArgumentCaptor<LocalDate> fromCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(bankConnector).fetchTransactions(eq("session-1"), eq("ext-1"), fromCaptor.capture(), eq(LocalDate.now()));
+        assertThat(fromCaptor.getValue()).isEqualTo(LocalDate.now().minusDays(90));
+    }
+
+    @Test
+    void completeConnection_subsequentTransactionSync_usesSevenDayWindow() {
+        Long memberId = 1L;
+        stubAccountUpsert(memberId, 99L);
+        when(transactionRepository.findExternalTransactionIdsByAccountId(99L)).thenReturn(List.of("already-synced-1"));
+        when(bankConnector.fetchTransactions(eq("session-1"), eq("ext-1"), any(), any())).thenReturn(List.of());
+
+        syncService.completeConnection("oauth-code", null, memberId);
+
+        ArgumentCaptor<LocalDate> fromCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(bankConnector).fetchTransactions(eq("session-1"), eq("ext-1"), fromCaptor.capture(), eq(LocalDate.now()));
+        assertThat(fromCaptor.getValue()).isEqualTo(LocalDate.now().minusDays(7));
+    }
+
+    @Test
+    void completeConnection_dedupesAgainstExistingExternalIds() {
+        Long memberId = 1L;
+        stubAccountUpsert(memberId, 99L);
+        when(transactionRepository.findExternalTransactionIdsByAccountId(99L)).thenReturn(List.of("dup-1"));
+        when(bankConnector.fetchTransactions(eq("session-1"), eq("ext-1"), any(), any())).thenReturn(List.of(
+            new TransactionData("dup-1", LocalDate.now(), "Already have this one", new BigDecimal("-5"), "EUR"),
+            new TransactionData("new-1", LocalDate.now(), "Brand new", new BigDecimal("-12"), "EUR")
+        ));
+
+        syncService.completeConnection("oauth-code", null, memberId);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Transaction>> saveCaptor = ArgumentCaptor.forClass(List.class);
+        verify(transactionRepository).saveAll(saveCaptor.capture());
+        assertThat(saveCaptor.getValue()).hasSize(1);
+        assertThat(saveCaptor.getValue().get(0).getExternalTransactionId()).isEqualTo("new-1");
+        assertThat(saveCaptor.getValue().get(0).getProStatus()).isEqualTo(com.picsou.model.ProStatus.NON_CLASSE);
+    }
+
+    @Test
+    void completeConnection_transactionFetchFailure_doesNotFailTheSync() {
+        Long memberId = 1L;
+        stubAccountUpsert(memberId, 99L);
+        when(transactionRepository.findExternalTransactionIdsByAccountId(99L)).thenReturn(List.of());
+        when(bankConnector.fetchTransactions(eq("session-1"), eq("ext-1"), any(), any()))
+            .thenThrow(new RuntimeException("Enable Banking transactions endpoint unavailable"));
+
+        List<AccountResponse> responses = syncService.completeConnection("oauth-code", null, memberId);
+
+        assertThat(responses).hasSize(1);
+        verify(transactionRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void completeConnection_noNewTransactions_doesNotCallSaveAll() {
+        Long memberId = 1L;
+        stubAccountUpsert(memberId, 99L);
+        when(transactionRepository.findExternalTransactionIdsByAccountId(99L)).thenReturn(List.of());
+        when(bankConnector.fetchTransactions(eq("session-1"), eq("ext-1"), any(), any())).thenReturn(List.of());
+
+        syncService.completeConnection("oauth-code", null, memberId);
+
+        verify(transactionRepository, never()).saveAll(any());
     }
 }

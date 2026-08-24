@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.security.PrivateKey;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -175,6 +176,116 @@ public class EnableBankingBankConnector implements BankConnectorPort {
         return accounts.stream()
             .map(accountId -> fetchAccountData(accountId))
             .toList();
+    }
+
+    /**
+     * Only {@code BOOK} (booked) transactions -- pending ones can still change or
+     * disappear before they're booked, and re-fetching them under a changed
+     * {@code entry_reference} would otherwise risk a duplicate row once booked.
+     * Pages via {@code continuation_key} until the provider stops returning one.
+     */
+    @Override
+    public List<TransactionData> fetchTransactions(
+        String sessionId, String accountExternalId, LocalDate dateFrom, LocalDate dateTo
+    ) {
+        List<TransactionData> results = new java.util.ArrayList<>();
+        String continuationKey = null;
+        int page = 0;
+        int maxPages = 50; // safety bound: a runaway continuation_key loop must not hang a sync forever
+
+        do {
+            String finalContinuationKey = continuationKey;
+            TransactionsResponse response = mapToSyncException(
+                webClient.get()
+                    .uri(uriBuilder -> {
+                        var b = uriBuilder.path("/accounts/{id}/transactions")
+                            .queryParam("date_from", dateFrom)
+                            .queryParam("date_to", dateTo)
+                            .queryParam("transaction_status", "BOOK");
+                        if (finalContinuationKey != null) {
+                            b.queryParam("continuation_key", finalContinuationKey);
+                        }
+                        return b.build(accountExternalId);
+                    })
+                    .header("Authorization", "Bearer " + buildJwt())
+                    .retrieve()
+                    .bodyToMono(TransactionsResponse.class)
+                    .timeout(TIMEOUT),
+                "Failed to fetch account transactions")
+                .block();
+
+            if (response == null || response.transactions() == null) break;
+
+            response.transactions().stream()
+                .map(EnableBankingBankConnector::toTransactionData)
+                .filter(java.util.Objects::nonNull)
+                .forEach(results::add);
+
+            continuationKey = response.continuationKey();
+            page++;
+        } while (continuationKey != null && !continuationKey.isBlank() && page < maxPages);
+
+        log.info("Fetched {} transactions for account {} ({} to {})",
+            results.size(), accountExternalId, dateFrom, dateTo);
+        return results;
+    }
+
+    /**
+     * Maps one wire transaction to the port's provider-neutral shape. Package-private and
+     * static so the sign/date/description/id fallback logic is unit-testable without HTTP.
+     *
+     * <p>Returns null (skipped, not thrown) for a transaction with neither a usable id nor
+     * enough fields to synthesize one -- better to drop one malformed entry than fail the
+     * whole sync.
+     */
+    static TransactionData toTransactionData(TransactionItem item) {
+        LocalDate date = item.bookingDate() != null ? item.bookingDate() : item.transactionDate();
+        if (date == null || item.transactionAmount() == null || item.transactionAmount().amount() == null) {
+            return null;
+        }
+
+        BigDecimal amount = new BigDecimal(item.transactionAmount().amount());
+        if ("DBIT".equals(item.creditDebitIndicator())) {
+            amount = amount.negate();
+        }
+
+        String description = describeTransaction(item);
+
+        String externalId = item.entryReference() != null && !item.entryReference().isBlank()
+            ? item.entryReference()
+            : item.transactionId();
+        if (externalId == null || externalId.isBlank()) {
+            // No stable id from the provider: synthesize one from content. Two genuinely
+            // identical transactions on the same day would collide and dedupe into one --
+            // an acceptable trade-off against the alternative (every sync re-duplicating
+            // every such transaction forever).
+            externalId = "synth:" + date + ":" + amount + ":" + description.hashCode();
+        }
+
+        return new TransactionData(
+            externalId,
+            date,
+            description,
+            amount,
+            item.transactionAmount().currency() != null ? item.transactionAmount().currency() : "EUR"
+        );
+    }
+
+    /**
+     * Prefers the bank's own free-text remittance info; falls back to the counterparty
+     * name (whichever side isn't this account) when remittance info is empty, which
+     * Enable Banking allows for card/POS transactions.
+     */
+    private static String describeTransaction(TransactionItem item) {
+        if (item.remittanceInformation() != null && !item.remittanceInformation().isEmpty()) {
+            String joined = String.join(" ", item.remittanceInformation()).trim();
+            if (!joined.isEmpty()) return joined;
+        }
+        boolean isCredit = "CRDT".equals(item.creditDebitIndicator());
+        String counterparty = isCredit
+            ? (item.debtor() != null ? item.debtor().name() : null)
+            : (item.creditor() != null ? item.creditor().name() : null);
+        return counterparty != null && !counterparty.isBlank() ? counterparty : "Transaction";
     }
 
     /**
@@ -519,4 +630,29 @@ public class EnableBankingBankConnector implements BankConnectorPort {
             @com.fasterxml.jackson.annotation.JsonProperty("cash_account_type") String cashAccountType
         ) {}
     }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record TransactionsResponse(
+        List<TransactionItem> transactions,
+        @com.fasterxml.jackson.annotation.JsonProperty("continuation_key") String continuationKey
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record TransactionItem(
+        @com.fasterxml.jackson.annotation.JsonProperty("entry_reference") String entryReference,
+        @com.fasterxml.jackson.annotation.JsonProperty("transaction_id") String transactionId,
+        @com.fasterxml.jackson.annotation.JsonProperty("transaction_date") LocalDate transactionDate,
+        @com.fasterxml.jackson.annotation.JsonProperty("booking_date") LocalDate bookingDate,
+        @com.fasterxml.jackson.annotation.JsonProperty("transaction_amount") TransactionAmount transactionAmount,
+        @com.fasterxml.jackson.annotation.JsonProperty("credit_debit_indicator") String creditDebitIndicator,
+        @com.fasterxml.jackson.annotation.JsonProperty("remittance_information") List<String> remittanceInformation,
+        Party debtor,
+        Party creditor
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record TransactionAmount(String amount, String currency) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record Party(String name) {}
 }

@@ -95,4 +95,10 @@ public class Transaction {
      * {@code TransactionClassificationService}/{@code ReimbursementService}). */
     @Column(name = "reimbursement_id")
     private Long reimbursementId;
+
+    /** Provider-assigned id (Enable Banking's entry_reference/transaction_id), unique per
+     * account. Null for manual/CSV/reimbursement-originated rows. Lets a repeated sync
+     * upsert instead of duplicating rows every time the fetch window overlaps. */
+    @Column(name = "external_transaction_id", length = 100)
+    private String externalTransactionId;
 }
