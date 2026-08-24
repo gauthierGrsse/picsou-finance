@@ -1508,7 +1508,8 @@
     "perso": "Privat",
     "proARembourser": "Geschäftlich (zu erstatten)",
     "proAbsorbe": "Geschäftlich (übernommen)",
-    "nonClasse": "Nicht eingeordnet"
+    "nonClasse": "Nicht eingeordnet",
+    "virementInterne": "Interne Überweisung"
   },
   "classification": {
     "title": "Transaktion einordnen",
@@ -1540,5 +1541,11 @@
     "pendingReimbursementsTitle": "Ausstehende Erstattungen",
     "totalOwedLabel": "Ausstehender Betrag",
     "linkedReimbursementsTitle": "Verknüpfte Erstattungen"
+  },
+  "internalTransfers": {
+    "suggestedTitle": "Vorgeschlagene interne Überweisungen",
+    "loading": "Wird geladen…",
+    "empty": "Keine vorgeschlagenen Überweisungen.",
+    "confirm": "Bestätigen"
   }
 }

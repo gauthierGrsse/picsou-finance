@@ -735,7 +735,7 @@ export interface FinaryAutoSyncResponse {
   newAccountCount: number
 }
 
-export type ProStatus = 'PERSO' | 'PRO_A_REMBOURSER' | 'PRO_ABSORBE' | 'NON_CLASSE'
+export type ProStatus = 'PERSO' | 'PRO_A_REMBOURSER' | 'PRO_ABSORBE' | 'NON_CLASSE' | 'VIREMENT_INTERNE'
 export type ReimbursementStatusType = 'EN_ATTENTE' | 'REMBOURSE'
 
 export interface Transaction {
@@ -814,6 +814,16 @@ export interface ExpenseDashboardResponse {
   monthlyEvolution: MonthlyExpenseTotal[]
   categoryBreakdown: CategoryBreakdownItem[]
   totalProAbsorbe: number
+}
+
+export interface SuggestedTransferPair {
+  a: Transaction
+  b: Transaction
+}
+
+export interface TransferLinkRequest {
+  transactionIdA: number
+  transactionIdB: number
 }
 
 export interface TransactionRequest {

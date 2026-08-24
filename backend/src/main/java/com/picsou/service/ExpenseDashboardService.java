@@ -69,7 +69,7 @@ public class ExpenseDashboardService {
             totals.put(ym, BigDecimal.ZERO);
         }
         for (Transaction t : window) {
-            if (t.getAmount().signum() >= 0) continue;
+            if (t.getAmount().signum() >= 0 || t.getProStatus() == ProStatus.VIREMENT_INTERNE) continue;
             totals.computeIfPresent(YearMonth.from(t.getDate()), (ym, sum) -> sum.add(t.getAmount().abs()));
         }
         return totals.entrySet().stream()
@@ -86,7 +86,7 @@ public class ExpenseDashboardService {
         }
         Map<Key, BigDecimal> totals = new LinkedHashMap<>();
         for (Transaction t : periodTransactions) {
-            if (t.getAmount().signum() >= 0) continue;
+            if (t.getAmount().signum() >= 0 || t.getProStatus() == ProStatus.VIREMENT_INTERNE) continue;
             Key key = new Key(t.getExpenseCategoryId(), t.getProStatus());
             totals.merge(key, t.getAmount().abs(), BigDecimal::add);
         }

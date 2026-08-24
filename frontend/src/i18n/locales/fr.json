@@ -1508,7 +1508,8 @@
     "perso": "Personnel",
     "proARembourser": "Pro à rembourser",
     "proAbsorbe": "Pro absorbé",
-    "nonClasse": "Non classé"
+    "nonClasse": "Non classé",
+    "virementInterne": "Virement interne"
   },
   "classification": {
     "title": "Classer la transaction",
@@ -1540,5 +1541,11 @@
     "pendingReimbursementsTitle": "Remboursements en attente",
     "totalOwedLabel": "Total dû",
     "linkedReimbursementsTitle": "Remboursements liés"
+  },
+  "internalTransfers": {
+    "suggestedTitle": "Virements internes suggérés",
+    "loading": "Chargement…",
+    "empty": "Aucun virement suggéré.",
+    "confirm": "Confirmer"
   }
 }

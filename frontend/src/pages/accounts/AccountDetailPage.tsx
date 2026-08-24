@@ -7,6 +7,7 @@ import {
   useUpdateTransaction, useUpdateTransactionClassification, useUpdateHolding, useDeleteHolding
 } from '@/features/accounts/hooks'
 import { useExpenseCategories } from '@/features/expenseCategories/hooks'
+import { useUnlinkTransfer } from '@/features/internalTransfers/hooks'
 import { useHistory } from '@/features/history/hooks'
 import { BalanceHistoryChart } from '@/components/shared/BalanceHistoryChart'
 import { NetWorthChart } from '@/components/shared/NetWorthChart'
@@ -50,6 +51,7 @@ export function AccountDetailPage() {
   const deleteTxMutation = useDeleteTransaction(accountId)
   const updateTxMutation = useUpdateTransaction(accountId)
   const classifyTxMutation = useUpdateTransactionClassification(accountId)
+  const unlinkTransferMutation = useUnlinkTransfer()
   const updateHoldingMutation = useUpdateHolding(accountId)
   const deleteHoldingMutation = useDeleteHolding(accountId)
   const { data: categories } = useExpenseCategories()
@@ -241,6 +243,7 @@ export function AccountDetailPage() {
             onDelete={(txId) => deleteTxMutation.mutate(txId)}
             onEdit={(tx) => setEditingTx(tx)}
             onClassify={(tx) => setClassifyingTx(tx)}
+            onUnlinkTransfer={(txId) => unlinkTransferMutation.mutate(txId)}
             categories={categories}
           />
         </>

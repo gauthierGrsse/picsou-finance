@@ -44,6 +44,26 @@ class ExpenseDashboardServiceTest {
     }
 
     @Test
+    void getDashboard_excludesInternalTransfersFromEvolutionAndBreakdown() {
+        YearMonth period = YearMonth.of(2026, 1);
+        List<Transaction> window = List.of(
+            expense(LocalDate.of(2026, 1, 5), new BigDecimal("-25"), ProStatus.PERSO, null),
+            expense(LocalDate.of(2026, 1, 6), new BigDecimal("-100"), ProStatus.VIREMENT_INTERNE, null)
+        );
+        when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
+            .thenReturn(window);
+        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+
+        var result = expenseDashboardService.getDashboard(10L, 6, period);
+
+        var januaryTotal = result.monthlyEvolution().stream()
+            .filter(m -> m.yearMonth().equals("2026-01")).findFirst().orElseThrow();
+        assertThat(januaryTotal.total()).isEqualByComparingTo("25");
+        assertThat(result.categoryBreakdown()).hasSize(1);
+        assertThat(result.categoryBreakdown().get(0).proStatus()).isEqualTo(ProStatus.PERSO);
+    }
+
+    @Test
     void getDashboard_excludesCreditsFromEvolutionAndBreakdown() {
         YearMonth period = YearMonth.of(2026, 1);
         List<Transaction> window = List.of(

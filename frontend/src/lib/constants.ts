@@ -1,5 +1,11 @@
 import type { AccountType, ProStatus } from '@/types/api'
 
+/**
+ * Manually assignable via the classification modal. VIREMENT_INTERNE is deliberately
+ * excluded -- it's only ever set as a pair by InternalTransferService (auto-link or
+ * confirmed suggestion), never on a single transaction, so offering it here would let
+ * a user create an unlinked "internal transfer" with no counterpart.
+ */
 export const PRO_STATUS_OPTIONS: { value: ProStatus; labelKey: string }[] = [
   { value: 'NON_CLASSE', labelKey: 'proStatus.nonClasse' },
   { value: 'PERSO', labelKey: 'proStatus.perso' },
@@ -7,9 +13,17 @@ export const PRO_STATUS_OPTIONS: { value: ProStatus; labelKey: string }[] = [
   { value: 'PRO_ABSORBE', labelKey: 'proStatus.proAbsorbe' },
 ]
 
+const PRO_STATUS_LABEL_KEYS: Record<ProStatus, string> = {
+  NON_CLASSE: 'proStatus.nonClasse',
+  PERSO: 'proStatus.perso',
+  PRO_A_REMBOURSER: 'proStatus.proARembourser',
+  PRO_ABSORBE: 'proStatus.proAbsorbe',
+  VIREMENT_INTERNE: 'proStatus.virementInterne',
+}
+
 /** Translation key for a pro_status value's display label. */
 export function proStatusLabelKey(status: ProStatus): string {
-  return PRO_STATUS_OPTIONS.find((s) => s.value === status)?.labelKey ?? 'proStatus.nonClasse'
+  return PRO_STATUS_LABEL_KEYS[status] ?? 'proStatus.nonClasse'
 }
 
 export const ACCOUNT_TYPES: { value: AccountType; labelKey: string }[] = [
@@ -65,6 +79,7 @@ export const QUERY_STALE_TIMES = {
   expenseCategories: 2 * 60 * 1000,
   reimbursements: 60 * 1000,
   expenseDashboard: 5 * 60 * 1000,
+  internalTransfers: 60 * 1000,
 } as const
 
 /**

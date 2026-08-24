@@ -1508,7 +1508,8 @@
     "perso": "Personal",
     "proARembourser": "Profesional (a reembolsar)",
     "proAbsorbe": "Profesional (asumido)",
-    "nonClasse": "Sin clasificar"
+    "nonClasse": "Sin clasificar",
+    "virementInterne": "Transferencia interna"
   },
   "classification": {
     "title": "Clasificar transacción",
@@ -1540,5 +1541,11 @@
     "pendingReimbursementsTitle": "Reembolsos pendientes",
     "totalOwedLabel": "Total adeudado",
     "linkedReimbursementsTitle": "Reembolsos vinculados"
+  },
+  "internalTransfers": {
+    "suggestedTitle": "Transferencias internas sugeridas",
+    "loading": "Cargando…",
+    "empty": "No hay transferencias sugeridas.",
+    "confirm": "Confirmar"
   }
 }

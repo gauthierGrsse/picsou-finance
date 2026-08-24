@@ -45,6 +45,7 @@ class SyncServiceTest {
     @Mock AccountService accountService;
     @Mock RequisitionLifecycleWriter requisitionLifecycleWriter;
     @Mock TransactionRepository transactionRepository;
+    @Mock InternalTransferService internalTransferService;
 
     SyncService syncService;
 
@@ -63,7 +64,8 @@ class SyncServiceTest {
             accountService,
             requisitionLifecycleWriter,
             new BankLogoResolver(bankConnector),
-            transactionRepository
+            transactionRepository,
+            internalTransferService
         );
     }
 

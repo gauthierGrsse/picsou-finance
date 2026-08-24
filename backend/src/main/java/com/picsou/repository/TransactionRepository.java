@@ -74,6 +74,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     Optional<Transaction> findByIdAndAccount_Member_Id(Long id, Long memberId);
 
+    /** Unclassified, unlinked transactions across every account the member owns -- the
+     * candidate pool for internal-transfer matching (both the 100%-sure shared-reference
+     * case and the suggested amount/date-proximity case), fetched once and matched in
+     * memory rather than via a self-join per pair. */
+    List<Transaction> findByAccount_Member_IdAndProStatusAndLinkedTransactionIdIsNull(
+        Long memberId, ProStatus proStatus);
+
     List<Transaction> findByReimbursementId(Long reimbursementId);
 
     List<Transaction> findByAccount_Member_IdAndDateBetween(Long memberId, LocalDate from, LocalDate to);

@@ -8,6 +8,7 @@ import { MonthlyExpenseChart } from '@/components/expenses/MonthlyExpenseChart'
 import { CategoryProStatusBreakdown } from '@/components/expenses/CategoryProStatusBreakdown'
 import { PendingReimbursementsCard } from '@/components/expenses/PendingReimbursementsCard'
 import { ReimbursementsList } from '@/components/shared/ReimbursementsList'
+import { SuggestedTransfersCard } from '@/components/expenses/SuggestedTransfersCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const EVOLUTION_MONTHS = 6
@@ -64,6 +65,16 @@ export function ExpenseDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Suggested internal transfers awaiting confirmation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t('internalTransfers.suggestedTitle')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SuggestedTransfersCard />
+        </CardContent>
+      </Card>
 
       {/* Pending reimbursements */}
       <Card>

@@ -1508,7 +1508,8 @@
     "perso": "Personal",
     "proARembourser": "Business (to be reimbursed)",
     "proAbsorbe": "Business (absorbed)",
-    "nonClasse": "Unclassified"
+    "nonClasse": "Unclassified",
+    "virementInterne": "Internal transfer"
   },
   "classification": {
     "title": "Classify transaction",
@@ -1540,5 +1541,11 @@
     "pendingReimbursementsTitle": "Pending reimbursements",
     "totalOwedLabel": "Total owed",
     "linkedReimbursementsTitle": "Linked reimbursements"
+  },
+  "internalTransfers": {
+    "suggestedTitle": "Suggested internal transfers",
+    "loading": "Loading…",
+    "empty": "No suggested transfers.",
+    "confirm": "Confirm"
   }
 }

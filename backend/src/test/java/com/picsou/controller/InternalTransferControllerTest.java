@@ -1,0 +1,56 @@
+package com.picsou.controller;
+
+import com.picsou.dto.SuggestedTransferPairResponse;
+import com.picsou.dto.TransferLinkRequest;
+import com.picsou.service.InternalTransferService;
+import com.picsou.service.UserContext;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class InternalTransferControllerTest {
+
+    @Mock InternalTransferService internalTransferService;
+    @Mock UserContext userContext;
+
+    @InjectMocks InternalTransferController controller;
+
+    @Test
+    void findSuggestions_usesMemberIdFromUserContext() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+        List<SuggestedTransferPairResponse> expected = List.of();
+        when(internalTransferService.findSuggestions(10L)).thenReturn(expected);
+
+        List<SuggestedTransferPairResponse> actual = controller.findSuggestions();
+
+        assertThat(actual).isSameAs(expected);
+    }
+
+    @Test
+    void confirmLink_delegatesWithMemberId() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+        TransferLinkRequest req = new TransferLinkRequest(1L, 2L);
+
+        controller.confirmLink(req);
+
+        verify(internalTransferService).confirmLink(1L, 2L, 10L);
+    }
+
+    @Test
+    void unlink_delegatesWithMemberId() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+
+        controller.unlink(5L);
+
+        verify(internalTransferService).unlink(5L, 10L);
+    }
+}

@@ -38,6 +38,11 @@ vi.mock('@/features/reimbursements/hooks', () => ({
   useDeleteReimbursement: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, isError: false }),
 }))
 
+vi.mock('@/features/internalTransfers/hooks', () => ({
+  useSuggestedTransfers: () => ({ data: [], isLoading: false }),
+  useConfirmTransferLink: () => ({ mutate: vi.fn(), isPending: false }),
+}))
+
 describe('ExpenseDashboardPage', () => {
   it('renders the total-this-period stat from the latest evolution entry', () => {
     render(<ExpenseDashboardPage />)

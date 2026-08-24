@@ -36,6 +36,7 @@ public class SyncService {
     private final RequisitionLifecycleWriter requisitionLifecycleWriter;
     private final BankLogoResolver bankLogoResolver;
     private final TransactionRepository transactionRepository;
+    private final InternalTransferService internalTransferService;
 
     public SyncService(
         BankConnectorPort bankConnector,
@@ -45,7 +46,8 @@ public class SyncService {
         AccountService accountService,
         RequisitionLifecycleWriter requisitionLifecycleWriter,
         BankLogoResolver bankLogoResolver,
-        TransactionRepository transactionRepository
+        TransactionRepository transactionRepository,
+        InternalTransferService internalTransferService
     ) {
         this.bankConnector = bankConnector;
         this.accountRepository = accountRepository;
@@ -55,6 +57,7 @@ public class SyncService {
         this.requisitionLifecycleWriter = requisitionLifecycleWriter;
         this.bankLogoResolver = bankLogoResolver;
         this.transactionRepository = transactionRepository;
+        this.internalTransferService = internalTransferService;
     }
 
     /** Step 1: Initiate Enable Banking bank connection for a given institution. */
@@ -500,6 +503,10 @@ public class SyncService {
                 transactionRepository.saveAll(toSave);
                 log.info("Saved {} new transactions for account {} ({})",
                     toSave.size(), account.getId(), requisition.getInstitutionName());
+                // Self-healing regardless of which of the member's accounts syncs first:
+                // a pair only links once both legs exist in the unclassified pool, so this
+                // is a safe no-op until the second leg's account has its turn.
+                internalTransferService.autoLinkByReference(account.getMember().getId());
             }
         } catch (Exception ex) {
             log.warn("Transaction sync failed for account {} ({}): {}",

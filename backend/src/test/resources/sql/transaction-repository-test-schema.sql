@@ -54,5 +54,6 @@ CREATE TABLE transaction (
     expense_category_id  BIGINT,
     reimbursement_status VARCHAR(20),
     reimbursement_id     BIGINT,
-    external_transaction_id VARCHAR(100)
+    external_transaction_id VARCHAR(100),
+    linked_transaction_id   BIGINT
 );

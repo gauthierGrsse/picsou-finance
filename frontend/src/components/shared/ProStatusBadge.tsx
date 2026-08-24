@@ -8,6 +8,7 @@ const VARIANT: Record<ProStatus, 'secondary' | 'outline'> = {
   PERSO: 'secondary',
   PRO_A_REMBOURSER: 'secondary',
   PRO_ABSORBE: 'secondary',
+  VIREMENT_INTERNE: 'outline',
 }
 
 interface ProStatusBadgeProps {

@@ -101,4 +101,10 @@ public class Transaction {
      * upsert instead of duplicating rows every time the fetch window overlaps. */
     @Column(name = "external_transaction_id", length = 100)
     private String externalTransactionId;
+
+    /** Symmetric self-reference to the other leg of an internal transfer (both rows point
+     * at each other) once {@link #proStatus} is {@code VIREMENT_INTERNE}. Plain id, same
+     * reasoning as {@link #expenseCategoryId}. */
+    @Column(name = "linked_transaction_id")
+    private Long linkedTransactionId;
 }
