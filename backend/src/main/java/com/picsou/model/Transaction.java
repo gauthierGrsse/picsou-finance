@@ -71,4 +71,28 @@ public class Transaction {
     /** Broker/transaction fees. Null (no fee recorded) is treated as zero downstream. */
     @Column(name = "fees", precision = 20, scale = 8)
     private BigDecimal fees;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pro_status", nullable = false, length = 20)
+    @Builder.Default
+    private ProStatus proStatus = ProStatus.NON_CLASSE;
+
+    /**
+     * Plain id, not {@code @ManyToOne}: mirrors {@link Account#requisitionId} — nothing needs to
+     * navigate to the category from here, and the association would drag a lazy proxy through
+     * every transaction read for a column most reads don't consult. Resolved to a name/color by
+     * the frontend, which caches the small per-member category list separately.
+     */
+    @Column(name = "expense_category_id")
+    private Long expenseCategoryId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reimbursement_status", length = 20)
+    private ReimbursementStatus reimbursementStatus;
+
+    /** Plain id, same reasoning as {@link #expenseCategoryId}. Set only while {@link #proStatus}
+     * is {@code PRO_A_REMBOURSER} (enforced by a DB CHECK constraint and by
+     * {@code TransactionClassificationService}/{@code ReimbursementService}). */
+    @Column(name = "reimbursement_id")
+    private Long reimbursementId;
 }

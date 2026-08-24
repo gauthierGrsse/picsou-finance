@@ -1,8 +1,11 @@
 package com.picsou.repository;
 
+import com.picsou.model.ProStatus;
+import com.picsou.model.ReimbursementStatus;
 import com.picsou.model.Transaction;
 import com.picsou.model.TransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -62,4 +65,31 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT DISTINCT t.account.id FROM Transaction t "
         + "WHERE t.isManual = true AND t.account.isManual = true AND t.ticker IN :tickers")
     List<Long> findManualAccountIdsByTickerIn(@Param("tickers") Collection<String> tickers);
+
+    Optional<Transaction> findByIdAndAccount_Member_Id(Long id, Long memberId);
+
+    List<Transaction> findByReimbursementId(Long reimbursementId);
+
+    List<Transaction> findByAccount_Member_IdAndDateBetween(Long memberId, LocalDate from, LocalDate to);
+
+    @Query("SELECT t FROM Transaction t WHERE t.account.member.id = :memberId "
+        + "AND t.proStatus = :proStatus AND t.reimbursementStatus = :reimbursementStatus ORDER BY t.date DESC")
+    List<Transaction> findByMemberAndProStatusAndReimbursementStatus(
+        @Param("memberId") Long memberId,
+        @Param("proStatus") ProStatus proStatus,
+        @Param("reimbursementStatus") ReimbursementStatus reimbursementStatus);
+
+    /** Positive-amount transactions not already used as the credit side of a reimbursement --
+     * i.e. eligible to be picked as a new reimbursement's credit transaction. */
+    @Query("SELECT t FROM Transaction t WHERE t.account.member.id = :memberId AND t.amount > 0 "
+        + "AND t.id NOT IN (SELECT r.transaction.id FROM Reimbursement r) ORDER BY t.date DESC")
+    List<Transaction> findCandidateCreditTransactionsByMemberId(@Param("memberId") Long memberId);
+
+    /** Un-links every expense of a deleted reimbursement in one statement, resetting them back to
+     * EN_ATTENTE -- used by ReimbursementService.delete() before removing the Reimbursement row,
+     * since ON DELETE SET NULL alone would clear reimbursement_id but not reimbursement_status. */
+    @Modifying
+    @Query("UPDATE Transaction t SET t.reimbursementId = NULL, t.reimbursementStatus = com.picsou.model.ReimbursementStatus.EN_ATTENTE "
+        + "WHERE t.reimbursementId = :reimbursementId")
+    void clearReimbursementLinks(@Param("reimbursementId") Long reimbursementId);
 }
