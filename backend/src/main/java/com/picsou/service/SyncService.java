@@ -503,11 +503,13 @@ public class SyncService {
                 transactionRepository.saveAll(toSave);
                 log.info("Saved {} new transactions for account {} ({})",
                     toSave.size(), account.getId(), requisition.getInstitutionName());
-                // Self-healing regardless of which of the member's accounts syncs first:
-                // a pair only links once both legs exist in the unclassified pool, so this
-                // is a safe no-op until the second leg's account has its turn.
-                internalTransferService.autoLinkByReference(account.getMember().getId());
             }
+            // Runs on every sync attempt, not just when this account found new rows: a pair
+            // only links once both legs exist in the unclassified pool, and the other leg may
+            // have been saved by an earlier sync (this account's previous run, or a sibling
+            // account synced moments ago) without a matching counterpart existing yet at the
+            // time. Cheap and idempotent -- already-linked rows are excluded from the pool.
+            internalTransferService.autoLinkByReference(account.getMember().getId());
         } catch (Exception ex) {
             log.warn("Transaction sync failed for account {} ({}): {}",
                 account.getId(), requisition.getInstitutionName(), ex.getMessage());
