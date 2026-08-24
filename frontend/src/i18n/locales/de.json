@@ -35,6 +35,8 @@
     "dashboard.desc": "Überblick & Vermögen",
     "accounts": "Konten",
     "accounts.desc": "Salden & Transaktionen",
+    "expenses": "Ausgaben",
+    "expenses.desc": "Kategorisierung & Nachverfolgung",
     "goals": "Ziele",
     "goals.desc": "Verfolge deine Sparziele",
     "sync": "Sync",
@@ -1527,5 +1529,16 @@
     "emptyList": "Keine Erstattungen erfasst.",
     "deleteTitle": "Diese Erstattung löschen?",
     "deleteDescription": "Verknüpfte Ausgaben werden wieder auf ausstehend gesetzt."
+  },
+  "expenseDashboard": {
+    "monthlyEvolutionTitle": "Monatliche Entwicklung",
+    "categoryBreakdownTitle": "Aufteilung nach Kategorie",
+    "noExpenses": "Keine Ausgaben in diesem Zeitraum.",
+    "uncategorized": "Nicht kategorisiert",
+    "totalPeriodLabel": "Gesamt diesen Monat",
+    "totalProAbsorbeLabel": "Übernommene Geschäftsausgaben",
+    "pendingReimbursementsTitle": "Ausstehende Erstattungen",
+    "totalOwedLabel": "Ausstehender Betrag",
+    "linkedReimbursementsTitle": "Verknüpfte Erstattungen"
   }
 }

@@ -797,6 +797,25 @@ export interface PendingReimbursements {
   totalOwed: number
 }
 
+export interface MonthlyExpenseTotal {
+  yearMonth: string
+  total: number
+}
+
+export interface CategoryBreakdownItem {
+  categoryId: number | null
+  categoryName: string | null
+  categoryColor: string | null
+  proStatus: ProStatus
+  total: number
+}
+
+export interface ExpenseDashboardResponse {
+  monthlyEvolution: MonthlyExpenseTotal[]
+  categoryBreakdown: CategoryBreakdownItem[]
+  totalProAbsorbe: number
+}
+
 export interface TransactionRequest {
   date: string          // ISO date "YYYY-MM-DD"
   description: string

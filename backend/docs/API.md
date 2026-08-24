@@ -1584,3 +1584,33 @@ Un-links every remaining expense (back to `EN_ATTENTE`) before deleting the reim
 **Response `204`.**
 
 **Errors:** 404
+
+---
+
+### 16. Expense Dashboard — `/api/expense-dashboard`
+
+#### `GET /api/expense-dashboard?months=&period=`
+
+- **Auth:** Required
+- **Query params:** `months` (default `6`) -- size of the monthly-evolution window ending at
+  `period`. `period` (default: current month) -- `"YYYY-MM"`.
+
+**Response `200` — `ExpenseDashboardResponse`:**
+```json
+{
+  "monthlyEvolution": [
+    { "yearMonth": "2025-12", "total": 850.00 },
+    { "yearMonth": "2026-01", "total": 920.50 }
+  ],
+  "categoryBreakdown": [
+    { "categoryId": 1, "categoryName": "Restauration", "categoryColor": "#f97316", "proStatus": "PERSO", "total": 180.00 },
+    { "categoryId": null, "categoryName": null, "categoryColor": null, "proStatus": "NON_CLASSE", "total": 42.00 }
+  ],
+  "totalProAbsorbe": 95.00
+}
+```
+
+`monthlyEvolution` sums negative-amount (expense) transactions per month over the window --
+every month is present even at zero. `categoryBreakdown` groups the requested `period`'s
+expenses by (category, `ProStatus`); a null `categoryId`/`categoryName` means uncategorized.
+`totalProAbsorbe` sums `PRO_ABSORBE` expenses for `period` only.

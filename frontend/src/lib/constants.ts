@@ -64,6 +64,7 @@ export const QUERY_STALE_TIMES = {
   realEstate: 10 * 60 * 1000,
   expenseCategories: 2 * 60 * 1000,
   reimbursements: 60 * 1000,
+  expenseDashboard: 5 * 60 * 1000,
 } as const
 
 /**

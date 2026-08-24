@@ -35,6 +35,8 @@
     "dashboard.desc": "Resumen y patrimonio",
     "accounts": "Cuentas",
     "accounts.desc": "Saldos y transacciones",
+    "expenses": "Gastos",
+    "expenses.desc": "Categorización y seguimiento",
     "goals": "Objetivos",
     "goals.desc": "Sigue tu ahorro",
     "sync": "Sincronización",
@@ -1527,5 +1529,16 @@
     "emptyList": "No hay reembolsos registrados.",
     "deleteTitle": "¿Eliminar este reembolso?",
     "deleteDescription": "Los gastos vinculados vuelven a quedar pendientes."
+  },
+  "expenseDashboard": {
+    "monthlyEvolutionTitle": "Evolución mensual",
+    "categoryBreakdownTitle": "Desglose por categoría",
+    "noExpenses": "Sin gastos en este período.",
+    "uncategorized": "Sin categorizar",
+    "totalPeriodLabel": "Total este mes",
+    "totalProAbsorbeLabel": "Gastos profesionales asumidos",
+    "pendingReimbursementsTitle": "Reembolsos pendientes",
+    "totalOwedLabel": "Total adeudado",
+    "linkedReimbursementsTitle": "Reembolsos vinculados"
   }
 }
