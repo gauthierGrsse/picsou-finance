@@ -1513,5 +1513,19 @@
     "statusLabel": "Statut",
     "categoryLabel": "Catégorie",
     "noCategory": "Aucune catégorie"
+  },
+  "reimbursements": {
+    "linkTitle": "Lier un remboursement",
+    "creditLabel": "Virement reçu",
+    "creditPlaceholder": "Choisir un virement…",
+    "noCandidateCredits": "Aucun virement disponible pour un rapprochement.",
+    "expensesLabel": "Dépenses à rembourser",
+    "noPendingExpenses": "Aucune dépense en attente de remboursement.",
+    "selectedTotal": "Total sélectionné",
+    "link": "Lier",
+    "loading": "Chargement…",
+    "emptyList": "Aucun remboursement enregistré.",
+    "deleteTitle": "Supprimer ce remboursement ?",
+    "deleteDescription": "Les dépenses liées repassent en attente de remboursement."
   }
 }

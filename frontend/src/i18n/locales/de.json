@@ -1513,5 +1513,19 @@
     "statusLabel": "Status",
     "categoryLabel": "Kategorie",
     "noCategory": "Keine Kategorie"
+  },
+  "reimbursements": {
+    "linkTitle": "Erstattung verknüpfen",
+    "creditLabel": "Eingehende Überweisung",
+    "creditPlaceholder": "Überweisung wählen…",
+    "noCandidateCredits": "Keine Überweisung zum Abgleich verfügbar.",
+    "expensesLabel": "Zu erstattende Ausgaben",
+    "noPendingExpenses": "Keine Ausgaben in Erwartung einer Erstattung.",
+    "selectedTotal": "Ausgewählter Betrag",
+    "link": "Verknüpfen",
+    "loading": "Wird geladen…",
+    "emptyList": "Keine Erstattungen erfasst.",
+    "deleteTitle": "Diese Erstattung löschen?",
+    "deleteDescription": "Verknüpfte Ausgaben werden wieder auf ausstehend gesetzt."
   }
 }

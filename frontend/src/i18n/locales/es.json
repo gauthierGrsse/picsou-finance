@@ -1513,5 +1513,19 @@
     "statusLabel": "Estado",
     "categoryLabel": "Categoría",
     "noCategory": "Sin categoría"
+  },
+  "reimbursements": {
+    "linkTitle": "Vincular un reembolso",
+    "creditLabel": "Transferencia recibida",
+    "creditPlaceholder": "Elegir una transferencia…",
+    "noCandidateCredits": "No hay transferencias disponibles para conciliar.",
+    "expensesLabel": "Gastos a reembolsar",
+    "noPendingExpenses": "No hay gastos pendientes de reembolso.",
+    "selectedTotal": "Total seleccionado",
+    "link": "Vincular",
+    "loading": "Cargando…",
+    "emptyList": "No hay reembolsos registrados.",
+    "deleteTitle": "¿Eliminar este reembolso?",
+    "deleteDescription": "Los gastos vinculados vuelven a quedar pendientes."
   }
 }

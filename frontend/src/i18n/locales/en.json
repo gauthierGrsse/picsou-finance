@@ -1513,5 +1513,19 @@
     "statusLabel": "Status",
     "categoryLabel": "Category",
     "noCategory": "No category"
+  },
+  "reimbursements": {
+    "linkTitle": "Link a reimbursement",
+    "creditLabel": "Credit transfer",
+    "creditPlaceholder": "Choose a transfer…",
+    "noCandidateCredits": "No transfer available to reconcile.",
+    "expensesLabel": "Expenses to reimburse",
+    "noPendingExpenses": "No expenses pending reimbursement.",
+    "selectedTotal": "Selected total",
+    "link": "Link",
+    "loading": "Loading…",
+    "emptyList": "No reimbursements recorded.",
+    "deleteTitle": "Delete this reimbursement?",
+    "deleteDescription": "Linked expenses go back to pending."
   }
 }

@@ -63,6 +63,7 @@ export const QUERY_STALE_TIMES = {
   // twice a year -- so anything shorter would just re-fetch an identical answer.
   realEstate: 10 * 60 * 1000,
   expenseCategories: 2 * 60 * 1000,
+  reimbursements: 60 * 1000,
 } as const
 
 /**

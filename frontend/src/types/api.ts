@@ -775,6 +775,28 @@ export interface TransactionClassificationRequest {
   expenseCategoryId: number | null
 }
 
+export interface Reimbursement {
+  id: number
+  creditTransaction: Transaction
+  expenses: Transaction[]
+  totalLinked: number
+  createdAt: string
+}
+
+export interface ReimbursementRequest {
+  creditTransactionId: number
+  expenseTransactionIds: number[]
+}
+
+export interface LinkExpensesRequest {
+  expenseTransactionIds: number[]
+}
+
+export interface PendingReimbursements {
+  expenses: Transaction[]
+  totalOwed: number
+}
+
 export interface TransactionRequest {
   date: string          // ISO date "YYYY-MM-DD"
   description: string
