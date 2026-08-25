@@ -20,6 +20,7 @@ vi.mock('@/features/internalTransfers/hooks', () => ({
   useUnlinkTransfer: () => ({ mutate: vi.fn() }),
   useTransferCandidates: () => ({ data: [] }),
   useConfirmTransferLink: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useMarkTransferWithoutMatch: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
 function tx(overrides: Partial<Transaction>): Transaction {

@@ -103,8 +103,10 @@ public class Transaction {
     private String externalTransactionId;
 
     /** Symmetric self-reference to the other leg of an internal transfer (both rows point
-     * at each other) once {@link #proStatus} is {@code VIREMENT_INTERNE}. Plain id, same
-     * reasoning as {@link #expenseCategoryId}. */
+     * at each other) once {@link #proStatus} is {@code VIREMENT_INTERNE}. Null while that
+     * status holds for a transaction marked internal with no counterpart row to link to
+     * (see {@code InternalTransferService#markWithoutMatch}). Plain id, same reasoning as
+     * {@link #expenseCategoryId}. */
     @Column(name = "linked_transaction_id")
     private Long linkedTransactionId;
 }

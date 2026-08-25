@@ -160,25 +160,46 @@ public class InternalTransferService {
         link(a, b);
     }
 
-    /** Reverts both legs to NON_CLASSE, undoing a mistaken auto-link or confirmation. */
+    /** Reverts this leg (and its counterpart, if any) to NON_CLASSE, undoing a mistaken
+     * auto-link, confirmation, or {@link #markWithoutMatch}. {@code linkedTransactionId}
+     * is null for a solo mark, so only that one row is touched. */
     @Transactional
     public void unlink(Long transactionId, Long memberId) {
         Transaction a = getOrThrow(transactionId, memberId);
-        if (a.getLinkedTransactionId() == null) {
-            throw new IllegalArgumentException("Transaction is not linked to a transfer");
+        if (a.getProStatus() != ProStatus.VIREMENT_INTERNE) {
+            throw new IllegalArgumentException("Transaction is not marked as an internal transfer");
         }
-        Transaction b = transactionRepository.findByIdAndAccount_Member_Id(a.getLinkedTransactionId(), memberId)
-            .orElse(null);
+        Long linkedId = a.getLinkedTransactionId();
 
         a.setProStatus(ProStatus.NON_CLASSE);
         a.setLinkedTransactionId(null);
         transactionRepository.save(a);
 
-        if (b != null) {
-            b.setProStatus(ProStatus.NON_CLASSE);
-            b.setLinkedTransactionId(null);
-            transactionRepository.save(b);
+        if (linkedId != null) {
+            transactionRepository.findByIdAndAccount_Member_Id(linkedId, memberId).ifPresent(b -> {
+                b.setProStatus(ProStatus.NON_CLASSE);
+                b.setLinkedTransactionId(null);
+                transactionRepository.save(b);
+            });
         }
+    }
+
+    /**
+     * Marks a single transaction as an internal transfer with no counterpart row to point
+     * at -- for a destination that Picsou never syncs transactions for at all (e.g. a
+     * Trade Republic account, which only syncs balance and positions), so no matching
+     * "other side" can ever appear in {@link #findCandidates}. The user is vouching for it
+     * directly instead of the two-sided proof {@link #confirmLink} normally requires.
+     */
+    @Transactional
+    public void markWithoutMatch(Long transactionId, Long memberId) {
+        Transaction a = getOrThrow(transactionId, memberId);
+        if (a.getProStatus() == ProStatus.VIREMENT_INTERNE) {
+            throw new IllegalArgumentException("Transaction is already marked as an internal transfer");
+        }
+        a.setProStatus(ProStatus.VIREMENT_INTERNE);
+        a.setLinkedTransactionId(null);
+        transactionRepository.save(a);
     }
 
     private void link(Transaction a, Transaction b) {

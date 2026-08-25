@@ -32,15 +32,18 @@ const candidates: Transaction[] = [
 ]
 
 const confirmMutateAsync = vi.fn().mockResolvedValue(undefined)
+const markWithoutMatchMutateAsync = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('@/features/internalTransfers/hooks', () => ({
   useTransferCandidates: () => ({ data: candidates }),
   useConfirmTransferLink: () => ({ mutateAsync: confirmMutateAsync, isPending: false }),
+  useMarkTransferWithoutMatch: () => ({ mutateAsync: markWithoutMatchMutateAsync, isPending: false }),
 }))
 
 describe('InternalTransferLinkModal', () => {
   beforeEach(() => {
     confirmMutateAsync.mockClear()
+    markWithoutMatchMutateAsync.mockClear()
   })
 
   it('excludes the source transaction\'s own account and puts the exact match first', () => {
@@ -106,5 +109,17 @@ describe('InternalTransferLinkModal', () => {
 
     await waitFor(() => expect(confirmMutateAsync).toHaveBeenCalledOnce())
     expect(confirmMutateAsync).toHaveBeenCalledWith({ transactionIdA: 1, transactionIdB: 4, allowAmountMismatch: true })
+  })
+
+  it('marks the transaction as an internal transfer without a match, without requiring a selection', async () => {
+    const onOpenChange = vi.fn()
+    render(<InternalTransferLinkModal transaction={source} onOpenChange={onOpenChange} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'internalTransfers.markWithoutMatch' }))
+
+    await waitFor(() => expect(markWithoutMatchMutateAsync).toHaveBeenCalledOnce())
+    expect(markWithoutMatchMutateAsync).toHaveBeenCalledWith(1)
+    expect(confirmMutateAsync).not.toHaveBeenCalled()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 })

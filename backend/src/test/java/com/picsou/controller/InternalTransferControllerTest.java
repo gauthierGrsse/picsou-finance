@@ -68,6 +68,15 @@ class InternalTransferControllerTest {
     }
 
     @Test
+    void markWithoutMatch_delegatesWithMemberId() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+
+        controller.markWithoutMatch(5L);
+
+        verify(internalTransferService).markWithoutMatch(5L, 10L);
+    }
+
+    @Test
     void unlink_delegatesWithMemberId() {
         when(userContext.currentMemberId()).thenReturn(10L);
 

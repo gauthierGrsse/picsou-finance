@@ -1564,6 +1564,8 @@
     "confirm": "Confirmer",
     "linkTitle": "Lier comme virement interne",
     "noCandidates": "Aucune transaction correspondante trouvée sur un autre compte.",
+    "noMatchHint": "Le compte en face ne remonte pas ses transactions ?",
+    "markWithoutMatch": "Marquer comme interne quand même",
     "unlink": "Délier le virement",
     "allAccounts": "Tous les comptes",
     "amountMismatch": "Montant différent",

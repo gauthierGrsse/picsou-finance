@@ -41,6 +41,15 @@ public class InternalTransferController {
         internalTransferService.confirmLink(req.transactionIdA(), req.transactionIdB(), userContext.currentMemberId(), req.allowAmountMismatch());
     }
 
+    /** Marks a transaction as an internal transfer with no counterpart -- for a
+     * destination Picsou never syncs transactions for (e.g. Trade Republic), where no
+     * matching row can ever appear in {@code /candidates}. */
+    @PostMapping("/{transactionId}/mark-internal")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void markWithoutMatch(@PathVariable Long transactionId) {
+        internalTransferService.markWithoutMatch(transactionId, userContext.currentMemberId());
+    }
+
     @DeleteMapping("/{transactionId}/link")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unlink(@PathVariable Long transactionId) {

@@ -1564,6 +1564,8 @@
     "confirm": "Confirm",
     "linkTitle": "Link as internal transfer",
     "noCandidates": "No matching transaction found on another account.",
+    "noMatchHint": "The other account doesn't sync its transactions?",
+    "markWithoutMatch": "Mark as internal anyway",
     "unlink": "Unlink transfer",
     "allAccounts": "All accounts",
     "amountMismatch": "Different amount",

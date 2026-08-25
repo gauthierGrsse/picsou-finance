@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { cn, formatCurrency, formatLocalDate, getLocale } from '@/lib/utils'
 import { extractErrorMessage } from '@/lib/errors'
-import { useTransferCandidates, useConfirmTransferLink } from '@/features/internalTransfers/hooks'
+import { useTransferCandidates, useConfirmTransferLink, useMarkTransferWithoutMatch } from '@/features/internalTransfers/hooks'
 import type { Transaction } from '@/types/api'
 
 const selectClassName = "flex h-10 items-center rounded-xl border border-input bg-background text-foreground px-3 text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]"
@@ -46,6 +46,7 @@ function InternalTransferLinkForm({ transaction, onOpenChange }: { transaction: 
   const locale = getLocale()
   const { data: candidates } = useTransferCandidates()
   const confirmLink = useConfirmTransferLink()
+  const markWithoutMatch = useMarkTransferWithoutMatch()
 
   const [search, setSearch] = useState('')
   const [accountFilter, setAccountFilter] = useState<'all' | number>('all')
@@ -103,6 +104,16 @@ function InternalTransferLinkForm({ transaction, onOpenChange }: { transaction: 
       return
     }
     doLink(false)
+  }
+
+  async function handleMarkWithoutMatch() {
+    setError(null)
+    try {
+      await markWithoutMatch.mutateAsync(transaction.id)
+      onOpenChange(false)
+    } catch (err) {
+      setError(extractErrorMessage(err, t('common.error')))
+    }
   }
 
   return (
@@ -176,6 +187,21 @@ function InternalTransferLinkForm({ transaction, onOpenChange }: { transaction: 
               )
             })
           )}
+        </div>
+
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed p-2.5 text-xs text-muted-foreground">
+          <span>{t('internalTransfers.noMatchHint')}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            className="shrink-0"
+            disabled={markWithoutMatch.isPending}
+            onClick={handleMarkWithoutMatch}
+          >
+            {markWithoutMatch.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t('internalTransfers.markWithoutMatch')}
+          </Button>
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}

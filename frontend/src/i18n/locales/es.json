@@ -1564,6 +1564,8 @@
     "confirm": "Confirmar",
     "linkTitle": "Vincular como transferencia interna",
     "noCandidates": "No se encontró ninguna transacción correspondiente en otra cuenta.",
+    "noMatchHint": "¿La otra cuenta no sincroniza sus transacciones?",
+    "markWithoutMatch": "Marcar como interna de todas formas",
     "unlink": "Desvincular transferencia",
     "allAccounts": "Todas las cuentas",
     "amountMismatch": "Importe distinto",

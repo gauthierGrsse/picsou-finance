@@ -35,6 +35,14 @@ export function useConfirmTransferLink() {
   })
 }
 
+export function useMarkTransferWithoutMatch() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (transactionId: number) => internalTransfersApi.markWithoutMatch(transactionId),
+    onSuccess: () => invalidateTransferViews(queryClient),
+  })
+}
+
 export function useUnlinkTransfer() {
   const queryClient = useQueryClient()
   return useMutation({

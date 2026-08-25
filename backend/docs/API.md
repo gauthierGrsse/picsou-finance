@@ -1648,10 +1648,23 @@ Detects and links transfers between two of the member's own accounts (e.g. a Rev
   account, either is already linked, or (unless `allowAmountMismatch`) they don't have
   exactly opposite amounts.
 
+#### `POST /api/transfers/{transactionId}/mark-internal`
+
+- **Auth:** Required
+- **Body:** none
+- Marks a single transaction as an internal transfer (`VIREMENT_INTERNE`) with no
+  counterpart row -- for a destination Picsou never syncs transactions for at all (e.g. a
+  Trade Republic account, which only syncs balance and positions, never a transaction
+  feed), so no matching row can ever appear in `GET /api/transfers/candidates`. `204` on
+  success. Rejected (`400`) if the transaction is already marked as an internal transfer.
+
 #### `DELETE /api/transfers/{transactionId}/link`
 
 - **Auth:** Required
-- Unlinks a transfer, reverting both legs to `NON_CLASSE`. `204` on success.
+- Reverts a transfer to `NON_CLASSE` -- both legs if the transaction was linked to a
+  counterpart, or just the one if it was marked via `mark-internal` above (no counterpart
+  to revert). `204` on success. Rejected (`400`) if the transaction isn't currently marked
+  as an internal transfer.
 
 ### 18. Transactions (all accounts) — `/api/transactions`
 

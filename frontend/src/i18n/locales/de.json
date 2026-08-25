@@ -1564,6 +1564,8 @@
     "confirm": "Bestätigen",
     "linkTitle": "Als interne Überweisung verknüpfen",
     "noCandidates": "Keine passende Transaktion auf einem anderen Konto gefunden.",
+    "noMatchHint": "Das andere Konto synchronisiert seine Transaktionen nicht?",
+    "markWithoutMatch": "Trotzdem als intern markieren",
     "unlink": "Überweisung trennen",
     "allAccounts": "Alle Konten",
     "amountMismatch": "Abweichender Betrag",

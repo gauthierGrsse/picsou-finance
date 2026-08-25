@@ -305,14 +305,55 @@ class InternalTransferServiceTest {
     }
 
     @Test
-    void unlink_throwsWhenTransactionNotLinked() {
+    void unlink_throwsWhenTransactionNotMarkedAsTransfer() {
         Account account = account(1L);
         Transaction a = tx(10L, account, LocalDate.now(), new BigDecimal("-10"), null);
         when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
 
         assertThatThrownBy(() -> internalTransferService.unlink(10L, 1L))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("not linked");
+            .hasMessageContaining("not marked as an internal transfer");
+    }
+
+    @Test
+    void unlink_revertsASoloMarkWithNoCounterpartRow() {
+        Account account = account(1L);
+        Transaction a = tx(10L, account, LocalDate.now(), new BigDecimal("-10"), null);
+        a.setProStatus(ProStatus.VIREMENT_INTERNE);
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
+
+        internalTransferService.unlink(10L, 1L);
+
+        assertThat(a.getProStatus()).isEqualTo(ProStatus.NON_CLASSE);
+        assertThat(a.getLinkedTransactionId()).isNull();
+        verify(transactionRepository, times(1)).save(any());
+    }
+
+    // ─── markWithoutMatch ───────────────────────────────────────────────────
+
+    @Test
+    void markWithoutMatch_setsVirementInterneWithNoLinkedTransaction() {
+        Account account = account(1L);
+        Transaction a = tx(10L, account, LocalDate.now(), new BigDecimal("-500"), null);
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
+
+        internalTransferService.markWithoutMatch(10L, 1L);
+
+        assertThat(a.getProStatus()).isEqualTo(ProStatus.VIREMENT_INTERNE);
+        assertThat(a.getLinkedTransactionId()).isNull();
+        verify(transactionRepository).save(a);
+    }
+
+    @Test
+    void markWithoutMatch_rejectsAlreadyMarkedTransaction() {
+        Account account = account(1L);
+        Transaction a = tx(10L, account, LocalDate.now(), new BigDecimal("-500"), null);
+        a.setProStatus(ProStatus.VIREMENT_INTERNE);
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
+
+        assertThatThrownBy(() -> internalTransferService.markWithoutMatch(10L, 1L))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("already marked");
     }
 
     @Test
