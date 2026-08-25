@@ -52,52 +52,55 @@ export function ExpenseDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader title={t('nav.expenses')} />
-
-      <PeriodSelector
-        mode={mode}
-        onModeChange={setMode}
-        month={month}
-        onMonthChange={setMonth}
-        year={year}
-        onYearChange={setYear}
-        minYear={currentYear - YEAR_OPTIONS_BACK}
-        maxYear={currentYear}
+    <div className="space-y-4">
+      <PageHeader
+        title={t('nav.expenses')}
+        actions={
+          <PeriodSelector
+            mode={mode}
+            onModeChange={setMode}
+            month={month}
+            onMonthChange={setMonth}
+            year={year}
+            onYearChange={setYear}
+            minYear={currentYear - YEAR_OPTIONS_BACK}
+            maxYear={currentYear}
+          />
+        }
       />
 
-      {/* Hero: the period's total is the one number that matters most here, so it stands
-          alone rather than sharing equal weight with the (often-zero) absorbed-business total. */}
-      <Card>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            {t(mode === 'year' ? 'expenseDashboard.totalPeriodYearLabel' : 'expenseDashboard.totalPeriodLabel')}
-          </p>
-          <CurrencyDisplay value={totalThisPeriod} className="text-4xl font-bold" />
-          {data.totalProAbsorbe > 0 && (
-            <div className="mt-2 flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">{t('expenseDashboard.totalProAbsorbeLabel')}:</span>
-              <CurrencyDisplay value={data.totalProAbsorbe} />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+        <Card size="sm">
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {t(mode === 'year' ? 'expenseDashboard.totalPeriodYearLabel' : 'expenseDashboard.totalPeriodLabel')}
+            </p>
+            <CurrencyDisplay value={totalThisPeriod} className="text-3xl font-bold" />
+            {data.totalProAbsorbe > 0 && (
+              <div className="mt-1.5 flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">{t('expenseDashboard.totalProAbsorbeLabel')}:</span>
+                <CurrencyDisplay value={data.totalProAbsorbe} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t('expenseDashboard.monthlyEvolutionTitle')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MonthlyExpenseChart
-            data={data.monthlyEvolution}
-            highlightMonth={mode === 'month' ? month : undefined}
-          />
-        </CardContent>
-      </Card>
+        <Card size="sm">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-sm text-muted-foreground">{t('expenseDashboard.monthlyEvolutionTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MonthlyExpenseChart
+              data={data.monthlyEvolution}
+              highlightMonth={mode === 'month' ? month : undefined}
+            />
+          </CardContent>
+        </Card>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t('expenseDashboard.categoryBreakdownTitle')}</CardTitle>
+      <Card size="sm">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-sm text-muted-foreground">{t('expenseDashboard.categoryBreakdownTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <CategoryProStatusBreakdown data={data.categoryBreakdown} />

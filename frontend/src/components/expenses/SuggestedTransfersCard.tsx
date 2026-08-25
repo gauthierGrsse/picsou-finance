@@ -21,8 +21,8 @@ export function SuggestedTransfersCard() {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="pt-6"><Skeleton className="h-16 w-full" /></CardContent>
+      <Card size="sm">
+        <CardContent><Skeleton className="h-16 w-full" /></CardContent>
       </Card>
     )
   }
@@ -30,9 +30,9 @@ export function SuggestedTransfersCard() {
   if (!suggestions || suggestions.length === 0) return null
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
+    <Card size="sm">
+      <CardHeader className="pb-1">
+        <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeftRight className="size-4" />
           {t('internalTransfers.suggestedTitle')}
         </CardTitle>

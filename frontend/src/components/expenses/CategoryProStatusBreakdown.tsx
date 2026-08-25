@@ -1,6 +1,9 @@
 import { useMemo } from 'react'
+import { Cell, Pie, PieChart } from 'recharts'
 import { useTranslation } from 'react-i18next'
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
+import { formatCurrency, localeFromLanguage } from '@/lib/utils'
 import { proStatusLabelKey } from '@/lib/constants'
 import type { CategoryBreakdownItem } from '@/types/api'
 
@@ -8,12 +11,17 @@ interface CategoryProStatusBreakdownProps {
   data: CategoryBreakdownItem[]
 }
 
-/** Ranked list with proportional bars, one row per non-zero (category, pro_status) pair --
- * e.g. "Restauration · Personnel" and "Restauration · Pro absorbé" sit as separate rows.
- * A bar-list reads its own ranking directly, without the reader triangulating angles and a
- * separate legend the way a pie/donut forces them to. */
+const chartConfig = {
+  total: { label: 'Total' },
+} satisfies ChartConfig
+
+/** Donut + compact ranked list, one slice/row per non-zero (category, pro_status) pair --
+ * e.g. "Restauration perso" and "Restauration pro_absorbe" render separately. Cell color
+ * comes straight from the category's own stored hex, same as Account.color feeding
+ * DistributionPie: there are only 5 --chart-N tokens, not enough for an open-ended list. */
 export function CategoryProStatusBreakdown({ data }: CategoryProStatusBreakdownProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
 
   const items = useMemo(
     () =>
@@ -34,28 +42,44 @@ export function CategoryProStatusBreakdown({ data }: CategoryProStatusBreakdownP
     return <p className="text-sm text-muted-foreground">{t('expenseDashboard.noExpenses')}</p>
   }
 
-  const max = Math.max(...items.map((i) => i.total))
-
   return (
-    <div className="space-y-4">
-      {items.map((item) => (
-        <div key={item.id} className="space-y-1.5">
-          <div className="flex items-center justify-between gap-2 text-sm">
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-              <span className="truncate font-medium">{item.name}</span>
-              <span className="shrink-0 text-xs text-muted-foreground">{item.statusLabel}</span>
-            </span>
-            <CurrencyDisplay value={item.total} className="shrink-0 tabular-nums" />
+    <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+      <ChartContainer config={chartConfig} className="mx-auto aspect-square h-[140px] w-[140px] shrink-0">
+        <PieChart>
+          <ChartTooltip
+            isAnimationActive={false}
+            content={
+              <ChartTooltipContent
+                hideLabel
+                formatter={(value, _name, item) => (
+                  <div className="flex w-full items-center gap-1.5">
+                    <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.payload.color }} />
+                    <span className="min-w-0 truncate">{item.payload.name}</span>
+                    <span className="ml-auto font-mono font-medium text-foreground tabular-nums">
+                      {formatCurrency(value as number, 'EUR', locale)}
+                    </span>
+                  </div>
+                )}
+              />
+            }
+          />
+          <Pie data={items} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={38} outerRadius={65} paddingAngle={2} strokeWidth={0} isAnimationActive={false}>
+            {items.map((item) => (
+              <Cell key={item.id} fill={item.color} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ChartContainer>
+      <div className="w-full min-w-0 space-y-1 overflow-y-auto sm:max-h-[140px]">
+        {items.map((item) => (
+          <div key={item.id} className="flex items-center gap-2 text-sm">
+            <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+            <span className="min-w-0 truncate">{item.name}</span>
+            <span className="shrink-0 text-xs text-muted-foreground">{item.statusLabel}</span>
+            <CurrencyDisplay value={item.total} className="ml-auto shrink-0 tabular-nums text-muted-foreground" />
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${(item.total / max) * 100}%`, backgroundColor: item.color }}
-            />
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }

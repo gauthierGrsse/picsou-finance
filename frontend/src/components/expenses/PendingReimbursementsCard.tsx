@@ -17,9 +17,9 @@ export function PendingReimbursementsCard() {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
+    <Card size="sm">
+      <CardHeader className="pb-1">
+        <CardTitle className="flex items-center gap-2 text-sm text-muted-foreground">
           <HandCoins className="size-4" />
           {t('expenseDashboard.pendingReimbursementsTitle')}
         </CardTitle>
@@ -30,7 +30,7 @@ export function PendingReimbursementsCard() {
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2">
         {isLoading ? (
           <Skeleton className="h-10 w-full" />
         ) : (

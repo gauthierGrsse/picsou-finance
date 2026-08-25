@@ -31,7 +31,7 @@ export function MonthlyExpenseChart({ data, highlightMonth }: MonthlyExpenseChar
   if (data.length === 0) return null
 
   return (
-    <ChartContainer config={chartConfig} className="h-[220px] w-full">
+    <ChartContainer config={chartConfig} className="h-[170px] w-full">
       <BarChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis
@@ -45,14 +45,20 @@ export function MonthlyExpenseChart({ data, highlightMonth }: MonthlyExpenseChar
           tickLine={false}
           axisLine={false}
           tickMargin={8}
-          width={40}
+          width={36}
           tickFormatter={(value) => compactAxisValue(value as number, locale)}
         />
         <ChartTooltip
+          isAnimationActive={false}
           cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
-          content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number, 'EUR', locale)} />}
+          content={
+            <ChartTooltipContent
+              labelFormatter={(value) => new Date(`${value}-01`).toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
+              formatter={(value) => formatCurrency(value as number, 'EUR', locale)}
+            />
+          }
         />
-        <Bar dataKey="total" radius={5} isAnimationActive={false}>
+        <Bar dataKey="total" radius={4} isAnimationActive={false}>
           {data.map((entry) => (
             <Cell
               key={entry.yearMonth}
