@@ -1524,7 +1524,8 @@
     "title": "Clasificar transacción",
     "statusLabel": "Estado",
     "categoryLabel": "Categoría",
-    "noCategory": "Sin categoría"
+    "noCategory": "Sin categoría",
+    "selectedCount": "{{count}} transacciones seleccionadas"
   },
   "reimbursements": {
     "linkTitle": "Vincular un reembolso",

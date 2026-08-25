@@ -27,7 +27,7 @@ const categories: ExpenseCategory[] = [
 ]
 
 describe('TransactionContextMenu', () => {
-  it('picking a status calls onQuickClassify with that status and the existing category', () => {
+  it('picking a status calls onQuickClassify with only the status field', () => {
     const onQuickClassify = vi.fn()
     const transaction = tx({ expenseCategoryId: 2 })
 
@@ -41,10 +41,10 @@ describe('TransactionContextMenu', () => {
     fireEvent.click(screen.getByText('classification.statusLabel'))
     fireEvent.click(screen.getByText('proStatus.perso'))
 
-    expect(onQuickClassify).toHaveBeenCalledWith({ proStatus: 'PERSO', expenseCategoryId: 2 })
+    expect(onQuickClassify).toHaveBeenCalledWith({ field: 'status', proStatus: 'PERSO' })
   })
 
-  it('picking "no category" clears the category while keeping the current status', () => {
+  it('picking "no category" calls onQuickClassify with only the category field cleared', () => {
     const onQuickClassify = vi.fn()
     const transaction = tx({ proStatus: 'PERSO', expenseCategoryId: 1 })
 
@@ -58,7 +58,7 @@ describe('TransactionContextMenu', () => {
     fireEvent.click(screen.getByText('classification.categoryLabel'))
     fireEvent.click(screen.getByText('classification.noCategory'))
 
-    expect(onQuickClassify).toHaveBeenCalledWith({ proStatus: 'PERSO', expenseCategoryId: null })
+    expect(onQuickClassify).toHaveBeenCalledWith({ field: 'category', expenseCategoryId: null })
   })
 
   it('shows unlink instead of status/category submenus for an internal transfer', () => {
@@ -81,5 +81,27 @@ describe('TransactionContextMenu', () => {
     expect(screen.queryByText('classification.statusLabel')).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('internalTransfers.unlink'))
     expect(onUnlinkTransfer).toHaveBeenCalledWith(9)
+  })
+
+  it('shows a count label and no checkmarks when acting on a multi-row selection', () => {
+    const onQuickClassify = vi.fn()
+    const transaction = tx({ proStatus: 'PERSO', expenseCategoryId: 1 })
+
+    render(
+      <TransactionContextMenu transaction={transaction} categories={categories} onQuickClassify={onQuickClassify} selectionCount={3}>
+        <div>Row</div>
+      </TransactionContextMenu>,
+    )
+
+    fireEvent.contextMenu(screen.getByText('Row'))
+
+    expect(screen.getByText('classification.selectedCount')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('classification.statusLabel'))
+    const persoItem = screen.getByText('proStatus.perso').closest('[role="menuitem"]')
+    expect(persoItem?.querySelector('svg')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('proStatus.perso'))
+    expect(onQuickClassify).toHaveBeenCalledWith({ field: 'status', proStatus: 'PERSO' })
   })
 })

@@ -1524,7 +1524,8 @@
     "title": "Classify transaction",
     "statusLabel": "Status",
     "categoryLabel": "Category",
-    "noCategory": "No category"
+    "noCategory": "No category",
+    "selectedCount": "{{count}} transactions selected"
   },
   "reimbursements": {
     "linkTitle": "Link a reimbursement",

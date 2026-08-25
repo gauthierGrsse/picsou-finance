@@ -194,7 +194,10 @@ export function TransactionsList({ transactions, onDelete, onEdit, onClassify, o
                     key={tr.id}
                     transaction={tr}
                     categories={categories}
-                    onQuickClassify={(data) => onQuickClassify(tr, data)}
+                    onQuickClassify={(change) => onQuickClassify(tr, {
+                      proStatus: change.field === 'status' ? change.proStatus : tr.proStatus,
+                      expenseCategoryId: change.field === 'category' ? change.expenseCategoryId : tr.expenseCategoryId,
+                    })}
                     onUnlinkTransfer={onUnlinkTransfer}
                   >
                     {row}

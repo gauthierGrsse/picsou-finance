@@ -1524,7 +1524,8 @@
     "title": "Classer la transaction",
     "statusLabel": "Statut",
     "categoryLabel": "Catégorie",
-    "noCategory": "Aucune catégorie"
+    "noCategory": "Aucune catégorie",
+    "selectedCount": "{{count}} transactions sélectionnées"
   },
   "reimbursements": {
     "linkTitle": "Lier un remboursement",

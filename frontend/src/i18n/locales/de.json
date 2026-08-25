@@ -1524,7 +1524,8 @@
     "title": "Transaktion einordnen",
     "statusLabel": "Status",
     "categoryLabel": "Kategorie",
-    "noCategory": "Keine Kategorie"
+    "noCategory": "Keine Kategorie",
+    "selectedCount": "{{count}} Transaktionen ausgewählt"
   },
   "reimbursements": {
     "linkTitle": "Erstattung verknüpfen",
