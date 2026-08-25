@@ -1,14 +1,23 @@
 import '@testing-library/jest-dom'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { AllTransactionsList } from './AllTransactionsList'
-import type { Transaction } from '@/types/api'
+import type { ExpenseCategory, Transaction } from '@/types/api'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
     i18n: { language: 'en', resolvedLanguage: 'en' },
   }),
+}))
+
+const quickClassifyMutate = vi.fn()
+vi.mock('@/features/transactions/hooks', () => ({
+  useQuickClassifyTransaction: () => ({ mutate: quickClassifyMutate }),
+}))
+
+vi.mock('@/features/internalTransfers/hooks', () => ({
+  useUnlinkTransfer: () => ({ mutate: vi.fn() }),
 }))
 
 function tx(overrides: Partial<Transaction>): Transaction {
@@ -50,5 +59,24 @@ describe('AllTransactionsList', () => {
     render(<AllTransactionsList transactions={transactions} categories={[]} />)
 
     expect(screen.getAllByText('Compte')).toHaveLength(2)
+  })
+
+  it('right-clicking a row and picking a category quick-classifies it with the row\'s own account', () => {
+    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316' }]
+    const transactions: Transaction[] = [
+      tx({ id: 42, description: 'Loyer', accountId: 7, accountName: 'Compte Courant' }),
+    ]
+
+    render(<AllTransactionsList transactions={transactions} categories={categories} />)
+
+    fireEvent.contextMenu(screen.getByText('Loyer'))
+    fireEvent.click(screen.getByText('classification.categoryLabel'))
+    fireEvent.click(screen.getByText('Restauration'))
+
+    expect(quickClassifyMutate).toHaveBeenCalledWith({
+      accountId: 7,
+      txId: 42,
+      data: { proStatus: 'NON_CLASSE', expenseCategoryId: 1 },
+    })
   })
 })

@@ -1564,6 +1564,7 @@
     "linkTitle": "Vincular como transferencia interna",
     "counterpartLabel": "Transacción correspondiente",
     "counterpartPlaceholder": "Elegir una transacción…",
-    "noCandidates": "No se encontró ninguna transacción correspondiente en otra cuenta."
+    "noCandidates": "No se encontró ninguna transacción correspondiente en otra cuenta.",
+    "unlink": "Desvincular transferencia"
   }
 }

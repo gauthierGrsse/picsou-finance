@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ExpenseCategory, ProStatus, Transaction } from '@/types/api'
+import type { ExpenseCategory, ProStatus, Transaction, TransactionClassificationRequest } from '@/types/api'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { ExpenseCategoryBadge } from '@/components/shared/ExpenseCategoryBadge'
 import { ProStatusBadge } from '@/components/shared/ProStatusBadge'
+import { TransactionContextMenu } from '@/components/shared/TransactionContextMenu'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,12 +23,13 @@ interface TransactionsListProps {
   onDelete?: (txId: number) => void
   onEdit?: (tx: Transaction) => void
   onClassify?: (tx: Transaction) => void
+  onQuickClassify?: (tx: Transaction, data: TransactionClassificationRequest) => void
   onUnlinkTransfer?: (txId: number) => void
   onLinkTransfer?: (tx: Transaction) => void
   categories?: ExpenseCategory[]
 }
 
-export function TransactionsList({ transactions, onDelete, onEdit, onClassify, onUnlinkTransfer, onLinkTransfer, categories = [] }: TransactionsListProps) {
+export function TransactionsList({ transactions, onDelete, onEdit, onClassify, onQuickClassify, onUnlinkTransfer, onLinkTransfer, categories = [] }: TransactionsListProps) {
   const { t, i18n } = useTranslation()
   const [search, setSearch] = useState('')
   const [hideInternal, setHideInternal] = useState(false)
@@ -106,87 +108,101 @@ export function TransactionsList({ transactions, onDelete, onEdit, onClassify, o
               {formatTransactionDate(date, locale)}
             </p>
             <div className="space-y-0.5">
-              {grouped[date].map((tr, rowIdx) => (
-                <div
-                  key={tr.id}
-                  className={cn(
-                    'flex items-center justify-between rounded-xl px-4 py-3 transition-colors',
-                    'hover:bg-muted/60',
-                    rowIdx % 2 === 0 ? 'bg-muted/20' : 'bg-transparent',
-                  )}
-                >
-                  <div className="min-w-0 flex-1 flex items-center gap-2">
-                    <p className="truncate text-sm font-medium">{tr.description}</p>
-                    {tr.isManual && (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground shrink-0">
-                        {t('accounts.manual')}
-                      </span>
+              {grouped[date].map((tr, rowIdx) => {
+                const row = (
+                  <div
+                    className={cn(
+                      'flex items-center justify-between rounded-xl px-4 py-3 transition-colors',
+                      'hover:bg-muted/60',
+                      rowIdx % 2 === 0 ? 'bg-muted/20' : 'bg-transparent',
                     )}
-                    {tr.proStatus !== 'NON_CLASSE' && <ProStatusBadge status={tr.proStatus} />}
-                    <ExpenseCategoryBadge categoryId={tr.expenseCategoryId} categories={categories} />
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <CurrencyDisplay
-                      value={tr.amount}
-                      currency={tr.nativeCurrency}
-                      className={cn(
-                        'text-base font-semibold tabular-nums',
-                        tr.amount >= 0 ? 'text-emerald-500' : 'text-foreground',
+                  >
+                    <div className="min-w-0 flex-1 flex items-center gap-2">
+                      <p className="truncate text-sm font-medium">{tr.description}</p>
+                      {tr.isManual && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground shrink-0">
+                          {t('accounts.manual')}
+                        </span>
                       )}
-                    />
-                    {onClassify && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={() => onClassify(tr)}
-                      >
-                        <Tags className="size-4" />
-                      </Button>
-                    )}
-                    {onLinkTransfer && tr.proStatus === 'NON_CLASSE' && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={() => onLinkTransfer(tr)}
-                      >
-                        <ArrowLeftRight className="size-4" />
-                      </Button>
-                    )}
-                    {onUnlinkTransfer && tr.proStatus === 'VIREMENT_INTERNE' && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => onUnlinkTransfer(tr.id)}
-                      >
-                        <Unlink className="size-4" />
-                      </Button>
-                    )}
-                    {tr.isManual && onEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={() => onEdit(tr)}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                    )}
-                    {onDelete && tr.isManual && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => onDelete(tr.id)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    )}
+                      {tr.proStatus !== 'NON_CLASSE' && <ProStatusBadge status={tr.proStatus} />}
+                      <ExpenseCategoryBadge categoryId={tr.expenseCategoryId} categories={categories} />
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <CurrencyDisplay
+                        value={tr.amount}
+                        currency={tr.nativeCurrency}
+                        className={cn(
+                          'text-base font-semibold tabular-nums',
+                          tr.amount >= 0 ? 'text-emerald-500' : 'text-foreground',
+                        )}
+                      />
+                      {onClassify && tr.proStatus !== 'VIREMENT_INTERNE' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => onClassify(tr)}
+                        >
+                          <Tags className="size-4" />
+                        </Button>
+                      )}
+                      {onLinkTransfer && tr.proStatus === 'NON_CLASSE' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => onLinkTransfer(tr)}
+                        >
+                          <ArrowLeftRight className="size-4" />
+                        </Button>
+                      )}
+                      {onUnlinkTransfer && tr.proStatus === 'VIREMENT_INTERNE' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => onUnlinkTransfer(tr.id)}
+                        >
+                          <Unlink className="size-4" />
+                        </Button>
+                      )}
+                      {tr.isManual && onEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => onEdit(tr)}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                      )}
+                      {onDelete && tr.isManual && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => onDelete(tr.id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+                return onQuickClassify ? (
+                  <TransactionContextMenu
+                    key={tr.id}
+                    transaction={tr}
+                    categories={categories}
+                    onQuickClassify={(data) => onQuickClassify(tr, data)}
+                    onUnlinkTransfer={onUnlinkTransfer}
+                  >
+                    {row}
+                  </TransactionContextMenu>
+                ) : (
+                  <Fragment key={tr.id}>{row}</Fragment>
+                )
+              })}
             </div>
           </div>
         ))}

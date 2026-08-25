@@ -1564,6 +1564,7 @@
     "linkTitle": "Link as internal transfer",
     "counterpartLabel": "Counterpart transaction",
     "counterpartPlaceholder": "Choose a transaction…",
-    "noCandidates": "No matching transaction found on another account."
+    "noCandidates": "No matching transaction found on another account.",
+    "unlink": "Unlink transfer"
   }
 }

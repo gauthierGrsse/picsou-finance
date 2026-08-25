@@ -1,24 +1,30 @@
+import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ExpenseCategory, Transaction } from '@/types/api'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { ExpenseCategoryBadge } from '@/components/shared/ExpenseCategoryBadge'
 import { ProStatusBadge } from '@/components/shared/ProStatusBadge'
+import { TransactionContextMenu } from '@/components/shared/TransactionContextMenu'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn, localeFromLanguage } from '@/lib/utils'
+import { useQuickClassifyTransaction } from '@/features/transactions/hooks'
+import { useUnlinkTransfer } from '@/features/internalTransfers/hooks'
 
 interface AllTransactionsListProps {
   transactions: Transaction[]
   categories: ExpenseCategory[]
 }
 
-/** Read-only, cross-account transaction list for the global transactions page -- each row
- * carries its own account name since, unlike the per-account list, that isn't implied by
- * page context. Classifying or editing a transaction still happens from its own account
- * page for now. */
+/** Cross-account transaction list for the global transactions page -- each row carries its
+ * own account name since, unlike the per-account list, that isn't implied by page context.
+ * Right-click a row to set its status/category on the spot; editing/deleting a manual
+ * transaction's core fields still happens from its own account page. */
 export function AllTransactionsList({ transactions, categories }: AllTransactionsListProps) {
   const { t, i18n } = useTranslation()
   const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
+  const quickClassify = useQuickClassifyTransaction()
+  const unlinkTransfer = useUnlinkTransfer()
 
   if (transactions.length === 0) {
     return (
@@ -49,35 +55,48 @@ export function AllTransactionsList({ transactions, categories }: AllTransaction
               {formatTransactionDate(date, locale)}
             </p>
             <div className="space-y-0.5">
-              {grouped[date].map((tr, rowIdx) => (
-                <div
-                  key={tr.id}
-                  className={cn(
-                    'flex items-center justify-between rounded-xl px-4 py-3 transition-colors',
-                    'hover:bg-muted/60',
-                    rowIdx % 2 === 0 ? 'bg-muted/20' : 'bg-transparent',
-                  )}
-                >
-                  <div className="min-w-0 flex-1 flex items-center gap-2">
-                    <p className="truncate text-sm font-medium">{tr.description}</p>
-                    {tr.accountName && (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground shrink-0">
-                        {tr.accountName}
-                      </span>
-                    )}
-                    {tr.proStatus !== 'NON_CLASSE' && <ProStatusBadge status={tr.proStatus} />}
-                    <ExpenseCategoryBadge categoryId={tr.expenseCategoryId} categories={categories} />
-                  </div>
-                  <CurrencyDisplay
-                    value={tr.amount}
-                    currency={tr.nativeCurrency}
+              {grouped[date].map((tr, rowIdx) => {
+                const row = (
+                  <div
                     className={cn(
-                      'ml-4 shrink-0 text-base font-semibold tabular-nums',
-                      tr.amount >= 0 ? 'text-emerald-500' : 'text-foreground',
+                      'flex items-center justify-between rounded-xl px-4 py-3 transition-colors',
+                      'hover:bg-muted/60',
+                      rowIdx % 2 === 0 ? 'bg-muted/20' : 'bg-transparent',
                     )}
-                  />
-                </div>
-              ))}
+                  >
+                    <div className="min-w-0 flex-1 flex items-center gap-2">
+                      <p className="truncate text-sm font-medium">{tr.description}</p>
+                      {tr.accountName && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground shrink-0">
+                          {tr.accountName}
+                        </span>
+                      )}
+                      {tr.proStatus !== 'NON_CLASSE' && <ProStatusBadge status={tr.proStatus} />}
+                      <ExpenseCategoryBadge categoryId={tr.expenseCategoryId} categories={categories} />
+                    </div>
+                    <CurrencyDisplay
+                      value={tr.amount}
+                      currency={tr.nativeCurrency}
+                      className={cn(
+                        'ml-4 shrink-0 text-base font-semibold tabular-nums',
+                        tr.amount >= 0 ? 'text-emerald-500' : 'text-foreground',
+                      )}
+                    />
+                  </div>
+                )
+                if (tr.accountId == null) return <Fragment key={tr.id}>{row}</Fragment>
+                return (
+                  <TransactionContextMenu
+                    key={tr.id}
+                    transaction={tr}
+                    categories={categories}
+                    onQuickClassify={(data) => quickClassify.mutate({ accountId: tr.accountId!, txId: tr.id, data })}
+                    onUnlinkTransfer={(txId) => unlinkTransfer.mutate(txId)}
+                  >
+                    {row}
+                  </TransactionContextMenu>
+                )
+              })}
             </div>
           </div>
         ))}

@@ -70,3 +70,33 @@ describe('TransactionsList filters', () => {
     expect(screen.getByText('common.noResults')).toBeInTheDocument()
   })
 })
+
+describe('TransactionsList quick classify', () => {
+  it('right-clicking a row and picking a status calls onQuickClassify for that transaction', () => {
+    const onQuickClassify = vi.fn()
+    render(
+      <TransactionsList
+        transactions={transactions}
+        categories={[restauration]}
+        onQuickClassify={onQuickClassify}
+      />,
+    )
+
+    fireEvent.contextMenu(screen.getByText('Facture non triée'))
+    fireEvent.click(screen.getByText('classification.statusLabel'))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'proStatus.perso' }))
+
+    expect(onQuickClassify).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 3, description: 'Facture non triée' }),
+      { proStatus: 'PERSO', expenseCategoryId: null },
+    )
+  })
+
+  it('does not offer a context menu when onQuickClassify is not provided', () => {
+    render(<TransactionsList transactions={transactions} categories={[restauration]} />)
+
+    fireEvent.contextMenu(screen.getByText('Facture non triée'))
+
+    expect(screen.queryByText('classification.statusLabel')).not.toBeInTheDocument()
+  })
+})

@@ -38,6 +38,11 @@ const useAllTransactions = vi.fn<(periodStart: string, periodEnd: string) => { d
 )
 vi.mock('@/features/transactions/hooks', () => ({
   useAllTransactions: (periodStart: string, periodEnd: string) => useAllTransactions(periodStart, periodEnd),
+  useQuickClassifyTransaction: () => ({ mutate: vi.fn() }),
+}))
+
+vi.mock('@/features/internalTransfers/hooks', () => ({
+  useUnlinkTransfer: () => ({ mutate: vi.fn() }),
 }))
 
 vi.mock('@/features/expenseCategories/hooks', () => ({

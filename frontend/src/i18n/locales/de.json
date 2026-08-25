@@ -1564,6 +1564,7 @@
     "linkTitle": "Als interne Überweisung verknüpfen",
     "counterpartLabel": "Entsprechende Transaktion",
     "counterpartPlaceholder": "Transaktion wählen…",
-    "noCandidates": "Keine passende Transaktion auf einem anderen Konto gefunden."
+    "noCandidates": "Keine passende Transaktion auf einem anderen Konto gefunden.",
+    "unlink": "Überweisung trennen"
   }
 }

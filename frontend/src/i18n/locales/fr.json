@@ -1564,6 +1564,7 @@
     "linkTitle": "Lier comme virement interne",
     "counterpartLabel": "Transaction correspondante",
     "counterpartPlaceholder": "Choisir une transaction…",
-    "noCandidates": "Aucune transaction correspondante trouvée sur un autre compte."
+    "noCandidates": "Aucune transaction correspondante trouvée sur un autre compte.",
+    "unlink": "Délier le virement"
   }
 }

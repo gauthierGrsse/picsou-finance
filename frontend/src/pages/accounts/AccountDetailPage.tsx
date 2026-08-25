@@ -245,6 +245,7 @@ export function AccountDetailPage() {
             onDelete={(txId) => deleteTxMutation.mutate(txId)}
             onEdit={(tx) => setEditingTx(tx)}
             onClassify={(tx) => setClassifyingTx(tx)}
+            onQuickClassify={(tx, data) => classifyTxMutation.mutate({ txId: tx.id, data })}
             onUnlinkTransfer={(txId) => unlinkTransferMutation.mutate(txId)}
             onLinkTransfer={(tx) => setLinkingTransferTx(tx)}
             categories={categories}
