@@ -32,6 +32,7 @@ import {
   KeyRound,
   ExternalLink,
   Tags,
+  Link2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { api } from '@/lib/api-client'
@@ -39,6 +40,7 @@ import { APP_VERSION } from '@/lib/app-version'
 import { SecuritySection } from './security/SecuritySection'
 import { AccessKeysSection } from './sections/AccessKeysSection'
 import { ExpenseCategoriesSection } from './sections/ExpenseCategoriesSection'
+import { ReimbursementsList } from '@/components/shared/ReimbursementsList'
 
 // ---------------------------------------------------------------------------
 // Toggle group button (theme / language)
@@ -329,6 +331,15 @@ export function SettingsPage() {
         description={t('expenseCategories.sectionDescription')}
       >
         <ExpenseCategoriesSection />
+      </SectionCard>
+
+      {/* Linked reimbursements --------------------------------------------- */}
+      <SectionCard
+        icon={Link2}
+        title={t('settings.reimbursementsTitle')}
+        description={t('settings.reimbursementsDescription')}
+      >
+        <ReimbursementsList />
       </SectionCard>
 
       {/* Family ----------------------------------------------------------- */}

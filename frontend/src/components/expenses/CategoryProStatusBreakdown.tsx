@@ -5,10 +5,11 @@ import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } f
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { formatCurrency, localeFromLanguage } from '@/lib/utils'
 import { proStatusLabelKey } from '@/lib/constants'
-import type { CategoryBreakdownItem } from '@/types/api'
+import type { CategoryBreakdownItem, ProStatus } from '@/types/api'
 
 interface CategoryProStatusBreakdownProps {
   data: CategoryBreakdownItem[]
+  onSliceClick?: (item: { categoryId: number | null; proStatus: ProStatus }) => void
 }
 
 const chartConfig = {
@@ -19,7 +20,7 @@ const chartConfig = {
  * e.g. "Restauration perso" and "Restauration pro_absorbe" render separately. Cell color
  * comes straight from the category's own stored hex, same as Account.color feeding
  * DistributionPie: there are only 5 --chart-N tokens, not enough for an open-ended list. */
-export function CategoryProStatusBreakdown({ data }: CategoryProStatusBreakdownProps) {
+export function CategoryProStatusBreakdown({ data, onSliceClick }: CategoryProStatusBreakdownProps) {
   const { t, i18n } = useTranslation()
   const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
 
@@ -29,6 +30,8 @@ export function CategoryProStatusBreakdown({ data }: CategoryProStatusBreakdownP
         .filter((d) => d.total > 0)
         .map((d) => ({
           id: `${d.categoryId ?? 'none'}-${d.proStatus}`,
+          categoryId: d.categoryId,
+          proStatus: d.proStatus,
           name: d.categoryName ?? t('expenseDashboard.uncategorized'),
           statusLabel: t(proStatusLabelKey(d.proStatus)),
           color: d.categoryColor ?? 'var(--chart-5)',
@@ -63,7 +66,23 @@ export function CategoryProStatusBreakdown({ data }: CategoryProStatusBreakdownP
               />
             }
           />
-          <Pie data={items} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={38} outerRadius={65} paddingAngle={2} strokeWidth={0} isAnimationActive={false}>
+          <Pie
+            data={items}
+            dataKey="total"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            innerRadius={38}
+            outerRadius={65}
+            paddingAngle={2}
+            strokeWidth={0}
+            isAnimationActive={false}
+            className={onSliceClick ? 'cursor-pointer' : undefined}
+            onClick={onSliceClick ? (entry) => {
+              const item = (entry as unknown as { payload: typeof items[number] }).payload
+              onSliceClick({ categoryId: item.categoryId, proStatus: item.proStatus })
+            } : undefined}
+          >
             {items.map((item) => (
               <Cell key={item.id} fill={item.color} />
             ))}
@@ -72,7 +91,13 @@ export function CategoryProStatusBreakdown({ data }: CategoryProStatusBreakdownP
       </ChartContainer>
       <div className="w-full min-w-0 space-y-1 overflow-y-auto sm:max-h-[140px]">
         {items.map((item) => (
-          <div key={item.id} className="flex items-center gap-2 text-sm">
+          <div
+            key={item.id}
+            role={onSliceClick ? 'button' : undefined}
+            tabIndex={onSliceClick ? 0 : undefined}
+            onClick={onSliceClick ? () => onSliceClick({ categoryId: item.categoryId, proStatus: item.proStatus }) : undefined}
+            className={`flex items-center gap-2 rounded-lg text-sm ${onSliceClick ? '-mx-1.5 cursor-pointer px-1.5 py-0.5 transition-colors hover:bg-muted' : ''}`}
+          >
             <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
             <span className="min-w-0 truncate">{item.name}</span>
             <span className="shrink-0 text-xs text-muted-foreground">{item.statusLabel}</span>

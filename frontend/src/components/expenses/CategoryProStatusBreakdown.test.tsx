@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { CategoryProStatusBreakdown } from './CategoryProStatusBreakdown'
 import type { CategoryBreakdownItem } from '@/types/api'
 
@@ -44,5 +44,28 @@ describe('CategoryProStatusBreakdown', () => {
 
     const names = screen.getAllByText(/Small|Big/).map(el => el.textContent)
     expect(names).toEqual(['Big', 'Small'])
+  })
+
+  it('calls onSliceClick with the row\'s category and status when a legend row is clicked', () => {
+    const data: CategoryBreakdownItem[] = [
+      { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', proStatus: 'PERSO', total: 180 },
+    ]
+    const onSliceClick = vi.fn()
+
+    render(<CategoryProStatusBreakdown data={data} onSliceClick={onSliceClick} />)
+
+    fireEvent.click(screen.getByText('Restauration'))
+
+    expect(onSliceClick).toHaveBeenCalledWith({ categoryId: 1, proStatus: 'PERSO' })
+  })
+
+  it('does not make legend rows clickable when onSliceClick is not provided', () => {
+    const data: CategoryBreakdownItem[] = [
+      { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', proStatus: 'PERSO', total: 180 },
+    ]
+
+    render(<CategoryProStatusBreakdown data={data} />)
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 })

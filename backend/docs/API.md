@@ -1589,11 +1589,13 @@ Un-links every remaining expense (back to `EN_ATTENTE`) before deleting the reim
 
 ### 16. Expense Dashboard — `/api/expense-dashboard`
 
-#### `GET /api/expense-dashboard?months=&period=`
+#### `GET /api/expense-dashboard?months=&periodStart=&periodEnd=`
 
 - **Auth:** Required
-- **Query params:** `months` (default `6`) -- size of the monthly-evolution window ending at
-  `period`. `period` (default: current month) -- `"YYYY-MM"`.
+- **Query params:** `months` (default `6`) -- size of the monthly-evolution window, ending at
+  the month containing `periodEnd`. `periodStart`/`periodEnd` (default: current month, as
+  `"YYYY-MM-DD"`) -- the range `categoryBreakdown`/`totalProAbsorbe` are scoped to. A single
+  month passes that month's first/last day; a full calendar year passes Jan 1/Dec 31.
 
 **Response `200` — `ExpenseDashboardResponse`:**
 ```json
@@ -1611,6 +1613,50 @@ Un-links every remaining expense (back to `EN_ATTENTE`) before deleting the reim
 ```
 
 `monthlyEvolution` sums negative-amount (expense) transactions per month over the window --
-every month is present even at zero. `categoryBreakdown` groups the requested `period`'s
-expenses by (category, `ProStatus`); a null `categoryId`/`categoryName` means uncategorized.
-`totalProAbsorbe` sums `PRO_ABSORBE` expenses for `period` only.
+every month is present even at zero. `categoryBreakdown` groups the `periodStart`..`periodEnd`
+range's expenses by (category, `ProStatus`); a null `categoryId`/`categoryName` means
+uncategorized. `totalProAbsorbe` sums `PRO_ABSORBE` expenses for that same range.
+
+### 17. Internal Transfers — `/api/transfers`
+
+Detects and links transfers between two of the member's own accounts (e.g. a Revolut pocket
+<-> main account movement) so they're excluded from expense totals -- see
+`InternalTransferService`'s class doc for the confidence-tier design.
+
+#### `GET /api/transfers/suggested`
+
+- **Auth:** Required
+- Same-amount, opposite-sign pairs across different accounts within a few days of each
+  other, with no shared provider reference (everything with one was already auto-linked at
+  sync time). Returns `SuggestedTransferPairResponse[]`, each `{ a: TransactionResponse, b: TransactionResponse }`.
+
+#### `GET /api/transfers/candidates`
+
+- **Auth:** Required
+- The full unclassified/unlinked pool (`TransactionResponse[]`), for manually picking a
+  counterpart to link -- e.g. a wire to a brokerage account that settles too late for the
+  suggestion window above.
+
+#### `POST /api/transfers/link`
+
+- **Auth:** Required
+- **Body:** `{ "transactionIdA": number, "transactionIdB": number }`
+- Links two transactions as an internal transfer. Rejected (`400`) if they're on the same
+  account, don't have exactly opposite amounts, or either is already linked.
+
+#### `DELETE /api/transfers/{transactionId}/link`
+
+- **Auth:** Required
+- Unlinks a transfer, reverting both legs to `NON_CLASSE`. `204` on success.
+
+### 18. Transactions (all accounts) — `/api/transactions`
+
+#### `GET /api/transactions?periodStart=&periodEnd=`
+
+- **Auth:** Required
+- **Query params:** `periodStart`, `periodEnd` (required, `"YYYY-MM-DD"`) -- inclusive date
+  range.
+- Every transaction across every account the member owns within the range, sorted by date
+  descending. Unlike `GET /api/accounts/{id}/transactions`, each `TransactionResponse` here
+  carries `accountId`/`accountName` since the list spans accounts. Powers the global
+  transactions page so a transaction doesn't have to be found by opening each account.

@@ -1,8 +1,9 @@
-import { LayoutDashboard, Wallet, Receipt, Target, Settings } from 'lucide-react'
+import { LayoutDashboard, Wallet, ArrowLeftRight, Receipt, Target, Settings } from 'lucide-react'
 
 export const NAV_ITEMS = [
   { path: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard', descKey: 'nav.dashboard.desc' },
   { path: '/accounts', icon: Wallet, labelKey: 'nav.accounts', descKey: 'nav.accounts.desc' },
+  { path: '/transactions', icon: ArrowLeftRight, labelKey: 'nav.transactions', descKey: 'nav.transactions.desc' },
   { path: '/expenses', icon: Receipt, labelKey: 'nav.expenses', descKey: 'nav.expenses.desc' },
   { path: '/goals', icon: Target, labelKey: 'nav.goals', descKey: 'nav.goals.desc' },
 ] as const

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useExpenseDashboard } from '@/features/expenseDashboard/hooks'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton'
@@ -7,10 +8,10 @@ import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { MonthlyExpenseChart } from '@/components/expenses/MonthlyExpenseChart'
 import { CategoryProStatusBreakdown } from '@/components/expenses/CategoryProStatusBreakdown'
 import { PendingReimbursementsCard } from '@/components/expenses/PendingReimbursementsCard'
-import { ReimbursementsList } from '@/components/shared/ReimbursementsList'
 import { SuggestedTransfersCard } from '@/components/expenses/SuggestedTransfersCard'
 import { PeriodSelector, type PeriodMode } from '@/components/expenses/PeriodSelector'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { ProStatus } from '@/types/api'
 
 const MONTH_MODE_EVOLUTION_MONTHS = 6
 const YEAR_OPTIONS_BACK = 5
@@ -27,6 +28,7 @@ function lastDayOfMonth(monthValue: string) {
 
 export function ExpenseDashboardPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const currentYear = new Date().getFullYear()
 
   const [mode, setMode] = useState<PeriodMode>('month')
@@ -46,6 +48,19 @@ export function ExpenseDashboardPage() {
     () => (data?.categoryBreakdown ?? []).reduce((sum, item) => sum + item.total, 0),
     [data],
   )
+
+  function goToFilteredTransactions(slice: { categoryId: number | null; proStatus: ProStatus }) {
+    const params = new URLSearchParams({ status: slice.proStatus })
+    params.set('category', slice.categoryId != null ? String(slice.categoryId) : 'uncategorized')
+    if (mode === 'year') {
+      params.set('mode', 'year')
+      params.set('year', String(year))
+    } else {
+      params.set('mode', 'month')
+      params.set('month', month)
+    }
+    navigate(`/transactions?${params.toString()}`)
+  }
 
   if (isLoading || !data) {
     return <LoadingSkeleton />
@@ -103,15 +118,16 @@ export function ExpenseDashboardPage() {
           <CardTitle className="text-sm text-muted-foreground">{t('expenseDashboard.categoryBreakdownTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <CategoryProStatusBreakdown data={data.categoryBreakdown} />
+          <CategoryProStatusBreakdown data={data.categoryBreakdown} onSliceClick={goToFilteredTransactions} />
         </CardContent>
       </Card>
 
       {/* Self-contained cards below: each renders nothing when it has nothing to show,
-          so the page doesn't carry permanently-empty sections as filler. */}
+          so the page doesn't carry permanently-empty sections as filler. Already-linked
+          reimbursements live in Settings -- that's an occasional audit/undo tool, not a
+          daily-glance item, so it doesn't need to sit on this dashboard. */}
       <SuggestedTransfersCard />
       <PendingReimbursementsCard />
-      <ReimbursementsList />
     </div>
   )
 }

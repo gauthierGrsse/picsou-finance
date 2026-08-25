@@ -28,7 +28,9 @@ public record TransactionResponse(
     ProStatus proStatus,
     Long expenseCategoryId,
     ReimbursementStatus reimbursementStatus,
-    Long reimbursementId
+    Long reimbursementId,
+    Long accountId,
+    String accountName
 ) {
     public static TransactionResponse from(Transaction t) {
         return new TransactionResponse(
@@ -50,7 +52,9 @@ public record TransactionResponse(
             t.getProStatus(),
             t.getExpenseCategoryId(),
             t.getReimbursementStatus(),
-            t.getReimbursementId()
+            t.getReimbursementId(),
+            t.getAccount().getId(),
+            t.getAccount().getName()
         );
     }
 }

@@ -2,13 +2,18 @@ import '@testing-library/jest-dom'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ExpenseDashboardPage } from './ExpenseDashboardPage'
-import type { ExpenseDashboardResponse, PendingReimbursements, Reimbursement } from '@/types/api'
+import type { ExpenseDashboardResponse, PendingReimbursements } from '@/types/api'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
     i18n: { language: 'en', resolvedLanguage: 'en' },
   }),
+}))
+
+const navigate = vi.fn()
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => navigate,
 }))
 
 const dashboard: ExpenseDashboardResponse = {
@@ -32,15 +37,11 @@ vi.mock('@/features/expenseDashboard/hooks', () => ({
 }))
 
 const pending: PendingReimbursements = { expenses: [], totalOwed: 0 }
-const reimbursements: Reimbursement[] = []
 
 vi.mock('@/features/reimbursements/hooks', () => ({
   usePendingReimbursements: () => ({ data: pending, isLoading: false }),
   useCandidateCredits: () => ({ data: [] }),
   useCreateReimbursement: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useReimbursements: () => ({ data: reimbursements, isLoading: false }),
-  useUnlinkReimbursementExpense: () => ({ mutate: vi.fn() }),
-  useDeleteReimbursement: () => ({ mutate: vi.fn(), reset: vi.fn(), isPending: false, isError: false }),
 }))
 
 vi.mock('@/features/internalTransfers/hooks', () => ({
@@ -78,5 +79,15 @@ describe('ExpenseDashboardPage', () => {
     const year = new Date().getFullYear()
     expect(useExpenseDashboard).toHaveBeenLastCalledWith(12, `${year}-01-01`, `${year}-12-31`)
     expect(screen.getByText('expenseDashboard.totalPeriodYearLabel')).toBeInTheDocument()
+  })
+
+  it('navigates to the filtered transactions page when a breakdown row is clicked', () => {
+    render(<ExpenseDashboardPage />)
+
+    fireEvent.click(screen.getByText('Restauration'))
+
+    const now = new Date()
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    expect(navigate).toHaveBeenCalledWith(`/transactions?status=PERSO&category=1&mode=month&month=${month}`)
   })
 })

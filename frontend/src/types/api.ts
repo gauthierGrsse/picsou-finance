@@ -757,6 +757,8 @@ export interface Transaction {
   expenseCategoryId: number | null
   reimbursementStatus: ReimbursementStatusType | null
   reimbursementId: number | null
+  accountId?: number
+  accountName?: string
 }
 
 export interface ExpenseCategory {
