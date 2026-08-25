@@ -826,6 +826,7 @@ export interface SuggestedTransferPair {
 export interface TransferLinkRequest {
   transactionIdA: number
   transactionIdB: number
+  allowAmountMismatch: boolean
 }
 
 export interface TransactionRequest {

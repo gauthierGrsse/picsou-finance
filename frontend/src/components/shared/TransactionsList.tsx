@@ -199,6 +199,7 @@ export function TransactionsList({ transactions, onDelete, onEdit, onClassify, o
                       expenseCategoryId: change.field === 'category' ? change.expenseCategoryId : tr.expenseCategoryId,
                     })}
                     onUnlinkTransfer={onUnlinkTransfer}
+                    onLinkTransfer={onLinkTransfer}
                   >
                     {row}
                   </TransactionContextMenu>

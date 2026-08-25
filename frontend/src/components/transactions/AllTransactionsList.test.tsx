@@ -18,6 +18,8 @@ vi.mock('@/features/transactions/hooks', () => ({
 
 vi.mock('@/features/internalTransfers/hooks', () => ({
   useUnlinkTransfer: () => ({ mutate: vi.fn() }),
+  useTransferCandidates: () => ({ data: [] }),
+  useConfirmTransferLink: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
 function tx(overrides: Partial<Transaction>): Transaction {
@@ -146,5 +148,21 @@ describe('AllTransactionsList', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'proStatus.perso' }))
 
     expect(quickClassifyMutate).not.toHaveBeenCalledWith(expect.objectContaining({ txId: 2 }))
+  })
+
+  it('right-clicking a row and picking "link as internal transfer" opens the link modal for it', () => {
+    const transactions: Transaction[] = [
+      tx({ id: 42, description: 'Vers Compte Titre', accountId: 7, accountName: 'Compte Courant' }),
+    ]
+
+    render(<AllTransactionsList transactions={transactions} categories={[]} />)
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    fireEvent.contextMenu(screen.getByText('Vers Compte Titre'))
+    fireEvent.click(screen.getByText('internalTransfers.linkTitle'))
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getAllByText('Vers Compte Titre').length).toBeGreaterThan(0)
   })
 })

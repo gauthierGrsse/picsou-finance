@@ -1563,9 +1563,11 @@
     "empty": "Aucun virement suggéré.",
     "confirm": "Confirmer",
     "linkTitle": "Lier comme virement interne",
-    "counterpartLabel": "Transaction correspondante",
-    "counterpartPlaceholder": "Choisir une transaction…",
     "noCandidates": "Aucune transaction correspondante trouvée sur un autre compte.",
-    "unlink": "Délier le virement"
+    "unlink": "Délier le virement",
+    "allAccounts": "Tous les comptes",
+    "amountMismatch": "Montant différent",
+    "mismatchWarningTitle": "Les montants ne correspondent pas",
+    "mismatchWarningDescription": "{{amountA}} vs {{amountB}} — les montants ne sont pas exactement opposés. Confirmez-vous qu'il s'agit bien des deux côtés du même virement ?"
   }
 }

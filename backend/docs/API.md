@@ -1640,9 +1640,13 @@ Detects and links transfers between two of the member's own accounts (e.g. a Rev
 #### `POST /api/transfers/link`
 
 - **Auth:** Required
-- **Body:** `{ "transactionIdA": number, "transactionIdB": number }`
+- **Body:** `{ "transactionIdA": number, "transactionIdB": number, "allowAmountMismatch": boolean }`
+  -- `allowAmountMismatch` (default `false`) skips the opposite-amount check, for a transfer
+  that legitimately settles at a different figure (brokerage fees, FX conversion). The
+  frontend only sets it after the user explicitly confirms a mismatch warning.
 - Links two transactions as an internal transfer. Rejected (`400`) if they're on the same
-  account, don't have exactly opposite amounts, or either is already linked.
+  account, either is already linked, or (unless `allowAmountMismatch`) they don't have
+  exactly opposite amounts.
 
 #### `DELETE /api/transfers/{transactionId}/link`
 

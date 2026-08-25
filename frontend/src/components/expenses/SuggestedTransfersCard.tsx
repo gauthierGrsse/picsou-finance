@@ -54,7 +54,7 @@ export function SuggestedTransfersCard() {
               size="sm"
               variant="outline"
               disabled={confirmLink.isPending}
-              onClick={() => confirmLink.mutate({ transactionIdA: a.id, transactionIdB: b.id })}
+              onClick={() => confirmLink.mutate({ transactionIdA: a.id, transactionIdB: b.id, allowAmountMismatch: false })}
             >
               <Check className="mr-1.5 size-4" />
               {t('internalTransfers.confirm')}

@@ -198,7 +198,7 @@ class InternalTransferServiceTest {
         when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
         when(transactionRepository.findByIdAndAccount_Member_Id(20L, 1L)).thenReturn(java.util.Optional.of(b));
 
-        assertThatThrownBy(() -> internalTransferService.confirmLink(10L, 20L, 1L))
+        assertThatThrownBy(() -> internalTransferService.confirmLink(10L, 20L, 1L, false))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("same account");
     }
@@ -212,7 +212,7 @@ class InternalTransferServiceTest {
         when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
         when(transactionRepository.findByIdAndAccount_Member_Id(20L, 1L)).thenReturn(java.util.Optional.of(b));
 
-        assertThatThrownBy(() -> internalTransferService.confirmLink(10L, 20L, 1L))
+        assertThatThrownBy(() -> internalTransferService.confirmLink(10L, 20L, 1L, false))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("opposite");
     }
@@ -227,7 +227,7 @@ class InternalTransferServiceTest {
         when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
         when(transactionRepository.findByIdAndAccount_Member_Id(20L, 1L)).thenReturn(java.util.Optional.of(b));
 
-        assertThatThrownBy(() -> internalTransferService.confirmLink(10L, 20L, 1L))
+        assertThatThrownBy(() -> internalTransferService.confirmLink(10L, 20L, 1L, false))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("already linked");
     }
@@ -241,12 +241,43 @@ class InternalTransferServiceTest {
         when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
         when(transactionRepository.findByIdAndAccount_Member_Id(20L, 1L)).thenReturn(java.util.Optional.of(b));
 
-        internalTransferService.confirmLink(10L, 20L, 1L);
+        internalTransferService.confirmLink(10L, 20L, 1L, false);
 
         assertThat(a.getProStatus()).isEqualTo(ProStatus.VIREMENT_INTERNE);
         assertThat(a.getLinkedTransactionId()).isEqualTo(20L);
         assertThat(b.getProStatus()).isEqualTo(ProStatus.VIREMENT_INTERNE);
         assertThat(b.getLinkedTransactionId()).isEqualTo(10L);
+    }
+
+    @Test
+    void confirmLink_allowAmountMismatch_linksDespiteDifferentAmounts() {
+        Account accountA = account(1L);
+        Account accountB = account(2L);
+        // A wire that settles for a different figure on the other side (brokerage fees, FX).
+        Transaction a = tx(10L, accountA, LocalDate.now(), new BigDecimal("-1000.00"), null);
+        Transaction b = tx(20L, accountB, LocalDate.now(), new BigDecimal("950.00"), null);
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
+        when(transactionRepository.findByIdAndAccount_Member_Id(20L, 1L)).thenReturn(java.util.Optional.of(b));
+
+        internalTransferService.confirmLink(10L, 20L, 1L, true);
+
+        assertThat(a.getProStatus()).isEqualTo(ProStatus.VIREMENT_INTERNE);
+        assertThat(a.getLinkedTransactionId()).isEqualTo(20L);
+        assertThat(b.getProStatus()).isEqualTo(ProStatus.VIREMENT_INTERNE);
+        assertThat(b.getLinkedTransactionId()).isEqualTo(10L);
+    }
+
+    @Test
+    void confirmLink_allowAmountMismatch_stillRejectsSameAccount() {
+        Account account = account(1L);
+        Transaction a = tx(10L, account, LocalDate.now(), new BigDecimal("-10"), null);
+        Transaction b = tx(20L, account, LocalDate.now(), new BigDecimal("999"), null);
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
+        when(transactionRepository.findByIdAndAccount_Member_Id(20L, 1L)).thenReturn(java.util.Optional.of(b));
+
+        assertThatThrownBy(() -> internalTransferService.confirmLink(10L, 20L, 1L, true))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("same account");
     }
 
     // ─── unlink ─────────────────────────────────────────────────────────────
@@ -288,7 +319,7 @@ class InternalTransferServiceTest {
     void confirmLink_unknownTransaction_throwsNotFound() {
         when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.empty());
 
-        assertThatThrownBy(() -> internalTransferService.confirmLink(10L, 20L, 1L))
+        assertThatThrownBy(() -> internalTransferService.confirmLink(10L, 20L, 1L, false))
             .isInstanceOf(ResourceNotFoundException.class);
     }
 }

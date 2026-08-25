@@ -1563,9 +1563,11 @@
     "empty": "Keine vorgeschlagenen Überweisungen.",
     "confirm": "Bestätigen",
     "linkTitle": "Als interne Überweisung verknüpfen",
-    "counterpartLabel": "Entsprechende Transaktion",
-    "counterpartPlaceholder": "Transaktion wählen…",
     "noCandidates": "Keine passende Transaktion auf einem anderen Konto gefunden.",
-    "unlink": "Überweisung trennen"
+    "unlink": "Überweisung trennen",
+    "allAccounts": "Alle Konten",
+    "amountMismatch": "Abweichender Betrag",
+    "mismatchWarningTitle": "Beträge stimmen nicht überein",
+    "mismatchWarningDescription": "{{amountA}} vs. {{amountB}} — die Beträge sind nicht exakt entgegengesetzt. Bestätigst du, dass es sich wirklich um beide Seiten derselben Überweisung handelt?"
   }
 }

@@ -50,11 +50,21 @@ class InternalTransferControllerTest {
     @Test
     void confirmLink_delegatesWithMemberId() {
         when(userContext.currentMemberId()).thenReturn(10L);
-        TransferLinkRequest req = new TransferLinkRequest(1L, 2L);
+        TransferLinkRequest req = new TransferLinkRequest(1L, 2L, false);
 
         controller.confirmLink(req);
 
-        verify(internalTransferService).confirmLink(1L, 2L, 10L);
+        verify(internalTransferService).confirmLink(1L, 2L, 10L, false);
+    }
+
+    @Test
+    void confirmLink_forwardsAllowAmountMismatch() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+        TransferLinkRequest req = new TransferLinkRequest(1L, 2L, true);
+
+        controller.confirmLink(req);
+
+        verify(internalTransferService).confirmLink(1L, 2L, 10L, true);
     }
 
     @Test

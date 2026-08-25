@@ -6,6 +6,7 @@ import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { ExpenseCategoryBadge } from '@/components/shared/ExpenseCategoryBadge'
 import { ProStatusBadge } from '@/components/shared/ProStatusBadge'
 import { TransactionContextMenu, type QuickClassifyChange } from '@/components/shared/TransactionContextMenu'
+import { InternalTransferLinkModal } from '@/components/shared/InternalTransferLinkModal'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn, localeFromLanguage } from '@/lib/utils'
@@ -32,6 +33,7 @@ export function AllTransactionsList({ transactions, categories }: AllTransaction
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [anchorId, setAnchorId] = useState<number | null>(null)
+  const [linkingTransferTx, setLinkingTransferTx] = useState<Transaction | null>(null)
 
   // Flat, on-screen order (date descending, matches the grouped render below) -- the
   // sequence shift-range-select walks.
@@ -121,17 +123,19 @@ export function AllTransactionsList({ transactions, categories }: AllTransaction
   const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
 
   return (
-    <div className="space-y-3">
+    <div>
       {visibleSelectedIds.size > 1 && (
-        <div className="flex items-center justify-between rounded-xl bg-primary/10 px-4 py-2 text-sm">
-          <span className="font-medium">{t('classification.selectedCount', { count: visibleSelectedIds.size })}</span>
-          <button
-            type="button"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => setSelectedIds(new Set())}
-          >
-            <X className="size-4" />
-          </button>
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-full border bg-popover/95 px-4 py-2 text-sm shadow-lg backdrop-blur-md">
+            <span className="font-medium">{t('classification.selectedCount', { count: visibleSelectedIds.size })}</span>
+            <button
+              type="button"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              <X className="size-4" />
+            </button>
+          </div>
         </div>
       )}
       <Card size="sm">
@@ -190,6 +194,7 @@ export function AllTransactionsList({ transactions, categories }: AllTransaction
                       selectionCount={bulk ? visibleSelectedIds.size : 1}
                       onQuickClassify={(change) => applyQuickClassify(targets, change)}
                       onUnlinkTransfer={(txId) => unlinkTransfer.mutate(txId)}
+                      onLinkTransfer={(target) => setLinkingTransferTx(target)}
                     >
                       {row}
                     </TransactionContextMenu>
@@ -200,6 +205,11 @@ export function AllTransactionsList({ transactions, categories }: AllTransaction
           ))}
         </CardContent>
       </Card>
+
+      <InternalTransferLinkModal
+        transaction={linkingTransferTx}
+        onOpenChange={(open) => { if (!open) setLinkingTransferTx(null) }}
+      />
     </div>
   )
 }

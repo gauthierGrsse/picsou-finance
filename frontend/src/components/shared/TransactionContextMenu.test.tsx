@@ -104,4 +104,41 @@ describe('TransactionContextMenu', () => {
     fireEvent.click(screen.getByText('proStatus.perso'))
     expect(onQuickClassify).toHaveBeenCalledWith({ field: 'status', proStatus: 'PERSO' })
   })
+
+  it('offers "link as internal transfer" for a single non-transfer row and calls onLinkTransfer with it', () => {
+    const onLinkTransfer = vi.fn()
+    const transaction = tx({ id: 7 })
+
+    render(
+      <TransactionContextMenu transaction={transaction} categories={categories} onQuickClassify={vi.fn()} onLinkTransfer={onLinkTransfer}>
+        <div>Row</div>
+      </TransactionContextMenu>,
+    )
+
+    fireEvent.contextMenu(screen.getByText('Row'))
+    fireEvent.click(screen.getByText('internalTransfers.linkTitle'))
+
+    expect(onLinkTransfer).toHaveBeenCalledWith(transaction)
+  })
+
+  it('does not offer "link as internal transfer" when acting on a multi-row selection', () => {
+    const onLinkTransfer = vi.fn()
+    const transaction = tx({ id: 7 })
+
+    render(
+      <TransactionContextMenu
+        transaction={transaction}
+        categories={categories}
+        onQuickClassify={vi.fn()}
+        onLinkTransfer={onLinkTransfer}
+        selectionCount={3}
+      >
+        <div>Row</div>
+      </TransactionContextMenu>,
+    )
+
+    fireEvent.contextMenu(screen.getByText('Row'))
+
+    expect(screen.queryByText('internalTransfers.linkTitle')).not.toBeInTheDocument()
+  })
 })

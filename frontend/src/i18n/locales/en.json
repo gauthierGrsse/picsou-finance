@@ -1563,9 +1563,11 @@
     "empty": "No suggested transfers.",
     "confirm": "Confirm",
     "linkTitle": "Link as internal transfer",
-    "counterpartLabel": "Counterpart transaction",
-    "counterpartPlaceholder": "Choose a transaction…",
     "noCandidates": "No matching transaction found on another account.",
-    "unlink": "Unlink transfer"
+    "unlink": "Unlink transfer",
+    "allAccounts": "All accounts",
+    "amountMismatch": "Different amount",
+    "mismatchWarningTitle": "Amounts don't match",
+    "mismatchWarningDescription": "{{amountA}} vs {{amountB}} — the amounts aren't exactly opposite. Confirm these are really the two sides of the same transfer?"
   }
 }

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Check, Unlink } from 'lucide-react'
+import { ArrowLeftRight, Check, Unlink } from 'lucide-react'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -29,6 +29,7 @@ interface TransactionContextMenuProps {
   categories: ExpenseCategory[]
   onQuickClassify: (change: QuickClassifyChange) => void
   onUnlinkTransfer?: (txId: number) => void
+  onLinkTransfer?: (tx: Transaction) => void
   /** > 1 when this menu acts on a multi-row selection rather than just `transaction` --
    * drops the per-transaction checkmarks (no single "current" value across many rows). */
   selectionCount?: number
@@ -39,9 +40,10 @@ interface TransactionContextMenuProps {
  * Right-click a transaction row to set its status or category in one click, instead of
  * opening the full classification modal for a single-field change. An internal-transfer
  * row gets Unlink instead -- its status is a pair, not something to reassign one-sided
- * through the classification endpoint (that would leave the two legs out of sync).
+ * through the classification endpoint (that would leave the two legs out of sync). Link
+ * (the reverse direction) only makes sense for a single row, not a bulk selection.
  */
-export function TransactionContextMenu({ transaction, categories, onQuickClassify, onUnlinkTransfer, selectionCount = 1, children }: TransactionContextMenuProps) {
+export function TransactionContextMenu({ transaction, categories, onQuickClassify, onUnlinkTransfer, onLinkTransfer, selectionCount = 1, children }: TransactionContextMenuProps) {
   const { t } = useTranslation()
   const isBulk = selectionCount > 1
 
@@ -59,6 +61,15 @@ export function TransactionContextMenu({ transaction, categories, onQuickClassif
         ) : (
           <>
             {isBulk && <ContextMenuLabel>{t('classification.selectedCount', { count: selectionCount })}</ContextMenuLabel>}
+            {!isBulk && onLinkTransfer && (
+              <>
+                <ContextMenuItem onClick={() => onLinkTransfer(transaction)}>
+                  <ArrowLeftRight className="size-4" />
+                  {t('internalTransfers.linkTitle')}
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+              </>
+            )}
             <ContextMenuSub>
               <ContextMenuSubTrigger>{t('classification.statusLabel')}</ContextMenuSubTrigger>
               <ContextMenuSubContent>

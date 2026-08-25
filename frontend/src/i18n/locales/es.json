@@ -1563,9 +1563,11 @@
     "empty": "No hay transferencias sugeridas.",
     "confirm": "Confirmar",
     "linkTitle": "Vincular como transferencia interna",
-    "counterpartLabel": "Transacción correspondiente",
-    "counterpartPlaceholder": "Elegir una transacción…",
     "noCandidates": "No se encontró ninguna transacción correspondiente en otra cuenta.",
-    "unlink": "Desvincular transferencia"
+    "unlink": "Desvincular transferencia",
+    "allAccounts": "Todas las cuentas",
+    "amountMismatch": "Importe distinto",
+    "mismatchWarningTitle": "Los importes no coinciden",
+    "mismatchWarningDescription": "{{amountA}} vs {{amountB}} — los importes no son exactamente opuestos. ¿Confirmas que se trata realmente de los dos lados de la misma transferencia?"
   }
 }

@@ -38,7 +38,7 @@ public class InternalTransferController {
 
     @PostMapping("/link")
     public void confirmLink(@Valid @RequestBody TransferLinkRequest req) {
-        internalTransferService.confirmLink(req.transactionIdA(), req.transactionIdB(), userContext.currentMemberId());
+        internalTransferService.confirmLink(req.transactionIdA(), req.transactionIdB(), userContext.currentMemberId(), req.allowAmountMismatch());
     }
 
     @DeleteMapping("/{transactionId}/link")

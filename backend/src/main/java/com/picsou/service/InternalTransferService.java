@@ -134,16 +134,23 @@ public class InternalTransferService {
     }
 
     /** Manually confirms a suggested (or any other) pair. Validated server-side rather than
-     * trusted from the request -- a tampered pair must not be linkable. */
+     * trusted from the request -- a tampered pair must not be linkable.
+     *
+     * @param allowAmountMismatch skips the opposite-amount check for a transfer that legitimately
+     *                            settles at a different figure (brokerage fees, FX conversion) --
+     *                            the caller is expected to have gotten explicit user confirmation
+     *                            first, since this is the one guard rail an accidental submission
+     *                            would otherwise catch.
+     */
     @Transactional
-    public void confirmLink(Long transactionIdA, Long transactionIdB, Long memberId) {
+    public void confirmLink(Long transactionIdA, Long transactionIdB, Long memberId, boolean allowAmountMismatch) {
         Transaction a = getOrThrow(transactionIdA, memberId);
         Transaction b = getOrThrow(transactionIdB, memberId);
 
         if (a.getAccount().getId().equals(b.getAccount().getId())) {
             throw new IllegalArgumentException("Both transactions belong to the same account");
         }
-        if (a.getAmount().compareTo(b.getAmount().negate()) != 0) {
+        if (!allowAmountMismatch && a.getAmount().compareTo(b.getAmount().negate()) != 0) {
             throw new IllegalArgumentException("Transactions must have exactly opposite amounts");
         }
         if (a.getLinkedTransactionId() != null || b.getLinkedTransactionId() != null) {

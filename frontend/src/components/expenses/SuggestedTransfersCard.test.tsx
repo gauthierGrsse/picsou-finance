@@ -46,6 +46,6 @@ describe('SuggestedTransfersCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /internalTransfers\.confirm/ }))
 
-    expect(mutate).toHaveBeenCalledWith({ transactionIdA: 10, transactionIdB: 11 })
+    expect(mutate).toHaveBeenCalledWith({ transactionIdA: 10, transactionIdB: 11, allowAmountMismatch: false })
   })
 })
