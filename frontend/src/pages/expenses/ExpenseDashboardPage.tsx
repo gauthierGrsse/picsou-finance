@@ -11,10 +11,12 @@ import { PendingReimbursementsCard } from '@/components/expenses/PendingReimburs
 import { SuggestedTransfersCard } from '@/components/expenses/SuggestedTransfersCard'
 import { PeriodSelector, type PeriodMode } from '@/components/expenses/PeriodSelector'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import type { ProStatus } from '@/types/api'
 
 const MONTH_MODE_EVOLUTION_MONTHS = 6
 const YEAR_OPTIONS_BACK = 5
+type DashboardView = 'expense' | 'income'
 
 function currentMonthValue() {
   const now = new Date()
@@ -34,6 +36,7 @@ export function ExpenseDashboardPage() {
   const [mode, setMode] = useState<PeriodMode>('month')
   const [month, setMonth] = useState(currentMonthValue)
   const [year, setYear] = useState(currentYear)
+  const [view, setView] = useState<DashboardView>('expense')
 
   const { periodStart, periodEnd, months } = useMemo(() => {
     if (mode === 'year') {
@@ -42,7 +45,7 @@ export function ExpenseDashboardPage() {
     return { periodStart: `${month}-01`, periodEnd: `${month}-${String(lastDayOfMonth(month)).padStart(2, '0')}`, months: MONTH_MODE_EVOLUTION_MONTHS }
   }, [mode, month, year])
 
-  const { data, isLoading } = useExpenseDashboard(months, periodStart, periodEnd)
+  const { data, isLoading } = useExpenseDashboard(months, periodStart, periodEnd, view === 'income')
 
   const totalThisPeriod = useMemo(
     () => (data?.categoryBreakdown ?? []).reduce((sum, item) => sum + item.total, 0),
@@ -71,16 +74,33 @@ export function ExpenseDashboardPage() {
       <PageHeader
         title={t('nav.expenses')}
         actions={
-          <PeriodSelector
-            mode={mode}
-            onModeChange={setMode}
-            month={month}
-            onMonthChange={setMonth}
-            year={year}
-            onYearChange={setYear}
-            minYear={currentYear - YEAR_OPTIONS_BACK}
-            maxYear={currentYear}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1 rounded-xl border p-1">
+              {(['expense', 'income'] as const).map(v => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                    view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  {t(`expenseDashboard.view.${v}`)}
+                </button>
+              ))}
+            </div>
+            <PeriodSelector
+              mode={mode}
+              onModeChange={setMode}
+              month={month}
+              onMonthChange={setMonth}
+              year={year}
+              onYearChange={setYear}
+              minYear={currentYear - YEAR_OPTIONS_BACK}
+              maxYear={currentYear}
+            />
+          </div>
         }
       />
 
@@ -88,7 +108,9 @@ export function ExpenseDashboardPage() {
         <Card size="sm">
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {t(mode === 'year' ? 'expenseDashboard.totalPeriodYearLabel' : 'expenseDashboard.totalPeriodLabel')}
+              {t(mode === 'year'
+                ? (view === 'income' ? 'expenseDashboard.totalPeriodYearIncomeLabel' : 'expenseDashboard.totalPeriodYearLabel')
+                : (view === 'income' ? 'expenseDashboard.totalPeriodIncomeLabel' : 'expenseDashboard.totalPeriodLabel'))}
             </p>
             <CurrencyDisplay value={totalThisPeriod} className="text-3xl font-bold" />
             {data.totalProAbsorbe > 0 && (
@@ -118,7 +140,11 @@ export function ExpenseDashboardPage() {
           <CardTitle className="text-sm text-muted-foreground">{t('expenseDashboard.categoryBreakdownTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <CategoryProStatusBreakdown data={data.categoryBreakdown} onSliceClick={goToFilteredTransactions} />
+          <CategoryProStatusBreakdown
+            data={data.categoryBreakdown}
+            onSliceClick={goToFilteredTransactions}
+            emptyLabel={t(view === 'income' ? 'expenseDashboard.noIncome' : 'expenseDashboard.noExpenses')}
+          />
         </CardContent>
       </Card>
 

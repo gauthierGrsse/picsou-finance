@@ -55,7 +55,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        var result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth());
+        var result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
         var januaryTotal = result.monthlyEvolution().stream()
             .filter(m -> m.yearMonth().equals("2026-01")).findFirst().orElseThrow();
@@ -75,7 +75,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth());
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
         var januaryTotal = result.monthlyEvolution().stream()
             .filter(m -> m.yearMonth().equals("2026-01")).findFirst().orElseThrow();
@@ -91,7 +91,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(List.of());
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 3, period.atDay(1), period.atEndOfMonth());
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 3, period.atDay(1), period.atEndOfMonth(), false);
 
         assertThat(result.monthlyEvolution()).extracting("yearMonth")
             .containsExactly("2026-01", "2026-02", "2026-03");
@@ -108,7 +108,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth());
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
         assertThat(result.categoryBreakdown()).hasSize(1);
         assertThat(result.categoryBreakdown().get(0).categoryId()).isNull();
@@ -126,7 +126,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth());
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
         assertThat(result.totalProAbsorbe()).isEqualByComparingTo("30");
     }
@@ -144,7 +144,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 12, periodStart, periodEnd);
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 12, periodStart, periodEnd, false);
 
         assertThat(result.monthlyEvolution()).hasSize(12);
         assertThat(result.categoryBreakdown()).hasSize(1);
@@ -161,7 +161,7 @@ class ExpenseDashboardServiceTest {
             .thenReturn(List.of());
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
 
-        expenseDashboardService.getDashboard(10L, 1, periodStart, periodEnd);
+        expenseDashboardService.getDashboard(10L, 1, periodStart, periodEnd, false);
 
         verify(transactionRepository).findByAccount_Member_IdAndDateBetween(10L, periodStart, periodEnd);
     }
@@ -177,9 +177,47 @@ class ExpenseDashboardServiceTest {
             .thenReturn(window);
         when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of(restauration));
 
-        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth());
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
         assertThat(result.categoryBreakdown().get(0).categoryName()).isEqualTo("Restauration");
         assertThat(result.categoryBreakdown().get(0).categoryColor()).isEqualTo("#f97316");
+    }
+
+    // ─── income=true ────────────────────────────────────────────────────────
+
+    @Test
+    void getDashboard_income_includesOnlyPositiveAmountsAndExcludesExpenses() {
+        YearMonth period = YearMonth.of(2026, 1);
+        List<Transaction> window = List.of(
+            expense(LocalDate.of(2026, 1, 5), new BigDecimal("2500"), ProStatus.NON_CLASSE, null), // salary
+            expense(LocalDate.of(2026, 1, 6), new BigDecimal("-25"), ProStatus.PERSO, null) // expense, excluded
+        );
+        when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
+            .thenReturn(window);
+        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+
+        var result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), true);
+
+        var januaryTotal = result.monthlyEvolution().stream()
+            .filter(m -> m.yearMonth().equals("2026-01")).findFirst().orElseThrow();
+        assertThat(januaryTotal.total()).isEqualByComparingTo("2500");
+        assertThat(result.categoryBreakdown()).hasSize(1);
+        assertThat(result.categoryBreakdown().get(0).total()).isEqualByComparingTo("2500");
+    }
+
+    @Test
+    void getDashboard_income_excludesInternalTransfersAndZeroAmounts() {
+        YearMonth period = YearMonth.of(2026, 1);
+        List<Transaction> window = List.of(
+            expense(LocalDate.of(2026, 1, 5), new BigDecimal("500"), ProStatus.VIREMENT_INTERNE, null),
+            expense(LocalDate.of(2026, 1, 6), BigDecimal.ZERO, ProStatus.NON_CLASSE, null)
+        );
+        when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
+            .thenReturn(window);
+        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+
+        var result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), true);
+
+        assertThat(result.categoryBreakdown()).isEmpty();
     }
 }

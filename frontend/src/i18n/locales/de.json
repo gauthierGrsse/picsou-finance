@@ -1548,6 +1548,13 @@
     "uncategorized": "Nicht kategorisiert",
     "totalPeriodLabel": "Gesamt diesen Monat",
     "totalPeriodYearLabel": "Gesamt dieses Jahr",
+    "totalPeriodIncomeLabel": "Erhalten diesen Monat",
+    "totalPeriodYearIncomeLabel": "Erhalten dieses Jahr",
+    "noIncome": "Keine Einnahmen in diesem Zeitraum.",
+    "view": {
+      "expense": "Ausgaben",
+      "income": "Einnahmen"
+    },
     "totalProAbsorbeLabel": "Übernommene Geschäftsausgaben",
     "pendingReimbursementsTitle": "Ausstehende Erstattungen",
     "totalOwedLabel": "Ausstehender Betrag",

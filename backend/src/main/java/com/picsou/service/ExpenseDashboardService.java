@@ -42,7 +42,7 @@ public class ExpenseDashboardService {
      * {@code periodEnd}, so a year view naturally requests {@code months=12} to show every
      * bar in the selected year.
      */
-    public ExpenseDashboardResponse getDashboard(Long memberId, int months, LocalDate periodStart, LocalDate periodEnd) {
+    public ExpenseDashboardResponse getDashboard(Long memberId, int months, LocalDate periodStart, LocalDate periodEnd, boolean income) {
         YearMonth periodEndMonth = YearMonth.from(periodEnd);
         YearMonth evolutionStart = periodEndMonth.minusMonths(months - 1L);
         LocalDate evolutionStartDate = evolutionStart.atDay(1);
@@ -54,7 +54,7 @@ public class ExpenseDashboardService {
         List<Transaction> window = transactionRepository.findByAccount_Member_IdAndDateBetween(
             memberId, windowStart, periodEndMonth.atEndOfMonth());
 
-        List<MonthlyExpenseTotal> monthlyEvolution = buildMonthlyEvolution(window, evolutionStart, periodEndMonth);
+        List<MonthlyExpenseTotal> monthlyEvolution = buildMonthlyEvolution(window, evolutionStart, periodEndMonth, income);
 
         List<Transaction> periodTransactions = window.stream()
             .filter(t -> !t.getDate().isBefore(periodStart) && !t.getDate().isAfter(periodEnd))
@@ -63,7 +63,7 @@ public class ExpenseDashboardService {
         Map<Long, ExpenseCategory> categoriesById = expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(memberId).stream()
             .collect(Collectors.toMap(ExpenseCategory::getId, c -> c));
 
-        List<CategoryBreakdownItem> categoryBreakdown = buildCategoryBreakdown(periodTransactions, categoriesById);
+        List<CategoryBreakdownItem> categoryBreakdown = buildCategoryBreakdown(periodTransactions, categoriesById, income);
 
         BigDecimal totalProAbsorbe = periodTransactions.stream()
             .filter(t -> t.getProStatus() == ProStatus.PRO_ABSORBE)
@@ -73,15 +73,16 @@ public class ExpenseDashboardService {
         return new ExpenseDashboardResponse(monthlyEvolution, categoryBreakdown, totalProAbsorbe);
     }
 
-    /** Negative-amount (expense) transactions, summed per month over the window -- every month
-     * in range is present even at zero, so the chart never silently skips a month with no data. */
-    private List<MonthlyExpenseTotal> buildMonthlyEvolution(List<Transaction> window, YearMonth start, YearMonth end) {
+    /** Transactions on the requested side (expenses = negative, income = positive), summed per
+     * month over the window -- every month in range is present even at zero, so the chart never
+     * silently skips a month with no data. */
+    private List<MonthlyExpenseTotal> buildMonthlyEvolution(List<Transaction> window, YearMonth start, YearMonth end, boolean income) {
         Map<YearMonth, BigDecimal> totals = new LinkedHashMap<>();
         for (YearMonth ym = start; !ym.isAfter(end); ym = ym.plusMonths(1)) {
             totals.put(ym, BigDecimal.ZERO);
         }
         for (Transaction t : window) {
-            if (t.getAmount().signum() >= 0 || t.getProStatus() == ProStatus.VIREMENT_INTERNE) continue;
+            if (t.getProStatus() == ProStatus.VIREMENT_INTERNE || wrongSide(t, income)) continue;
             totals.computeIfPresent(YearMonth.from(t.getDate()), (ym, sum) -> sum.add(t.getAmount().abs()));
         }
         return totals.entrySet().stream()
@@ -89,16 +90,16 @@ public class ExpenseDashboardService {
             .toList();
     }
 
-    /** Expenses grouped by (category, pro_status) for the given period; uncategorized expenses
-     * are grouped under a null categoryId rather than dropped. */
+    /** Transactions on the requested side grouped by (category, pro_status) for the given
+     * period; uncategorized ones are grouped under a null categoryId rather than dropped. */
     private List<CategoryBreakdownItem> buildCategoryBreakdown(
-        List<Transaction> periodTransactions, Map<Long, ExpenseCategory> categoriesById
+        List<Transaction> periodTransactions, Map<Long, ExpenseCategory> categoriesById, boolean income
     ) {
         record Key(Long categoryId, ProStatus proStatus) {
         }
         Map<Key, BigDecimal> totals = new LinkedHashMap<>();
         for (Transaction t : periodTransactions) {
-            if (t.getAmount().signum() >= 0 || t.getProStatus() == ProStatus.VIREMENT_INTERNE) continue;
+            if (t.getProStatus() == ProStatus.VIREMENT_INTERNE || wrongSide(t, income)) continue;
             Key key = new Key(t.getExpenseCategoryId(), t.getProStatus());
             totals.merge(key, t.getAmount().abs(), BigDecimal::add);
         }
@@ -116,5 +117,12 @@ public class ExpenseDashboardService {
                 );
             })
             .toList();
+    }
+
+    /** True when {@code t} belongs to the other side of the ledger than requested -- a zero
+     * amount belongs to neither, so it's excluded from both. */
+    private boolean wrongSide(Transaction t, boolean income) {
+        int sign = t.getAmount().signum();
+        return income ? sign <= 0 : sign >= 0;
     }
 }

@@ -17,6 +17,12 @@ describe('CategoryProStatusBreakdown', () => {
     expect(screen.getByText('expenseDashboard.noExpenses')).toBeInTheDocument()
   })
 
+  it('shows a custom empty label when provided, e.g. for the income view', () => {
+    render(<CategoryProStatusBreakdown data={[]} emptyLabel="expenseDashboard.noIncome" />)
+    expect(screen.getByText('expenseDashboard.noIncome')).toBeInTheDocument()
+    expect(screen.queryByText('expenseDashboard.noExpenses')).not.toBeInTheDocument()
+  })
+
   it('renders one legend entry per non-zero category/status pair, uncategorized included', () => {
     const data: CategoryBreakdownItem[] = [
       { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', proStatus: 'PERSO', total: 180 },

@@ -1548,6 +1548,13 @@
     "uncategorized": "Sin categorizar",
     "totalPeriodLabel": "Total este mes",
     "totalPeriodYearLabel": "Total este año",
+    "totalPeriodIncomeLabel": "Total recibido este mes",
+    "totalPeriodYearIncomeLabel": "Total recibido este año",
+    "noIncome": "Sin ingresos en este período.",
+    "view": {
+      "expense": "Gastos",
+      "income": "Ingresos"
+    },
     "totalProAbsorbeLabel": "Gastos profesionales asumidos",
     "pendingReimbursementsTitle": "Reembolsos pendientes",
     "totalOwedLabel": "Total adeudado",

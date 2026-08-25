@@ -30,10 +30,10 @@ class ExpenseDashboardControllerTest {
         when(userContext.currentMemberId()).thenReturn(10L);
         ExpenseDashboardResponse expected = new ExpenseDashboardResponse(List.of(), List.of(), BigDecimal.ZERO);
         YearMonth currentMonth = YearMonth.now();
-        when(expenseDashboardService.getDashboard(10L, 6, currentMonth.atDay(1), currentMonth.atEndOfMonth()))
+        when(expenseDashboardService.getDashboard(10L, 6, currentMonth.atDay(1), currentMonth.atEndOfMonth(), false))
             .thenReturn(expected);
 
-        ExpenseDashboardResponse actual = controller.getDashboard(6, null, null);
+        ExpenseDashboardResponse actual = controller.getDashboard(6, null, null, false);
 
         assertThat(actual).isSameAs(expected);
     }
@@ -42,10 +42,10 @@ class ExpenseDashboardControllerTest {
     void getDashboard_usesExplicitMonthsAndPeriodRange() {
         when(userContext.currentMemberId()).thenReturn(10L);
         ExpenseDashboardResponse expected = new ExpenseDashboardResponse(List.of(), List.of(), BigDecimal.ZERO);
-        when(expenseDashboardService.getDashboard(10L, 3, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31)))
+        when(expenseDashboardService.getDashboard(10L, 3, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31), false))
             .thenReturn(expected);
 
-        ExpenseDashboardResponse actual = controller.getDashboard(3, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31));
+        ExpenseDashboardResponse actual = controller.getDashboard(3, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31), false);
 
         assertThat(actual).isSameAs(expected);
     }
@@ -54,10 +54,23 @@ class ExpenseDashboardControllerTest {
     void getDashboard_acceptsAFullYearRange() {
         when(userContext.currentMemberId()).thenReturn(10L);
         ExpenseDashboardResponse expected = new ExpenseDashboardResponse(List.of(), List.of(), BigDecimal.ZERO);
-        when(expenseDashboardService.getDashboard(10L, 12, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31)))
+        when(expenseDashboardService.getDashboard(10L, 12, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31), false))
             .thenReturn(expected);
 
-        ExpenseDashboardResponse actual = controller.getDashboard(12, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
+        ExpenseDashboardResponse actual = controller.getDashboard(12, LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31), false);
+
+        assertThat(actual).isSameAs(expected);
+    }
+
+    @Test
+    void getDashboard_forwardsIncomeFlag() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+        ExpenseDashboardResponse expected = new ExpenseDashboardResponse(List.of(), List.of(), BigDecimal.ZERO);
+        YearMonth currentMonth = YearMonth.now();
+        when(expenseDashboardService.getDashboard(10L, 6, currentMonth.atDay(1), currentMonth.atEndOfMonth(), true))
+            .thenReturn(expected);
+
+        ExpenseDashboardResponse actual = controller.getDashboard(6, null, null, true);
 
         assertThat(actual).isSameAs(expected);
     }

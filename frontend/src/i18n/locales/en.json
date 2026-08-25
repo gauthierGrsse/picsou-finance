@@ -1548,6 +1548,13 @@
     "uncategorized": "Uncategorized",
     "totalPeriodLabel": "Total this month",
     "totalPeriodYearLabel": "Total this year",
+    "totalPeriodIncomeLabel": "Total received this month",
+    "totalPeriodYearIncomeLabel": "Total received this year",
+    "noIncome": "No income for this period.",
+    "view": {
+      "expense": "Expenses",
+      "income": "Income"
+    },
     "totalProAbsorbeLabel": "Absorbed business expenses",
     "pendingReimbursementsTitle": "Pending reimbursements",
     "totalOwedLabel": "Total owed",

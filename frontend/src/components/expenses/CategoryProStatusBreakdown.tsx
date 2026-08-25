@@ -10,6 +10,9 @@ import type { CategoryBreakdownItem, ProStatus } from '@/types/api'
 interface CategoryProStatusBreakdownProps {
   data: CategoryBreakdownItem[]
   onSliceClick?: (item: { categoryId: number | null; proStatus: ProStatus }) => void
+  /** Shown in place of the chart when `data` has nothing to plot. Defaults to the
+   * expense-dashboard's own "no expenses" copy since that's every existing caller. */
+  emptyLabel?: string
 }
 
 const chartConfig = {
@@ -20,7 +23,7 @@ const chartConfig = {
  * e.g. "Restauration perso" and "Restauration pro_absorbe" render separately. Cell color
  * comes straight from the category's own stored hex, same as Account.color feeding
  * DistributionPie: there are only 5 --chart-N tokens, not enough for an open-ended list. */
-export function CategoryProStatusBreakdown({ data, onSliceClick }: CategoryProStatusBreakdownProps) {
+export function CategoryProStatusBreakdown({ data, onSliceClick, emptyLabel }: CategoryProStatusBreakdownProps) {
   const { t, i18n } = useTranslation()
   const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
 
@@ -42,7 +45,7 @@ export function CategoryProStatusBreakdown({ data, onSliceClick }: CategoryProSt
   )
 
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t('expenseDashboard.noExpenses')}</p>
+    return <p className="text-sm text-muted-foreground">{emptyLabel ?? t('expenseDashboard.noExpenses')}</p>
   }
 
   return (

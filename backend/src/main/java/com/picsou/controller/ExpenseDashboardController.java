@@ -28,11 +28,12 @@ public class ExpenseDashboardController {
     public ExpenseDashboardResponse getDashboard(
         @RequestParam(defaultValue = "6") int months,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periodStart,
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periodEnd
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periodEnd,
+        @RequestParam(defaultValue = "false") boolean income
     ) {
         YearMonth currentMonth = YearMonth.now();
         LocalDate resolvedStart = periodStart != null ? periodStart : currentMonth.atDay(1);
         LocalDate resolvedEnd = periodEnd != null ? periodEnd : currentMonth.atEndOfMonth();
-        return expenseDashboardService.getDashboard(userContext.currentMemberId(), months, resolvedStart, resolvedEnd);
+        return expenseDashboardService.getDashboard(userContext.currentMemberId(), months, resolvedStart, resolvedEnd, income);
     }
 }

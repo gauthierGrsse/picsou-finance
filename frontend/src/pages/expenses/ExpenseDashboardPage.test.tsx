@@ -28,12 +28,12 @@ const dashboard: ExpenseDashboardResponse = {
   totalProAbsorbe: 95,
 }
 
-const useExpenseDashboard = vi.fn<(months: number, periodStart: string, periodEnd: string) => { data: ExpenseDashboardResponse; isLoading: boolean }>(
+const useExpenseDashboard = vi.fn<(months: number, periodStart: string, periodEnd: string, income: boolean) => { data: ExpenseDashboardResponse; isLoading: boolean }>(
   () => ({ data: dashboard, isLoading: false }),
 )
 
 vi.mock('@/features/expenseDashboard/hooks', () => ({
-  useExpenseDashboard: (months: number, periodStart: string, periodEnd: string) => useExpenseDashboard(months, periodStart, periodEnd),
+  useExpenseDashboard: (months: number, periodStart: string, periodEnd: string, income: boolean) => useExpenseDashboard(months, periodStart, periodEnd, income),
 }))
 
 const pending: PendingReimbursements = { expenses: [], totalOwed: 0 }
@@ -68,7 +68,7 @@ describe('ExpenseDashboardPage', () => {
 
     const now = new Date()
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    expect(useExpenseDashboard).toHaveBeenLastCalledWith(6, `${month}-01`, expect.stringContaining(month))
+    expect(useExpenseDashboard).toHaveBeenLastCalledWith(6, `${month}-01`, expect.stringContaining(month), false)
   })
 
   it('switches to a full calendar year when Year is selected', () => {
@@ -77,8 +77,22 @@ describe('ExpenseDashboardPage', () => {
     fireEvent.click(screen.getByText('expenseDashboard.period.year'))
 
     const year = new Date().getFullYear()
-    expect(useExpenseDashboard).toHaveBeenLastCalledWith(12, `${year}-01-01`, `${year}-12-31`)
+    expect(useExpenseDashboard).toHaveBeenLastCalledWith(12, `${year}-01-01`, `${year}-12-31`, false)
     expect(screen.getByText('expenseDashboard.totalPeriodYearLabel')).toBeInTheDocument()
+  })
+
+  it('switches to the income view when Income is selected, and back when Expenses is clicked again', () => {
+    render(<ExpenseDashboardPage />)
+
+    fireEvent.click(screen.getByText('expenseDashboard.view.income'))
+
+    expect(useExpenseDashboard).toHaveBeenLastCalledWith(6, expect.any(String), expect.any(String), true)
+    expect(screen.getByText('expenseDashboard.totalPeriodIncomeLabel')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('expenseDashboard.view.expense'))
+
+    expect(useExpenseDashboard).toHaveBeenLastCalledWith(6, expect.any(String), expect.any(String), false)
+    expect(screen.getByText('expenseDashboard.totalPeriodLabel')).toBeInTheDocument()
   })
 
   it('navigates to the filtered transactions page when a breakdown row is clicked', () => {

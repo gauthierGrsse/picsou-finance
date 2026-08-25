@@ -1589,13 +1589,17 @@ Un-links every remaining expense (back to `EN_ATTENTE`) before deleting the reim
 
 ### 16. Expense Dashboard — `/api/expense-dashboard`
 
-#### `GET /api/expense-dashboard?months=&periodStart=&periodEnd=`
+#### `GET /api/expense-dashboard?months=&periodStart=&periodEnd=&income=`
 
 - **Auth:** Required
 - **Query params:** `months` (default `6`) -- size of the monthly-evolution window, ending at
   the month containing `periodEnd`. `periodStart`/`periodEnd` (default: current month, as
   `"YYYY-MM-DD"`) -- the range `categoryBreakdown`/`totalProAbsorbe` are scoped to. A single
   month passes that month's first/last day; a full calendar year passes Jan 1/Dec 31.
+  `income` (default `false`) -- `false` scopes both `monthlyEvolution` and
+  `categoryBreakdown` to negative-amount (expense) transactions, `true` to positive-amount
+  (income) ones instead. Same category system either side -- a category isn't expense- or
+  income-specific, so "Salaire"/"Dividendes" work exactly like any expense category.
 
 **Response `200` — `ExpenseDashboardResponse`:**
 ```json
@@ -1612,10 +1616,12 @@ Un-links every remaining expense (back to `EN_ATTENTE`) before deleting the reim
 }
 ```
 
-`monthlyEvolution` sums negative-amount (expense) transactions per month over the window --
-every month is present even at zero. `categoryBreakdown` groups the `periodStart`..`periodEnd`
-range's expenses by (category, `ProStatus`); a null `categoryId`/`categoryName` means
-uncategorized. `totalProAbsorbe` sums `PRO_ABSORBE` expenses for that same range.
+`monthlyEvolution` sums the requested side's transactions per month over the window -- every
+month is present even at zero. `categoryBreakdown` groups the `periodStart`..`periodEnd`
+range's transactions on that same side by (category, `ProStatus`); a null
+`categoryId`/`categoryName` means uncategorized. Both exclude `VIREMENT_INTERNE` transactions
+and a zero amount belongs to neither side. `totalProAbsorbe` sums `PRO_ABSORBE` expenses for
+that same range regardless of `income` -- it's an expense-only concept.
 
 ### 17. Internal Transfers — `/api/transfers`
 

@@ -1548,6 +1548,13 @@
     "uncategorized": "Non catégorisé",
     "totalPeriodLabel": "Total ce mois-ci",
     "totalPeriodYearLabel": "Total cette année",
+    "totalPeriodIncomeLabel": "Total reçu ce mois-ci",
+    "totalPeriodYearIncomeLabel": "Total reçu cette année",
+    "noIncome": "Aucun revenu sur cette période.",
+    "view": {
+      "expense": "Dépenses",
+      "income": "Revenus"
+    },
     "totalProAbsorbeLabel": "Pro absorbé",
     "pendingReimbursementsTitle": "Remboursements en attente",
     "totalOwedLabel": "Total dû",
