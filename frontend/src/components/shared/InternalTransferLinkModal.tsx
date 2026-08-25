@@ -107,7 +107,7 @@ function InternalTransferLinkForm({ transaction, onOpenChange }: { transaction: 
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="min-w-0 space-y-4">
         <div className="flex items-center justify-between gap-2 rounded-xl border p-2.5 text-sm">
           <span className="min-w-0 truncate text-muted-foreground">{transaction.description}</span>
           <CurrencyDisplay value={transaction.amount} currency={transaction.nativeCurrency} className="shrink-0 tabular-nums" />
