@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { NumericInput } from '@/components/shared/NumericInput'
+import { DateInput } from '@/components/shared/DateInput'
 import { Label } from '@/components/ui/label'
 import { parseAmount } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -12,7 +13,7 @@ interface EditHoldingModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   holding: HoldingResponse | null
-  onSubmit: (ticker: string, quantity: number, averageBuyIn?: number) => Promise<void>
+  onSubmit: (ticker: string, quantity: number, averageBuyIn?: number, acquiredAt?: string | null) => Promise<void>
   isLoading?: boolean
 }
 
@@ -44,7 +45,7 @@ export function EditHoldingModal({ open, onOpenChange, holding, onSubmit, isLoad
 interface HoldingFormProps {
   holding: HoldingResponse
   onOpenChange: (open: boolean) => void
-  onSubmit: (ticker: string, quantity: number, averageBuyIn?: number) => Promise<void>
+  onSubmit: (ticker: string, quantity: number, averageBuyIn?: number, acquiredAt?: string | null) => Promise<void>
   isLoading?: boolean
 }
 
@@ -52,6 +53,7 @@ function HoldingForm({ holding, onOpenChange, onSubmit, isLoading }: HoldingForm
   const { t } = useTranslation()
   const [quantity, setQuantity] = useState(() => String(holding.quantity))
   const [averageBuyIn, setAverageBuyIn] = useState(() => (holding.averageBuyIn != null ? String(holding.averageBuyIn) : ''))
+  const [acquiredAt, setAcquiredAt] = useState(() => holding.acquiredAt ?? '')
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -62,6 +64,7 @@ function HoldingForm({ holding, onOpenChange, onSubmit, isLoading }: HoldingForm
         holding.ticker,
         parseAmount(quantity),
         averageBuyIn ? parseAmount(averageBuyIn) : undefined,
+        acquiredAt || null,
       )
       onOpenChange(false)
     } catch {
@@ -86,6 +89,11 @@ function HoldingForm({ holding, onOpenChange, onSubmit, isLoading }: HoldingForm
           onChange={e => setAverageBuyIn(e.target.value)}
           placeholder="—"
         />
+      </div>
+      <div className="space-y-1">
+        <Label>{t('holdings.acquiredAt')} <span className="text-muted-foreground text-xs">({t('common.optional')})</span></Label>
+        <DateInput value={acquiredAt} onChange={setAcquiredAt} />
+        <p className="text-xs text-muted-foreground">{t('holdings.acquiredAtHint')}</p>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <DialogFooter>

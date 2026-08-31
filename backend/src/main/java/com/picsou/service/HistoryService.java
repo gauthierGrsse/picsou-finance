@@ -434,23 +434,46 @@ public class HistoryService {
         BigDecimal valueAtFrom = BigDecimal.ZERO;
         BigDecimal liveMatchedValue = BigDecimal.ZERO;
         int matchedPrices = 0;
+        int eligibleHoldings = 0; // holdings with a ticker -- rangePnl must cover every one of these, or none
         // Same ticker can appear across several accounts — look each price up once.
         Map<String, Optional<PriceSnapshot>> snapByTicker = new HashMap<>();
         Map<String, BigDecimal> livePriceByTicker = new HashMap<>();
         for (AccountHolding h : allHoldings) {
             String ticker = h.getTicker();
             if (ticker == null) continue;
-            Optional<PriceSnapshot> snap = snapByTicker.computeIfAbsent(ticker,
-                t -> priceSnapshotRepository.findLatestByTickerBeforeOrOnDate(t, fromDate));
-            if (snap.isEmpty()) continue;
+            eligibleHoldings++;
+
             if (!livePriceByTicker.containsKey(ticker)) {
                 livePriceByTicker.put(ticker, priceService.getPriceEur(ticker));
             }
             BigDecimal livePrice = livePriceByTicker.get(ticker);
             if (livePrice == null) continue;
+
+            Long holdingAccountId = accountIdByHolding.get(h.getId());
+
+            // Acquired after the range started: no historical price needed (there's
+            // nothing to look up before the member owned it) -- this holding's range
+            // P&L is just its live P&L since purchase. Using cost basis as the "value
+            // at fromDate" makes that fall out of the same subtraction below as every
+            // other holding, instead of needing a separate code path.
+            if (h.getAcquiredAt() != null && h.getAcquiredAt().isAfter(fromDate)) {
+                BigDecimal averageBuyIn = h.getAverageBuyIn();
+                if (averageBuyIn == null) continue; // no cost basis to fall back to either
+                valueAtFrom = valueAtFrom.add(
+                    weigh(h.getQuantity().multiply(averageBuyIn), shares, holdingAccountId));
+                liveMatchedValue = liveMatchedValue.add(
+                    weigh(h.getQuantity().multiply(livePrice), shares, holdingAccountId));
+                matchedPrices++;
+                continue;
+            }
+
+            // Acquired before the range (or acquisition date unknown -- the pre-existing
+            // assumption): needs an actual historical price at fromDate.
+            Optional<PriceSnapshot> snap = snapByTicker.computeIfAbsent(ticker,
+                t -> priceSnapshotRepository.findLatestByTickerBeforeOrOnDate(t, fromDate));
+            if (snap.isEmpty()) continue;
             // Both sides weighted by the same share, so the ratio -- and therefore the
             // percentage -- is unchanged; only the absolute figures shrink to the member's part.
-            Long holdingAccountId = accountIdByHolding.get(h.getId());
             valueAtFrom = valueAtFrom.add(
                 weigh(h.getQuantity().multiply(snap.get().getPriceEur()), shares, holdingAccountId));
             liveMatchedValue = liveMatchedValue.add(
@@ -458,8 +481,15 @@ public class HistoryService {
             matchedPrices++;
         }
 
-        if (matchedPrices == 0) {
-            log.warn("buildPnl: no historical prices found for {} holdings at {}", allHoldings.size(), fromDate);
+        // A rangePnl that silently dropped some holdings (no price that far back, no
+        // live price, no cost basis) understates the portfolio while looking complete --
+        // exactly the failure mode that produced a wrong figure in production. Show it
+        // only when every eligible holding could be included (and there's at least one);
+        // otherwise fall back to the live, cost-basis P&L above, which always covers
+        // everything.
+        if (matchedPrices == 0 || matchedPrices < eligibleHoldings) {
+            log.warn("buildPnl: only matched {} of {} holdings at {} -- omitting rangePnl rather than understating it",
+                matchedPrices, eligibleHoldings, fromDate);
             return new com.picsou.dto.PnlResponse(liveTotal, liveInvested, pnl, pnlPercent);
         }
 

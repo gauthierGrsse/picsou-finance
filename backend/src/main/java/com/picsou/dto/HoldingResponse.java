@@ -21,5 +21,7 @@ public record HoldingResponse(
     // figure either way and marks a stale one, so a provider outage degrades the price's age
     // instead of blanking the line.
     LocalDate priceAsOf,
-    boolean priceStale
+    boolean priceStale,
+    // User-entered, optional. Null means unknown -- see AccountHolding#acquiredAt.
+    LocalDate acquiredAt
 ) {}

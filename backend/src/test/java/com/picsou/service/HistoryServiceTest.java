@@ -369,6 +369,10 @@ class HistoryServiceTest {
         when(accountRepository.findAllById(List.of(1L))).thenReturn(List.of(brokerageAcc));
         when(holdingRepository.findByAccount_Id(1L)).thenReturn(List.of(holding));
         stubValuation(brokerageAcc, "5100", "4800");
+        // A live price is needed to even reach the snapshot check below (a holding with
+        // neither can't be matched either way, but this test is specifically about a
+        // missing *historical* price, so give it a live one).
+        when(priceService.getPriceEur("AAPL")).thenReturn(new BigDecimal("510"));
         when(priceSnapshotRepository.findLatestByTickerBeforeOrOnDate("AAPL", fromDate))
             .thenReturn(Optional.empty());
 
@@ -412,7 +416,12 @@ class HistoryServiceTest {
     }
 
     @Test
-    void buildPnl_rangePnl_ignoresHoldingsWithoutSnapshotOnBothSides() {
+    void buildPnl_rangePnl_fallsBackToLivePnlWhenAnyHoldingLacksHistoricalPrice() {
+        // A range figure that silently dropped a holding understates the portfolio while
+        // looking complete -- the exact bug that produced a wrong number in production
+        // (a holding without a year of price history vanished from a "1 year" P&L instead
+        // of the figure being withheld). Once any holding can't be matched, the whole
+        // rangePnl is omitted in favor of the always-complete live/cost-basis pnl.
         LocalDate fromDate = LocalDate.now().minusDays(30);
         Account brokerageAcc = brokerage(1L, "CT");
         AccountHolding matched = AccountHolding.builder()
@@ -428,19 +437,97 @@ class HistoryServiceTest {
         when(priceSnapshotRepository.findLatestByTickerBeforeOrOnDate("AAPL", fromDate))
             .thenReturn(Optional.of(PriceSnapshot.builder()
                 .ticker("AAPL").date(fromDate).priceEur(new BigDecimal("90")).build()));
-        // MSFT has NO snapshot at fromDate → excluded from BOTH sides of the range.
+        // MSFT has NO snapshot at fromDate and no acquiredAt to fall back to cost basis.
         when(priceSnapshotRepository.findLatestByTickerBeforeOrOnDate("MSFT", fromDate))
             .thenReturn(Optional.empty());
         when(priceService.getPriceEur("AAPL")).thenReturn(new BigDecimal("510"));
+        lenient().when(priceService.getPriceEur("MSFT")).thenReturn(new BigDecimal("300"));
 
         PnlResponse result = historyService.buildPnl(List.of(1L), MEMBER_ID, fromDate);
 
-        // Only AAPL is priced on both sides: valueAtFrom = 10 × 90 = 900,
-        // liveMatchedValue = 10 × 510 = 5100 → rangePnl = 4200. MSFT's live value
-        // never enters the comparison, so an unmatched holding cannot skew the range.
-        assertThat(result.valueAtFrom()).isEqualByComparingTo("900");
-        assertThat(result.rangePnl()).isEqualByComparingTo("4200");
-        assertThat(result.rangePnlPercent()).isEqualByComparingTo("466.7"); // 4200 × 100 / 900
+        assertThat(result.pnl()).isEqualByComparingTo("4500"); // 6300 − 1800, unaffected by the range fallback
+        assertThat(result.valueAtFrom()).isNull();
+        assertThat(result.rangePnl()).isNull();
+        assertThat(result.rangePnlPercent()).isNull();
+    }
+
+    @Test
+    void buildPnl_rangePnl_holdingAcquiredWithinRange_usesCostBasisInsteadOfHistoricalPrice() {
+        // Bought after the range started: there's no legitimate historical price to look
+        // up (the member didn't own it yet), so this holding's contribution to the range
+        // falls back to (live value − cost basis) -- its live P&L since purchase.
+        LocalDate fromDate = LocalDate.now().minusDays(30);
+        Account brokerageAcc = brokerage(1L, "CT");
+        AccountHolding recent = AccountHolding.builder()
+            .account(brokerageAcc).ticker("MSFT")
+            .quantity(new BigDecimal("4")).averageBuyIn(new BigDecimal("300"))
+            .acquiredAt(fromDate.plusDays(10)).build();
+
+        when(accountRepository.findAllById(List.of(1L))).thenReturn(List.of(brokerageAcc));
+        when(holdingRepository.findByAccount_Id(1L)).thenReturn(List.of(recent));
+        stubValuation(brokerageAcc, "1400", "1200");
+        when(priceService.getPriceEur("MSFT")).thenReturn(new BigDecimal("350"));
+
+        PnlResponse result = historyService.buildPnl(List.of(1L), MEMBER_ID, fromDate);
+
+        // No priceSnapshotRepository stub needed/called for MSFT: valueAtFrom = 4 × 300
+        // (cost basis) = 1200; liveMatchedValue = 4 × 350 = 1400 → rangePnl = 200.
+        assertThat(result.valueAtFrom()).isEqualByComparingTo("1200");
+        assertThat(result.rangePnl()).isEqualByComparingTo("200");
+    }
+
+    @Test
+    void buildPnl_rangePnl_mixesPreExistingAndRecentlyAcquiredHoldings() {
+        LocalDate fromDate = LocalDate.now().minusDays(30);
+        Account brokerageAcc = brokerage(1L, "CT");
+        AccountHolding preExisting = AccountHolding.builder()
+            .account(brokerageAcc).ticker("AAPL")
+            .quantity(new BigDecimal("10")).averageBuyIn(new BigDecimal("100")).build();
+        AccountHolding recent = AccountHolding.builder()
+            .account(brokerageAcc).ticker("MSFT")
+            .quantity(new BigDecimal("4")).averageBuyIn(new BigDecimal("300"))
+            .acquiredAt(fromDate.plusDays(10)).build();
+
+        when(accountRepository.findAllById(List.of(1L))).thenReturn(List.of(brokerageAcc));
+        when(holdingRepository.findByAccount_Id(1L)).thenReturn(List.of(preExisting, recent));
+        stubValuation(brokerageAcc, "6500", "3000");
+        when(priceSnapshotRepository.findLatestByTickerBeforeOrOnDate("AAPL", fromDate))
+            .thenReturn(Optional.of(PriceSnapshot.builder()
+                .ticker("AAPL").date(fromDate).priceEur(new BigDecimal("90")).build()));
+        when(priceService.getPriceEur("AAPL")).thenReturn(new BigDecimal("510"));
+        when(priceService.getPriceEur("MSFT")).thenReturn(new BigDecimal("350"));
+
+        PnlResponse result = historyService.buildPnl(List.of(1L), MEMBER_ID, fromDate);
+
+        // AAPL (pre-existing): valueAtFrom 10×90=900, live 10×510=5100.
+        // MSFT (acquired within range): valueAtFrom 4×300=1200 (cost basis), live 4×350=1400.
+        // Both matched → full rangePnl, not the fallback: (5100+1400) − (900+1200) = 4400.
+        assertThat(result.valueAtFrom()).isEqualByComparingTo("2100");
+        assertThat(result.rangePnl()).isEqualByComparingTo("4400");
+    }
+
+    @Test
+    void buildPnl_rangePnl_acquiredBeforeRangeStart_stillNeedsHistoricalPrice() {
+        // acquiredAt on/before fromDate is the "pre-existing" case, same as no acquiredAt at
+        // all -- it must NOT take the cost-basis shortcut, so a missing snapshot still falls
+        // back to live-only pnl instead of silently using cost basis as if newly bought.
+        LocalDate fromDate = LocalDate.now().minusDays(30);
+        Account brokerageAcc = brokerage(1L, "CT");
+        AccountHolding holding = AccountHolding.builder()
+            .account(brokerageAcc).ticker("AAPL")
+            .quantity(new BigDecimal("10")).averageBuyIn(new BigDecimal("100"))
+            .acquiredAt(fromDate.minusDays(5)).build();
+
+        when(accountRepository.findAllById(List.of(1L))).thenReturn(List.of(brokerageAcc));
+        when(holdingRepository.findByAccount_Id(1L)).thenReturn(List.of(holding));
+        stubValuation(brokerageAcc, "5100", "1000");
+        when(priceSnapshotRepository.findLatestByTickerBeforeOrOnDate("AAPL", fromDate))
+            .thenReturn(Optional.empty());
+        lenient().when(priceService.getPriceEur("AAPL")).thenReturn(new BigDecimal("510"));
+
+        PnlResponse result = historyService.buildPnl(List.of(1L), MEMBER_ID, fromDate);
+
+        assertThat(result.rangePnl()).isNull();
     }
 
     @Test

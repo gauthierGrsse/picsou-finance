@@ -178,7 +178,7 @@ public class AccountController {
         @PathVariable String ticker,
         @Valid @RequestBody HoldingRequest req
     ) {
-        return accountService.updateHolding(id, userContext.currentMemberId(), ticker, req.quantity(), req.averageBuyIn());
+        return accountService.updateHolding(id, userContext.currentMemberId(), ticker, req.quantity(), req.averageBuyIn(), req.acquiredAt());
     }
 
     @DeleteMapping("/{id}/holdings/{ticker}")

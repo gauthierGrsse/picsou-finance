@@ -304,13 +304,23 @@ that already carries one; see [the feature notes](../../docs/features/bank-logos
     "pnlPercent": 20.00,
     "priceUpdatedAt": "2026-07-20T10:00:00Z",
     "priceAsOf": "2026-07-20",
-    "priceStale": false
+    "priceStale": false,
+    "acquiredAt": null
   }
 ]
 ```
 
 `currentPrice` is expressed in `quoteCurrency`. `averageBuyIn`,
 `currentValueEur`, `costBasisEur` and `pnlEur` are EUR-denominated.
+
+`acquiredAt` is optional and user-entered via `PUT /api/accounts/{id}/holdings/{ticker}` (body:
+`{ "quantity": number, "averageBuyIn": number | null, "acquiredAt": "YYYY-MM-DD" | null }`) — no
+broker ever supplies it. `null` means "unknown," not "never held": `GET /api/history/pnl`'s range
+P&L treats a null the same as assuming the holding was held for the whole requested range (its
+behavior before this field existed). When set and after a range's start date, that holding's
+contribution to the range switches to (current value − cost basis) instead of needing a historical
+price from before it was acquired. Omitting `acquiredAt` from the `PUT` body clears it — there's no
+provider-set value to fall back to the way there is for `averageBuyIn`.
 
 `priceAsOf` is the day the EUR price is for, and `priceStale` is `true` when the price provider
 could not be reached and the last recorded price (up to 7 days old) was used instead. The value is

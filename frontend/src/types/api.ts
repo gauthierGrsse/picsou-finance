@@ -412,6 +412,9 @@ export interface HoldingResponse {
   // marked, instead of leaving the line blank.
   priceAsOf: string | null
   priceStale: boolean
+  // Optional, user-entered -- no broker supplies this. Null means unknown, not "never
+  // held": the range P&L on the dashboard assumes held-for-the-whole-range when null.
+  acquiredAt: string | null
 }
 
 // --- Security insight (asset type + ETF composition) ---

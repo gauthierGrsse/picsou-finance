@@ -638,12 +638,15 @@ public class AccountService {
 
     @Transactional
     public HoldingResponse updateHolding(Long accountId, Long memberId, String ticker,
-            BigDecimal quantity, BigDecimal averageBuyIn) {
+            BigDecimal quantity, BigDecimal averageBuyIn, LocalDate acquiredAt) {
         Account account = getOrThrow(accountId, memberId);
         AccountHolding h = holdingRepository.findByAccountIdAndTicker(accountId, ticker)
             .orElseThrow(() -> new ResourceNotFoundException("Holding not found"));
         h.setQuantity(quantity);
         if (averageBuyIn != null) h.setAverageBuyIn(averageBuyIn);
+        // Not merged with the null-means-keep pattern above: acquiredAt has no broker-synced
+        // value to fall back to, so a request that omits it means "clear it", not "keep it".
+        h.setAcquiredAt(acquiredAt);
         // A user edit invalidates broker-derived valuation/P&L as a coherent
         // pair. A subsequent provider sync will repopulate both fields.
         h.setProviderValueEur(null);
@@ -856,7 +859,8 @@ public class AccountService {
             pnlPercent,
             priceUpdatedAt,
             priceAsOf,
-            priceStale
+            priceStale,
+            holding.getAcquiredAt()
         );
     }
 

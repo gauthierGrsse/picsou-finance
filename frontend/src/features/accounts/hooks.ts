@@ -440,12 +440,14 @@ export function useUpdateTransactionClassification(accountId: number) {
 export function useUpdateHolding(accountId: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ ticker, data }: { ticker: string; data: { quantity: number; averageBuyIn?: number } }) =>
+    mutationFn: ({ ticker, data }: { ticker: string; data: { quantity: number; averageBuyIn?: number; acquiredAt?: string | null } }) =>
       accountsApi.updateHolding(accountId, ticker, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts', accountId, 'holdings'] })
       queryClient.invalidateQueries({ queryKey: ['accounts', accountId] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      // acquiredAt changes the range P&L on the dashboard directly (see HistoryService).
+      queryClient.invalidateQueries({ queryKey: ['pnl'] })
     },
   })
 }

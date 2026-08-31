@@ -773,13 +773,54 @@ class AccountServiceTest {
         when(holdingRepository.save(holding)).thenReturn(holding);
 
         accountService.updateHolding(
-            1L, 7L, "ACME", new BigDecimal("8"), new BigDecimal("75")
+            1L, 7L, "ACME", new BigDecimal("8"), new BigDecimal("75"), null
         );
 
         assertThat(holding.getQuantity()).isEqualByComparingTo("8");
         assertThat(holding.getAverageBuyIn()).isEqualByComparingTo("75");
         assertThat(holding.getProviderValueEur()).isNull();
         assertThat(holding.getProviderPnlEur()).isNull();
+    }
+
+    @Test
+    void updateHolding_setsAcquiredDateWhenProvided() {
+        Account account = ownedAccount();
+        AccountHolding holding = AccountHolding.builder()
+            .ticker("ACME")
+            .quantity(new BigDecimal("10"))
+            .averageBuyIn(new BigDecimal("80"))
+            .build();
+        when(accountRepository.findByIdAndMemberId(1L, 7L)).thenReturn(Optional.of(account));
+        when(holdingRepository.findByAccountIdAndTicker(1L, "ACME")).thenReturn(Optional.of(holding));
+        when(holdingRepository.save(holding)).thenReturn(holding);
+
+        accountService.updateHolding(
+            1L, 7L, "ACME", new BigDecimal("10"), null, LocalDate.of(2026, 3, 1)
+        );
+
+        assertThat(holding.getAcquiredAt()).isEqualTo(LocalDate.of(2026, 3, 1));
+    }
+
+    @Test
+    void updateHolding_omittingAcquiredDateClearsIt() {
+        // No broker ever supplies acquiredAt, so unlike averageBuyIn there's nothing to
+        // "keep" a previous value from -- a request without it means the user cleared it.
+        Account account = ownedAccount();
+        AccountHolding holding = AccountHolding.builder()
+            .ticker("ACME")
+            .quantity(new BigDecimal("10"))
+            .averageBuyIn(new BigDecimal("80"))
+            .acquiredAt(LocalDate.of(2025, 1, 1))
+            .build();
+        when(accountRepository.findByIdAndMemberId(1L, 7L)).thenReturn(Optional.of(account));
+        when(holdingRepository.findByAccountIdAndTicker(1L, "ACME")).thenReturn(Optional.of(holding));
+        when(holdingRepository.save(holding)).thenReturn(holding);
+
+        accountService.updateHolding(
+            1L, 7L, "ACME", new BigDecimal("10"), null, null
+        );
+
+        assertThat(holding.getAcquiredAt()).isNull();
     }
 
     // ─── signedLiveBalanceEur ─────────────────────────────────────────────────

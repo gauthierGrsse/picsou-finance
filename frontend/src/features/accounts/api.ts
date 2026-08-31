@@ -46,7 +46,7 @@ export const accountsApi = {
     api.put<Transaction>(`/accounts/${accountId}/transactions/${txId}`, data).then(r => r.data),
   updateClassification: (accountId: number, txId: number, data: TransactionClassificationRequest) =>
     api.put<Transaction>(`/accounts/${accountId}/transactions/${txId}/classification`, data).then(r => r.data),
-  updateHolding: (accountId: number, ticker: string, data: { quantity: number; averageBuyIn?: number }) =>
+  updateHolding: (accountId: number, ticker: string, data: { quantity: number; averageBuyIn?: number; acquiredAt?: string | null }) =>
     api.put<HoldingResponse>(`/accounts/${accountId}/holdings/${ticker}`, data).then(r => r.data),
   deleteHolding: (accountId: number, ticker: string) =>
     api.delete(`/accounts/${accountId}/holdings/${ticker}`),

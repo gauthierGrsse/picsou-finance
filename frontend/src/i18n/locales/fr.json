@@ -306,6 +306,8 @@
     "evolution": "Évolution",
     "capitalInvested": "Capital investi",
     "avgBuyIn": "Prix moyen d'achat",
+    "acquiredAt": "Date d'acquisition",
+    "acquiredAtHint": "Améliore le calcul du gain/perte sur une période dans le tableau de bord.",
     "editTitle": "Modifier {{ticker}}",
     "perShare": "/ part",
     "insight": {

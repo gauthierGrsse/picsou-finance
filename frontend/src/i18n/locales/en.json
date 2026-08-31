@@ -306,6 +306,8 @@
     "evolution": "Evolution",
     "capitalInvested": "Capital invested",
     "avgBuyIn": "Avg buy-in",
+    "acquiredAt": "Acquired on",
+    "acquiredAtHint": "Improves the dashboard's gain/loss over a period.",
     "editTitle": "Edit {{ticker}}",
     "perShare": "/ share",
     "insight": {

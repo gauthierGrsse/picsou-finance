@@ -306,6 +306,8 @@
     "evolution": "Entwicklung",
     "capitalInvested": "Investiertes Kapital",
     "avgBuyIn": "Ø Kaufkurs",
+    "acquiredAt": "Erworben am",
+    "acquiredAtHint": "Verbessert die Gewinn/Verlust-Berechnung über einen Zeitraum im Dashboard.",
     "editTitle": "{{ticker}} bearbeiten",
     "perShare": "/ Anteil",
     "insight": {

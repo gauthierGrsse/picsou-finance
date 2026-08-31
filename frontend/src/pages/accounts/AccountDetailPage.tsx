@@ -353,8 +353,8 @@ export function AccountDetailPage() {
         open={!!editingHolding}
         onOpenChange={(open) => { if (!open) setEditingHolding(null) }}
         holding={editingHolding}
-        onSubmit={async (ticker, quantity, averageBuyIn) => {
-          await updateHoldingMutation.mutateAsync({ ticker, data: { quantity, averageBuyIn } })
+        onSubmit={async (ticker, quantity, averageBuyIn, acquiredAt) => {
+          await updateHoldingMutation.mutateAsync({ ticker, data: { quantity, averageBuyIn, acquiredAt } })
           setEditingHolding(null)
         }}
         isLoading={updateHoldingMutation.isPending}

@@ -15,6 +15,7 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
       priceUpdatedAt: new Date().toISOString(),
       priceAsOf: new Date().toISOString().slice(0, 10),
       priceStale: false,
+      acquiredAt: null,
     },
     {
       ticker: 'MSFT',
@@ -29,6 +30,7 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
       priceUpdatedAt: new Date().toISOString(),
       priceAsOf: new Date().toISOString().slice(0, 10),
       priceStale: false,
+      acquiredAt: null,
     },
     {
       ticker: 'AMZN',
@@ -43,6 +45,7 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
       priceUpdatedAt: new Date().toISOString(),
       priceAsOf: new Date().toISOString().slice(0, 10),
       priceStale: false,
+      acquiredAt: null,
     },
     {
       ticker: 'NVDA',
@@ -57,6 +60,7 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
       priceUpdatedAt: new Date().toISOString(),
       priceAsOf: new Date().toISOString().slice(0, 10),
       priceStale: false,
+      acquiredAt: null,
     },
   ],
   6: [
@@ -73,6 +77,7 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
       priceUpdatedAt: new Date().toISOString(),
       priceAsOf: new Date().toISOString().slice(0, 10),
       priceStale: false,
+      acquiredAt: null,
     },
     {
       ticker: 'ETH',
@@ -87,6 +92,7 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
       priceUpdatedAt: new Date().toISOString(),
       priceAsOf: new Date().toISOString().slice(0, 10),
       priceStale: false,
+      acquiredAt: null,
     },
     {
       ticker: 'SOL',
@@ -101,6 +107,7 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
       priceUpdatedAt: new Date().toISOString(),
       priceAsOf: new Date().toISOString().slice(0, 10),
       priceStale: false,
+      acquiredAt: null,
     },
   ],
   3: [
@@ -117,6 +124,7 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
       priceUpdatedAt: new Date().toISOString(),
       priceAsOf: new Date().toISOString().slice(0, 10),
       priceStale: false,
+      acquiredAt: null,
     },
     {
       ticker: 'EUNL',
@@ -131,6 +139,7 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
       priceUpdatedAt: new Date().toISOString(),
       priceAsOf: new Date().toISOString().slice(0, 10),
       priceStale: false,
+      acquiredAt: null,
     },
   ],
 }

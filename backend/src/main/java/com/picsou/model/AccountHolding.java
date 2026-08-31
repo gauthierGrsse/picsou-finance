@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "account_holding")
@@ -52,4 +53,12 @@ public class AccountHolding extends AuditableEntity {
 
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
+
+    /** Optional, user-entered acquisition date -- null means "unknown", not "never held".
+     * {@code HistoryService#buildPnl} treats null the same as "assume held for the whole
+     * requested range" (its behavior before this field existed); when set and after a
+     * range's start date, that range's P&amp;L uses cost basis for this holding instead of
+     * a historical price from before it was owned. */
+    @Column(name = "acquired_at")
+    private LocalDate acquiredAt;
 }
