@@ -39,8 +39,12 @@ class TradeRepublicAdapterTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {401, 403})
+    @ValueSource(ints = {400, 401, 403, 404, 405, 422})
     void refreshSession_rejectedStatusMapsToSessionExpired(int status) {
+        // TR's refresh endpoint is undocumented/reverse-engineered -- a rejected
+        // refresh token has been observed to come back as 401, 403, and 405 (TR-side
+        // quirk, not a literal "method not allowed"). Any 4xx other than 429 must be
+        // treated the same way: retrying won't help, only a fresh login will.
         TradeRepublicAdapter adapter = adapterReturning(status, "{\"detail\":\"rejected\"}");
 
         Throwable thrown = catchThrowable(() -> adapter.refreshSession("refresh-token"));
