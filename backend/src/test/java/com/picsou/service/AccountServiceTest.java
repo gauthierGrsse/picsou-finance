@@ -36,6 +36,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -821,6 +822,31 @@ class AccountServiceTest {
         );
 
         assertThat(holding.getAcquiredAt()).isNull();
+    }
+
+    // ─── captureAcquiredDates ───────────────────────────────────────────────────
+
+    @Test
+    void captureAcquiredDates_keyedByTicker_omitsHoldingsWithNoDate() {
+        // Every full-replace broker sync (TR, Bourso, Amundi, Bourse Direct, DEGIRO, IBKR)
+        // calls this before deleting an account's holdings, to carry acquiredAt -- which no
+        // provider ever supplies -- across the delete-and-rebuild.
+        AccountHolding dated = AccountHolding.builder()
+            .ticker("AAPL").quantity(BigDecimal.ONE).acquiredAt(LocalDate.of(2026, 3, 1)).build();
+        AccountHolding undated = AccountHolding.builder()
+            .ticker("MSFT").quantity(BigDecimal.ONE).acquiredAt(null).build();
+        when(holdingRepository.findByAccount_Id(1L)).thenReturn(List.of(dated, undated));
+
+        Map<String, LocalDate> result = accountService.captureAcquiredDates(1L);
+
+        assertThat(result).containsExactly(entry("AAPL", LocalDate.of(2026, 3, 1)));
+    }
+
+    @Test
+    void captureAcquiredDates_noHoldings_returnsEmptyMap() {
+        when(holdingRepository.findByAccount_Id(1L)).thenReturn(List.of());
+
+        assertThat(accountService.captureAcquiredDates(1L)).isEmpty();
     }
 
     // ─── signedLiveBalanceEur ─────────────────────────────────────────────────

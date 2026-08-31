@@ -440,6 +440,9 @@ public class AmundiSyncService {
         account.setLastSyncedAt(syncedAt);
         Account savedAccount = accountRepository.save(account);
 
+        // acquiredAt is purely user-entered -- never supplied by Amundi -- so it must be
+        // captured before the delete-and-rebuild below or it's silently lost every sync.
+        Map<String, LocalDate> acquiredDates = accountService.captureAcquiredDates(savedAccount.getId());
         holdingRepository.deleteByAccountId(savedAccount.getId());
         holdingRepository.flush();
         List<AccountHolding> holdings = data.positions().stream()
@@ -454,6 +457,7 @@ public class AmundiSyncService {
                 .providerValueEur(position.valueEur())
                 .providerPnlEur(position.pnlEur())
                 .lastSyncedAt(syncedAt)
+                .acquiredAt(acquiredDates.get(position.ticker()))
                 .build())
             .toList();
         holdingRepository.saveAll(holdings);

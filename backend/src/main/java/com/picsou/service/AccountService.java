@@ -41,6 +41,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -315,6 +316,22 @@ public class AccountService {
         } else {
             holdingRepository.deleteByAccountIdAndTickerNotIn(account.getId(), keepTickers);
         }
+    }
+
+    /**
+     * Snapshot of each holding's {@code acquiredAt}, keyed by ticker. Every broker sync
+     * deletes and rebuilds an account's holdings from scratch on each run ({@code
+     * pruneHoldings} above only trims stale ones, but the "full replace" syncs -- TR,
+     * Bourso, Amundi, Bourse Direct, DEGIRO, IBKR -- wipe the lot). {@code acquiredAt} is
+     * purely user-entered; no provider has ever supplied it, so nothing will repopulate a
+     * date silently lost this way. Callers must capture this <em>before</em> the delete and
+     * pass each ticker's value back into the newly built {@code AccountHolding}.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, LocalDate> captureAcquiredDates(Long accountId) {
+        return holdingRepository.findByAccount_Id(accountId).stream()
+            .filter(h -> h.getAcquiredAt() != null)
+            .collect(Collectors.toMap(AccountHolding::getTicker, AccountHolding::getAcquiredAt, (a, b) -> a));
     }
 
     // ─── Package-private helpers used by other services ──────────────────────

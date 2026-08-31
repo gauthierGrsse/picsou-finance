@@ -361,6 +361,7 @@ public class TradeRepublicSyncService {
         accountService.upsertSnapshot(account, data.balanceEur(), LocalDate.now());
 
         if (replaceHoldings) {
+            Map<String, LocalDate> acquiredDates = accountService.captureAcquiredDates(account.getId());
             holdingRepository.deleteByAccountId(account.getId());
             holdingRepository.flush();
 
@@ -411,6 +412,7 @@ public class TradeRepublicSyncService {
                         ? null
                         : providerValuesEur.get(entry.getKey()).setScale(8, RoundingMode.HALF_UP))
                     .lastSyncedAt(Instant.now())
+                    .acquiredAt(acquiredDates.get(entry.getKey()))
                     .build());
             }
         }

@@ -239,6 +239,10 @@ public class IbkrSyncService {
         }
         account = accountRepository.save(account);
 
+        // acquiredAt is purely user-entered -- never supplied by IBKR -- so it must be
+        // captured before the delete-and-rebuild below or it's silently lost every sync.
+        Map<String, LocalDate> acquiredDates = accountService.captureAcquiredDates(account.getId());
+
         // Replace holdings wholesale — the statement is the full current picture.
         holdingRepository.deleteByAccountId(account.getId());
         holdingRepository.flush();
@@ -284,6 +288,7 @@ public class IbkrSyncService {
                 .averageBuyIn(agg.averageBuyIn())
                 .currentPrice(agg.currentPrice())
                 .lastSyncedAt(Instant.now())
+                .acquiredAt(acquiredDates.get(entry.getKey()))
                 .build());
             persisted++;
         }

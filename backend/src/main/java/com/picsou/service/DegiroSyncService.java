@@ -268,6 +268,9 @@ public class DegiroSyncService {
         account = accountRepository.save(account);
         accountService.upsertSnapshot(account, totalValueEur, LocalDate.now());
 
+        // acquiredAt is purely user-entered -- never supplied by DEGIRO -- so it must be
+        // captured before the delete-and-rebuild below or it's silently lost every sync.
+        Map<String, LocalDate> acquiredDates = accountService.captureAcquiredDates(account.getId());
         holdingRepository.deleteByAccountId(account.getId());
         holdingRepository.flush();
 
@@ -282,6 +285,7 @@ public class DegiroSyncService {
                 .averageBuyIn(agg.averageBuyIn())
                 .currentPrice(agg.currentPrice())
                 .lastSyncedAt(Instant.now())
+                .acquiredAt(acquiredDates.get(entry.getKey()))
                 .build());
         }
 

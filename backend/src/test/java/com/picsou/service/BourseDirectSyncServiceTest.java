@@ -122,6 +122,32 @@ class BourseDirectSyncServiceTest {
     }
 
     @Test
+    void queueSync_preservesAcquiredDateAcrossResync() {
+        // acquiredAt is purely user-entered -- Bourse Direct never supplies it -- so the
+        // delete-and-rebuild every sync does must not silently lose it.
+        FamilyMember member = member();
+        BourseDirectSession session = activeSession(member);
+        arrangeQueuedSession(session);
+        when(port.fetchAccounts("plain-state")).thenReturn(List.of(completeAccount()));
+        when(memberRepository.findById(7L)).thenReturn(Optional.of(member));
+        Account existingAccount = Account.builder()
+            .id(11L).member(member).name("PEA Bourse Direct").type(AccountType.PEA)
+            .provider("Bourse Direct").currency("EUR").currentBalance(BigDecimal.ZERO)
+            .isManual(false).build();
+        when(accountRepository.findByExternalAccountIdAndMemberId("bd_pea-123", 7L))
+            .thenReturn(Optional.of(existingAccount));
+        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(accountService.captureAcquiredDates(11L))
+            .thenReturn(java.util.Map.of("ACME", java.time.LocalDate.of(2026, 3, 1)));
+
+        service.queueSync(7L);
+
+        verify(holdingRepository).saveAll(holdingsCaptor.capture());
+        assertThat(holdingsCaptor.getValue().getFirst().getAcquiredAt())
+            .isEqualTo(java.time.LocalDate.of(2026, 3, 1));
+    }
+
+    @Test
     void incompleteSnapshot_failsWithoutDeletingExistingHoldings() {
         BourseDirectSession session = activeSession(member());
         arrangeQueuedSession(session);

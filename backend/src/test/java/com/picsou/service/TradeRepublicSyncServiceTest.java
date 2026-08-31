@@ -230,6 +230,46 @@ class TradeRepublicSyncServiceTest {
         verify(holdingRepository, never()).save(any(AccountHolding.class));
     }
 
+    @Test
+    void sync_preservesAcquiredDateAcrossResync() {
+        // acquiredAt is purely user-entered -- TR never supplies it -- so the delete-and-
+        // rebuild every sync does must not silently lose it.
+        Long memberId = 7L;
+        FamilyMember member = FamilyMember.builder().id(memberId).displayName("Owner").build();
+
+        TradeRepublicSession storedSession = TradeRepublicSession.builder()
+            .member(member)
+            .sessionToken("enc-session")
+            .expiresAt(java.time.Instant.now().plusSeconds(3600))
+            .build();
+        when(sessionRepository.findByMemberId(memberId)).thenReturn(Optional.of(storedSession));
+        when(encryption.decrypt("enc-session")).thenReturn("plain-session");
+
+        TrPosition pos = new TrPosition("US0378331005", bd("1"), bd("150"), bd("180"));
+        TrAccountData accountData = new TrAccountData(
+            "tr_cto", "TR Titres", AccountType.COMPTE_TITRES, bd("180"), List.of(pos));
+        when(trPort.fetchAccounts("plain-session")).thenReturn(List.of(accountData));
+        when(isinConverter.resolve("US0378331005")).thenReturn(new TickerResult("AAPL", "Apple"));
+
+        Account existingAccount = Account.builder()
+            .id(42L).member(member).name("TR Titres").type(AccountType.COMPTE_TITRES)
+            .provider("Trade Republic").currency("EUR").currentBalance(bd("150"))
+            .externalAccountId("tr_cto").isManual(false).build();
+        when(accountRepository.findByExternalAccountIdAndMemberId("tr_cto", memberId))
+            .thenReturn(Optional.of(existingAccount));
+        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(accountService.captureAcquiredDates(42L))
+            .thenReturn(java.util.Map.of("AAPL", java.time.LocalDate.of(2026, 3, 1)));
+        lenient().when(accountService.toResponse(any(Account.class)))
+            .thenAnswer(inv -> com.picsou.dto.AccountResponse.from(inv.getArgument(0), bd("180")));
+
+        service.sync(memberId);
+
+        ArgumentCaptor<AccountHolding> captor = ArgumentCaptor.forClass(AccountHolding.class);
+        verify(holdingRepository).save(captor.capture());
+        assertThat(captor.getValue().getAcquiredAt()).isEqualTo(java.time.LocalDate.of(2026, 3, 1));
+    }
+
     // --- Session lifecycle: refresh instead of dying at the 2h heuristic ---
 
     @Test
