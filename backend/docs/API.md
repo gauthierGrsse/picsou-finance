@@ -1674,13 +1674,29 @@ Detects and links transfers between two of the member's own accounts (e.g. a Rev
   feed), so no matching row can ever appear in `GET /api/transfers/candidates`. `204` on
   success. Rejected (`400`) if the transaction is already marked as an internal transfer.
 
+#### `POST /api/transfers/{transactionId}/link-to-manual-account`
+
+- **Auth:** Required
+- **Body:** `{ "targetAccountId": number, "description": string, "date": "YYYY-MM-DD" }`
+- Creates a new transaction on `targetAccountId` for the source transaction's exact opposite
+  amount, then links the two as an internal transfer -- for money that landed somewhere
+  Picsou has no sync to discover a matching row for (e.g. a manually-tracked cash account).
+  `targetAccountId` **must** be a manual account (`isManual: true`); a synced account's
+  transaction history belongs to its provider, so writing into one here is rejected. The new
+  transaction also updates that account's balance, the same as any other manual entry.
+- **Response `200`** -- the newly created transaction, as `TransactionResponse`.
+- **Errors:** `400` (same account, target not manual, source already linked), `404` (unknown
+  transaction or target account).
+
 #### `DELETE /api/transfers/{transactionId}/link`
 
 - **Auth:** Required
 - Reverts a transfer to `NON_CLASSE` -- both legs if the transaction was linked to a
-  counterpart, or just the one if it was marked via `mark-internal` above (no counterpart
-  to revert). `204` on success. Rejected (`400`) if the transaction isn't currently marked
-  as an internal transfer.
+  counterpart (including one created via `link-to-manual-account` above), or just the one if
+  it was marked via `mark-internal` (no counterpart to revert). Note this does **not** delete
+  the counterpart transaction itself when one exists -- it stays on its account, just
+  reclassified back to `NON_CLASSE`. `204` on success. Rejected (`400`) if the transaction
+  isn't currently marked as an internal transfer.
 
 ### 18. Transactions (all accounts) — `/api/transactions`
 

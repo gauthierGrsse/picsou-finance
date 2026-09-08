@@ -1,14 +1,17 @@
 package com.picsou.service;
 
 import com.picsou.dto.SuggestedTransferPairResponse;
+import com.picsou.dto.TransactionResponse;
 import com.picsou.exception.ResourceNotFoundException;
 import com.picsou.model.Account;
 import com.picsou.model.AccountType;
 import com.picsou.model.ProStatus;
 import com.picsou.model.Transaction;
+import com.picsou.repository.AccountRepository;
 import com.picsou.repository.TransactionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,22 +19,30 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class InternalTransferServiceTest {
 
     @Mock TransactionRepository transactionRepository;
+    @Mock AccountRepository accountRepository;
+    @Mock ManualTransactionService manualTransactionService;
 
     @InjectMocks InternalTransferService internalTransferService;
 
     private Account account(Long id) {
+        return account(id, false);
+    }
+
+    private Account account(Long id, boolean isManual) {
         return Account.builder().id(id).name("Account " + id).type(AccountType.CHECKING)
-            .currency("EUR").currentBalance(BigDecimal.ZERO).isManual(false).build();
+            .currency("EUR").currentBalance(BigDecimal.ZERO).isManual(isManual).build();
     }
 
     private Transaction tx(Long id, Account account, LocalDate date, BigDecimal amount, String externalId) {
@@ -361,6 +372,98 @@ class InternalTransferServiceTest {
         when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.empty());
 
         assertThatThrownBy(() -> internalTransferService.confirmLink(10L, 20L, 1L, false))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // ─── linkToNewManualTransaction ─────────────────────────────────────────
+
+    @Test
+    void linkToNewManualTransaction_createsOppositeAmountAndLinksBothSides() {
+        Account sourceAccount = account(1L);
+        Account targetAccount = account(2L, true);
+        Transaction source = tx(10L, sourceAccount, LocalDate.of(2026, 3, 1), new BigDecimal("-400"), null);
+        Transaction target = tx(20L, targetAccount, LocalDate.of(2026, 3, 1), new BigDecimal("400"), null);
+
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findByIdAndMemberId(2L, 1L)).thenReturn(Optional.of(targetAccount));
+        when(manualTransactionService.addTransaction(eq(2L), eq(1L), any()))
+            .thenReturn(TransactionResponse.from(target));
+        when(transactionRepository.findByIdAndAccount_Member_Id(20L, 1L)).thenReturn(Optional.of(target));
+
+        TransactionResponse result = internalTransferService.linkToNewManualTransaction(
+            10L, 2L, 1L, "Vers compte manuel", LocalDate.of(2026, 3, 1));
+
+        assertThat(result.id()).isEqualTo(20L);
+        assertThat(source.getProStatus()).isEqualTo(ProStatus.VIREMENT_INTERNE);
+        assertThat(source.getLinkedTransactionId()).isEqualTo(20L);
+        assertThat(target.getProStatus()).isEqualTo(ProStatus.VIREMENT_INTERNE);
+        assertThat(target.getLinkedTransactionId()).isEqualTo(10L);
+
+        ArgumentCaptor<com.picsou.dto.TransactionRequest> reqCaptor =
+            ArgumentCaptor.forClass(com.picsou.dto.TransactionRequest.class);
+        verify(manualTransactionService).addTransaction(eq(2L), eq(1L), reqCaptor.capture());
+        // Opposite of the source's -400: the two sides of one transfer are zero-sum.
+        assertThat(reqCaptor.getValue().amount()).isEqualByComparingTo("400");
+        assertThat(reqCaptor.getValue().description()).isEqualTo("Vers compte manuel");
+    }
+
+    @Test
+    void linkToNewManualTransaction_rejectsNonManualTarget() {
+        Account sourceAccount = account(1L);
+        Account targetAccount = account(2L, false); // synced, not manual
+        Transaction source = tx(10L, sourceAccount, LocalDate.now(), new BigDecimal("-400"), null);
+
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findByIdAndMemberId(2L, 1L)).thenReturn(Optional.of(targetAccount));
+
+        assertThatThrownBy(() -> internalTransferService.linkToNewManualTransaction(
+            10L, 2L, 1L, "desc", LocalDate.now()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("manual account");
+        verify(manualTransactionService, never()).addTransaction(any(), any(), any());
+    }
+
+    @Test
+    void linkToNewManualTransaction_rejectsSameAccount() {
+        Account sharedAccount = account(1L, true);
+        Transaction source = tx(10L, sharedAccount, LocalDate.now(), new BigDecimal("-400"), null);
+
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findByIdAndMemberId(1L, 1L)).thenReturn(Optional.of(sharedAccount));
+
+        assertThatThrownBy(() -> internalTransferService.linkToNewManualTransaction(
+            10L, 1L, 1L, "desc", LocalDate.now()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("same account");
+    }
+
+    @Test
+    void linkToNewManualTransaction_rejectsAlreadyLinkedSource() {
+        Account sourceAccount = account(1L);
+        Account targetAccount = account(2L, true);
+        Transaction source = tx(10L, sourceAccount, LocalDate.now(), new BigDecimal("-400"), null);
+        source.setProStatus(ProStatus.VIREMENT_INTERNE);
+
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findByIdAndMemberId(2L, 1L)).thenReturn(Optional.of(targetAccount));
+
+        assertThatThrownBy(() -> internalTransferService.linkToNewManualTransaction(
+            10L, 2L, 1L, "desc", LocalDate.now()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("already marked");
+        verify(manualTransactionService, never()).addTransaction(any(), any(), any());
+    }
+
+    @Test
+    void linkToNewManualTransaction_unknownTargetAccount_throwsNotFound() {
+        Account sourceAccount = account(1L);
+        Transaction source = tx(10L, sourceAccount, LocalDate.now(), new BigDecimal("-400"), null);
+
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findByIdAndMemberId(99L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> internalTransferService.linkToNewManualTransaction(
+            10L, 99L, 1L, "desc", LocalDate.now()))
             .isInstanceOf(ResourceNotFoundException.class);
     }
 }

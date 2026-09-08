@@ -1,16 +1,20 @@
 package com.picsou.service;
 
 import com.picsou.dto.SuggestedTransferPairResponse;
+import com.picsou.dto.TransactionRequest;
 import com.picsou.dto.TransactionResponse;
 import com.picsou.exception.ResourceNotFoundException;
+import com.picsou.model.Account;
 import com.picsou.model.ProStatus;
 import com.picsou.model.Transaction;
+import com.picsou.repository.AccountRepository;
 import com.picsou.repository.TransactionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -47,9 +51,17 @@ public class InternalTransferService {
     private static final int SUGGESTION_WINDOW_DAYS = 3;
 
     private final TransactionRepository transactionRepository;
+    private final AccountRepository accountRepository;
+    private final ManualTransactionService manualTransactionService;
 
-    public InternalTransferService(TransactionRepository transactionRepository) {
+    public InternalTransferService(
+        TransactionRepository transactionRepository,
+        AccountRepository accountRepository,
+        ManualTransactionService manualTransactionService
+    ) {
         this.transactionRepository = transactionRepository;
+        this.accountRepository = accountRepository;
+        this.manualTransactionService = manualTransactionService;
     }
 
     /**
@@ -200,6 +212,48 @@ public class InternalTransferService {
         a.setProStatus(ProStatus.VIREMENT_INTERNE);
         a.setLinkedTransactionId(null);
         transactionRepository.save(a);
+    }
+
+    /**
+     * Creates the missing other side of a transfer directly on one of the member's own
+     * <b>manual</b> accounts, then links the two -- for money that genuinely arrived
+     * somewhere Picsou can't discover on its own (a cash account, or any other manual
+     * tracking account with no sync to produce a matching row). Restricted to manual
+     * accounts: injecting a transaction into a synced account would conflict with that
+     * account's own provider data on the next sync, which owns its transaction history.
+     *
+     * <p>The new transaction is the source's exact opposite amount -- a genuine transfer
+     * between two of the member's own accounts is definitionally zero-sum; unlike {@link
+     * #confirmLink}'s {@code allowAmountMismatch}, there's no existing counterpart amount
+     * to reconcile against here, so nothing to relax.
+     */
+    @Transactional
+    public TransactionResponse linkToNewManualTransaction(
+        Long sourceTransactionId, Long targetAccountId, Long memberId, String description, LocalDate date
+    ) {
+        Transaction source = getOrThrow(sourceTransactionId, memberId);
+        Account targetAccount = accountRepository.findByIdAndMemberId(targetAccountId, memberId)
+            .orElseThrow(() -> ResourceNotFoundException.account(targetAccountId));
+
+        if (source.getAccount().getId().equals(targetAccountId)) {
+            throw new IllegalArgumentException("Both transactions belong to the same account");
+        }
+        if (!targetAccount.isManual()) {
+            throw new IllegalArgumentException("Can only create a linked transaction on a manual account");
+        }
+        if (source.getProStatus() == ProStatus.VIREMENT_INTERNE) {
+            throw new IllegalArgumentException("Transaction is already marked as an internal transfer");
+        }
+
+        TransactionRequest req = new TransactionRequest(
+            date, description, source.getAmount().negate(), null, null, null, null, null, "EUR", null);
+        TransactionResponse created = manualTransactionService.addTransaction(targetAccountId, memberId, req);
+
+        Transaction target = transactionRepository.findByIdAndAccount_Member_Id(created.id(), memberId)
+            .orElseThrow(() -> ResourceNotFoundException.transaction(created.id()));
+
+        link(source, target);
+        return created;
     }
 
     private void link(Transaction a, Transaction b) {

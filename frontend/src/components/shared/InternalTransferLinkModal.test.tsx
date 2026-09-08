@@ -1,8 +1,20 @@
 import '@testing-library/jest-dom'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { InternalTransferLinkModal } from './InternalTransferLinkModal'
-import type { Transaction } from '@/types/api'
+import type { Account, Transaction } from '@/types/api'
+
+// jsdom lacks matchMedia, which DateInput probes for the touch/native date picker.
+beforeAll(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: (query: string) => ({
+      matches: false, media: query, onchange: null,
+      addEventListener: () => {}, removeEventListener: () => {},
+      addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
+    }),
+  })
+})
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -31,19 +43,44 @@ const candidates: Transaction[] = [
   tx({ id: 6, description: 'Autre compte', amount: 500, accountId: 3, accountName: 'Livret A' }),
 ]
 
+function account(overrides: Partial<Account>): Account {
+  return {
+    id: 1, name: 'Account', type: 'CHECKING', provider: null, currency: 'EUR',
+    currentBalance: 0, currentBalanceEur: 0, cashBalance: null, lastSyncedAt: null,
+    isManual: false, color: '#000000', ticker: null, logoUrl: null, logoKey: null,
+    ...overrides,
+  }
+}
+
+const accounts: Account[] = [
+  account({ id: 1, name: 'Compte Courant', isManual: false }), // source's own account, excluded either way
+  account({ id: 7, name: 'Cash', isManual: true }),
+  account({ id: 8, name: 'Autre synchro', isManual: false }), // manual=false, must not be offered
+]
+
 const confirmMutateAsync = vi.fn().mockResolvedValue(undefined)
 const markWithoutMatchMutateAsync = vi.fn().mockResolvedValue(undefined)
+const linkToManualAccountMutateAsync = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('@/features/internalTransfers/hooks', () => ({
   useTransferCandidates: () => ({ data: candidates }),
   useConfirmTransferLink: () => ({ mutateAsync: confirmMutateAsync, isPending: false }),
   useMarkTransferWithoutMatch: () => ({ mutateAsync: markWithoutMatchMutateAsync, isPending: false }),
+  useLinkTransferToManualAccount: () => ({ mutateAsync: linkToManualAccountMutateAsync, isPending: false }),
+}))
+
+const useAccountsMock = vi.fn(() => ({ data: accounts }))
+
+vi.mock('@/features/accounts/hooks', () => ({
+  useAccounts: () => useAccountsMock(),
 }))
 
 describe('InternalTransferLinkModal', () => {
   beforeEach(() => {
     confirmMutateAsync.mockClear()
     markWithoutMatchMutateAsync.mockClear()
+    linkToManualAccountMutateAsync.mockClear()
+    useAccountsMock.mockReturnValue({ data: accounts })
   })
 
   it('excludes the source transaction\'s own account and puts the exact match first', () => {
@@ -121,5 +158,49 @@ describe('InternalTransferLinkModal', () => {
     expect(markWithoutMatchMutateAsync).toHaveBeenCalledWith(1)
     expect(confirmMutateAsync).not.toHaveBeenCalled()
     expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('offers to create the transaction on a manual account, excluding non-manual ones and the source\'s own account', () => {
+    render(<InternalTransferLinkModal transaction={source} onOpenChange={vi.fn()} />)
+
+    fireEvent.click(screen.getByText('internalTransfers.manualCreateOpen'))
+
+    const accountSelect = screen.getByDisplayValue('Cash')
+    expect(accountSelect).toBeInTheDocument()
+    expect(screen.queryByText('Compte Courant', { selector: 'option' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Autre synchro', { selector: 'option' })).not.toBeInTheDocument()
+  })
+
+  it('pre-fills the manual-create form from the source transaction', () => {
+    render(<InternalTransferLinkModal transaction={source} onOpenChange={vi.fn()} />)
+
+    fireEvent.click(screen.getByText('internalTransfers.manualCreateOpen'))
+
+    expect(screen.getByDisplayValue('Vers Compte Titre')).toBeInTheDocument()
+    // Amount is fixed (opposite of the source's -500), not user-editable, shown as a hint.
+    expect(screen.getByText(/manualCreateAmountHint/)).toBeInTheDocument()
+  })
+
+  it('creates and links a transaction on the chosen manual account', async () => {
+    const onOpenChange = vi.fn()
+    render(<InternalTransferLinkModal transaction={source} onOpenChange={onOpenChange} />)
+
+    fireEvent.click(screen.getByText('internalTransfers.manualCreateOpen'))
+    fireEvent.change(screen.getByDisplayValue('Vers Compte Titre'), { target: { value: 'Vers mon cash' } })
+    fireEvent.click(screen.getByRole('button', { name: 'internalTransfers.manualCreateSubmit' }))
+
+    await waitFor(() => expect(linkToManualAccountMutateAsync).toHaveBeenCalledOnce())
+    expect(linkToManualAccountMutateAsync).toHaveBeenCalledWith({
+      transactionId: 1,
+      data: { targetAccountId: 7, description: 'Vers mon cash', date: '2026-01-05' },
+    })
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('does not offer to create on a manual account when the member has none', () => {
+    useAccountsMock.mockReturnValue({ data: [account({ id: 1, name: 'Compte Courant', isManual: false })] })
+    render(<InternalTransferLinkModal transaction={source} onOpenChange={vi.fn()} />)
+
+    expect(screen.queryByText('internalTransfers.manualCreateOpen')).not.toBeInTheDocument()
   })
 })

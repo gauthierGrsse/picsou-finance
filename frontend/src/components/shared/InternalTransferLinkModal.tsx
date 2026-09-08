@@ -1,14 +1,22 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Loader2, Plus } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { DateInput } from '@/components/shared/DateInput'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { cn, formatCurrency, formatLocalDate, getLocale } from '@/lib/utils'
 import { extractErrorMessage } from '@/lib/errors'
-import { useTransferCandidates, useConfirmTransferLink, useMarkTransferWithoutMatch } from '@/features/internalTransfers/hooks'
+import {
+  useTransferCandidates,
+  useConfirmTransferLink,
+  useMarkTransferWithoutMatch,
+  useLinkTransferToManualAccount,
+} from '@/features/internalTransfers/hooks'
+import { useAccounts } from '@/features/accounts/hooks'
 import type { Transaction } from '@/types/api'
 
 const selectClassName = "flex h-10 items-center rounded-xl border border-input bg-background text-foreground px-3 text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]"
@@ -45,14 +53,26 @@ function InternalTransferLinkForm({ transaction, onOpenChange }: { transaction: 
   const { t } = useTranslation()
   const locale = getLocale()
   const { data: candidates } = useTransferCandidates()
+  const { data: allAccounts } = useAccounts()
   const confirmLink = useConfirmTransferLink()
   const markWithoutMatch = useMarkTransferWithoutMatch()
+  const linkToManualAccount = useLinkTransferToManualAccount()
 
   const [search, setSearch] = useState('')
   const [accountFilter, setAccountFilter] = useState<'all' | number>('all')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmingMismatch, setConfirmingMismatch] = useState(false)
+
+  const [showManualCreate, setShowManualCreate] = useState(false)
+  const [manualTargetId, setManualTargetId] = useState<number | null>(null)
+  const [manualDescription, setManualDescription] = useState('')
+  const [manualDate, setManualDate] = useState(transaction.date)
+
+  const manualAccounts = useMemo(
+    () => (allAccounts ?? []).filter(a => a.isManual && a.id !== transaction.accountId),
+    [allAccounts, transaction.accountId],
+  )
 
   const pool = useMemo(
     () => (candidates ?? []).filter(c => c.id !== transaction.id && c.accountId !== transaction.accountId),
@@ -110,6 +130,27 @@ function InternalTransferLinkForm({ transaction, onOpenChange }: { transaction: 
     setError(null)
     try {
       await markWithoutMatch.mutateAsync(transaction.id)
+      onOpenChange(false)
+    } catch (err) {
+      setError(extractErrorMessage(err, t('common.error')))
+    }
+  }
+
+  function openManualCreate() {
+    setManualTargetId(manualAccounts[0]?.id ?? null)
+    setManualDescription(transaction.description)
+    setManualDate(transaction.date)
+    setShowManualCreate(true)
+  }
+
+  async function handleCreateOnManualAccount() {
+    if (!manualTargetId || !manualDescription.trim()) return
+    setError(null)
+    try {
+      await linkToManualAccount.mutateAsync({
+        transactionId: transaction.id,
+        data: { targetAccountId: manualTargetId, description: manualDescription.trim(), date: manualDate },
+      })
       onOpenChange(false)
     } catch (err) {
       setError(extractErrorMessage(err, t('common.error')))
@@ -203,6 +244,58 @@ function InternalTransferLinkForm({ transaction, onOpenChange }: { transaction: 
             {t('internalTransfers.markWithoutMatch')}
           </Button>
         </div>
+
+        {manualAccounts.length > 0 && (
+          showManualCreate ? (
+            <div className="space-y-3 rounded-xl border border-dashed p-2.5">
+              <p className="text-xs text-muted-foreground">{t('internalTransfers.manualCreateHint')}</p>
+              <div className="space-y-1">
+                <Label className="text-xs">{t('internalTransfers.manualCreateAccount')}</Label>
+                <select
+                  value={manualTargetId ?? ''}
+                  onChange={(e) => setManualTargetId(Number(e.target.value))}
+                  className={cn(selectClassName, 'w-full')}
+                >
+                  {manualAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">{t('internalTransfers.manualCreateDescription')}</Label>
+                <Input value={manualDescription} onChange={(e) => setManualDescription(e.target.value)} required />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">{t('internalTransfers.manualCreateDate')}</Label>
+                <DateInput value={manualDate} onChange={setManualDate} />
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {t('internalTransfers.manualCreateAmountHint', {
+                    amount: formatCurrency(-transaction.amount, transaction.nativeCurrency, locale),
+                  })}
+                </span>
+                <div className="flex shrink-0 gap-2">
+                  <Button type="button" variant="outline" size="xs" onClick={() => setShowManualCreate(false)}>
+                    {t('common.cancel')}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="xs"
+                    disabled={!manualTargetId || !manualDescription.trim() || linkToManualAccount.isPending}
+                    onClick={handleCreateOnManualAccount}
+                  >
+                    {linkToManualAccount.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t('internalTransfers.manualCreateSubmit')}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Button type="button" variant="outline" size="xs" className="w-full" onClick={openManualCreate}>
+              <Plus className="mr-1.5 size-3.5" />
+              {t('internalTransfers.manualCreateOpen')}
+            </Button>
+          )
+        )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 

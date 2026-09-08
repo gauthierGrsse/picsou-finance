@@ -6,5 +6,7 @@ export const internalTransfersApi = {
   candidates: () => api.get<Transaction[]>('/transfers/candidates').then(r => r.data),
   link: (data: TransferLinkRequest) => api.post('/transfers/link', data),
   markWithoutMatch: (transactionId: number) => api.post(`/transfers/${transactionId}/mark-internal`),
+  linkToManualAccount: (transactionId: number, data: { targetAccountId: number; description: string; date: string }) =>
+    api.post<Transaction>(`/transfers/${transactionId}/link-to-manual-account`, data).then(r => r.data),
   unlink: (transactionId: number) => api.delete(`/transfers/${transactionId}/link`),
 }

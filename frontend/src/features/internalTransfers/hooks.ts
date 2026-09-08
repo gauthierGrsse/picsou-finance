@@ -43,6 +43,23 @@ export function useMarkTransferWithoutMatch() {
   })
 }
 
+export function useLinkTransferToManualAccount() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ transactionId, data }: {
+      transactionId: number
+      data: { targetAccountId: number; description: string; date: string }
+    }) => internalTransfersApi.linkToManualAccount(transactionId, data),
+    onSuccess: () => {
+      invalidateTransferViews(queryClient)
+      // Unlike the other transfer mutations (which only reclassify existing rows), this one
+      // creates a transaction and changes the target account's balance -- net worth moves too.
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['pnl'] })
+    },
+  })
+}
+
 export function useUnlinkTransfer() {
   const queryClient = useQueryClient()
   return useMutation({

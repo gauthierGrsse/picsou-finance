@@ -1,5 +1,6 @@
 package com.picsou.controller;
 
+import com.picsou.dto.LinkToManualAccountRequest;
 import com.picsou.dto.SuggestedTransferPairResponse;
 import com.picsou.dto.TransactionResponse;
 import com.picsou.dto.TransferLinkRequest;
@@ -48,6 +49,18 @@ public class InternalTransferController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void markWithoutMatch(@PathVariable Long transactionId) {
         internalTransferService.markWithoutMatch(transactionId, userContext.currentMemberId());
+    }
+
+    /** Creates the missing other side of a transfer directly on one of the member's own
+     * manual accounts, then links the two -- for money that landed somewhere Picsou has
+     * no sync to discover a matching row for. Restricted to manual accounts: a synced
+     * account's transaction history belongs to its provider. */
+    @PostMapping("/{transactionId}/link-to-manual-account")
+    public TransactionResponse linkToNewManualTransaction(
+        @PathVariable Long transactionId, @Valid @RequestBody LinkToManualAccountRequest req
+    ) {
+        return internalTransferService.linkToNewManualTransaction(
+            transactionId, req.targetAccountId(), userContext.currentMemberId(), req.description(), req.date());
     }
 
     @DeleteMapping("/{transactionId}/link")

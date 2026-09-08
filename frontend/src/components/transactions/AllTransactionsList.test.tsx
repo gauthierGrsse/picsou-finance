@@ -21,6 +21,11 @@ vi.mock('@/features/internalTransfers/hooks', () => ({
   useTransferCandidates: () => ({ data: [] }),
   useConfirmTransferLink: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useMarkTransferWithoutMatch: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useLinkTransferToManualAccount: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}))
+
+vi.mock('@/features/accounts/hooks', () => ({
+  useAccounts: () => ({ data: [] }),
 }))
 
 function tx(overrides: Partial<Transaction>): Transaction {

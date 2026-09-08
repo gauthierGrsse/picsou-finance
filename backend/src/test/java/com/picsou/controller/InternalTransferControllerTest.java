@@ -1,5 +1,6 @@
 package com.picsou.controller;
 
+import com.picsou.dto.LinkToManualAccountRequest;
 import com.picsou.dto.SuggestedTransferPairResponse;
 import com.picsou.dto.TransactionResponse;
 import com.picsou.dto.TransferLinkRequest;
@@ -11,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,6 +76,29 @@ class InternalTransferControllerTest {
         controller.markWithoutMatch(5L);
 
         verify(internalTransferService).markWithoutMatch(5L, 10L);
+    }
+
+    @Test
+    void linkToNewManualTransaction_delegatesWithMemberId() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+        LinkToManualAccountRequest req = new LinkToManualAccountRequest(2L, "Vers mon compte cash", LocalDate.of(2026, 3, 1));
+        TransactionResponse expected = com.picsou.dto.TransactionResponse.from(
+            com.picsou.model.Transaction.builder()
+                .id(20L)
+                .account(com.picsou.model.Account.builder().id(2L).name("Cash").build())
+                .date(LocalDate.of(2026, 3, 1))
+                .description("Vers mon compte cash")
+                .amount(java.math.BigDecimal.TEN)
+                .isManual(true)
+                .nativeCurrency("EUR")
+                .proStatus(com.picsou.model.ProStatus.VIREMENT_INTERNE)
+                .build());
+        when(internalTransferService.linkToNewManualTransaction(5L, 2L, 10L, "Vers mon compte cash", LocalDate.of(2026, 3, 1)))
+            .thenReturn(expected);
+
+        TransactionResponse actual = controller.linkToNewManualTransaction(5L, req);
+
+        assertThat(actual).isSameAs(expected);
     }
 
     @Test
