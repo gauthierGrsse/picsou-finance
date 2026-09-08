@@ -48,6 +48,7 @@ function account(overrides: Partial<Account>): Account {
     id: 1, name: 'Account', type: 'CHECKING', provider: null, currency: 'EUR',
     currentBalance: 0, currentBalanceEur: 0, cashBalance: null, lastSyncedAt: null,
     isManual: false, color: '#000000', ticker: null, logoUrl: null, logoKey: null,
+    createdAt: '2026-01-01T00:00:00Z',
     ...overrides,
   }
 }
