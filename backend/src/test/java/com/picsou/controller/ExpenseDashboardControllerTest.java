@@ -1,6 +1,7 @@
 package com.picsou.controller;
 
 import com.picsou.dto.ExpenseDashboardResponse;
+import com.picsou.dto.ExpensePaceResponse;
 import com.picsou.service.ExpenseDashboardService;
 import com.picsou.service.UserContext;
 import org.junit.jupiter.api.Test;
@@ -71,6 +72,28 @@ class ExpenseDashboardControllerTest {
             .thenReturn(expected);
 
         ExpenseDashboardResponse actual = controller.getDashboard(6, null, null, true);
+
+        assertThat(actual).isSameAs(expected);
+    }
+
+    @Test
+    void getPace_defaultsToThreeMonthsOfHistory() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+        ExpensePaceResponse expected = new ExpensePaceResponse(10, 3, BigDecimal.ZERO, BigDecimal.ZERO, null, List.of());
+        when(expenseDashboardService.getPace(10L, 3)).thenReturn(expected);
+
+        ExpensePaceResponse actual = controller.getPace(3);
+
+        assertThat(actual).isSameAs(expected);
+    }
+
+    @Test
+    void getPace_usesExplicitHistoryMonths() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+        ExpensePaceResponse expected = new ExpensePaceResponse(10, 6, BigDecimal.ZERO, BigDecimal.ZERO, null, List.of());
+        when(expenseDashboardService.getPace(10L, 6)).thenReturn(expected);
+
+        ExpensePaceResponse actual = controller.getPace(6);
 
         assertThat(actual).isSameAs(expected);
     }

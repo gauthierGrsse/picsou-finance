@@ -1564,7 +1564,15 @@
     "period": {
       "month": "Mois",
       "year": "Année"
-    }
+    },
+    "paceTitle": "Rythme du mois",
+    "paceSpentSoFar": "Dépensé jusqu'ici",
+    "paceUsualByNow": "Habituellement au jour {{day}}",
+    "paceMoreThanUsual": "de plus que d'habitude",
+    "paceLessThanUsual": "de moins que d'habitude",
+    "paceNoHistory": "Pas encore assez d'historique pour comparer.",
+    "paceCategoryUsualPrefix": "habituellement ~",
+    "paceCategoryUsualSuffix": "/mois"
   },
   "internalTransfers": {
     "suggestedTitle": "Virements internes suggérés",

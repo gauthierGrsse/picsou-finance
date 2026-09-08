@@ -7,6 +7,7 @@ import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { MonthlyExpenseChart } from '@/components/expenses/MonthlyExpenseChart'
 import { CategoryProStatusBreakdown } from '@/components/expenses/CategoryProStatusBreakdown'
+import { ExpensePaceCard } from '@/components/expenses/ExpensePaceCard'
 import { PendingReimbursementsCard } from '@/components/expenses/PendingReimbursementsCard'
 import { SuggestedTransfersCard } from '@/components/expenses/SuggestedTransfersCard'
 import { PeriodSelector, type PeriodMode } from '@/components/expenses/PeriodSelector'
@@ -46,6 +47,7 @@ export function ExpenseDashboardPage() {
   }, [mode, month, year])
 
   const { data, isLoading } = useExpenseDashboard(months, periodStart, periodEnd, view === 'income')
+  const isCurrentMonthExpenseView = mode === 'month' && view === 'expense' && month === currentMonthValue()
 
   const totalThisPeriod = useMemo(
     () => (data?.categoryBreakdown ?? []).reduce((sum, item) => sum + item.total, 0),
@@ -134,6 +136,10 @@ export function ExpenseDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pace only makes sense for the in-progress month -- browsing a past month or a
+          full year has no "as of today" to compare against. */}
+      {isCurrentMonthExpenseView && <ExpensePaceCard />}
 
       <Card size="sm">
         <CardHeader className="pb-1">

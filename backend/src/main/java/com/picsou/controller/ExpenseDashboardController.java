@@ -1,6 +1,7 @@
 package com.picsou.controller;
 
 import com.picsou.dto.ExpenseDashboardResponse;
+import com.picsou.dto.ExpensePaceResponse;
 import com.picsou.service.ExpenseDashboardService;
 import com.picsou.service.UserContext;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -35,5 +36,10 @@ public class ExpenseDashboardController {
         LocalDate resolvedStart = periodStart != null ? periodStart : currentMonth.atDay(1);
         LocalDate resolvedEnd = periodEnd != null ? periodEnd : currentMonth.atEndOfMonth();
         return expenseDashboardService.getDashboard(userContext.currentMemberId(), months, resolvedStart, resolvedEnd, income);
+    }
+
+    @GetMapping("/pace")
+    public ExpensePaceResponse getPace(@RequestParam(defaultValue = "3") int historyMonths) {
+        return expenseDashboardService.getPace(userContext.currentMemberId(), historyMonths);
     }
 }

@@ -1564,7 +1564,15 @@
     "period": {
       "month": "Month",
       "year": "Year"
-    }
+    },
+    "paceTitle": "This month's pace",
+    "paceSpentSoFar": "Spent so far",
+    "paceUsualByNow": "Usual by day {{day}}",
+    "paceMoreThanUsual": "more than usual",
+    "paceLessThanUsual": "less than usual",
+    "paceNoHistory": "Not enough history yet to compare.",
+    "paceCategoryUsualPrefix": "usual ~",
+    "paceCategoryUsualSuffix": "/mo"
   },
   "internalTransfers": {
     "suggestedTitle": "Suggested internal transfers",

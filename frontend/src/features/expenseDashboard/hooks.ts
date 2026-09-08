@@ -9,3 +9,11 @@ export function useExpenseDashboard(months: number, periodStart: string, periodE
     staleTime: QUERY_STALE_TIMES.expenseDashboard,
   })
 }
+
+export function useExpensePace(historyMonths: number) {
+  return useQuery({
+    queryKey: ['expensePace', historyMonths],
+    queryFn: () => expenseDashboardApi.getPace(historyMonths),
+    staleTime: QUERY_STALE_TIMES.expenseDashboard,
+  })
+}

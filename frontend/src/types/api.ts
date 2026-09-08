@@ -821,6 +821,26 @@ export interface ExpenseDashboardResponse {
   totalProAbsorbe: number
 }
 
+export interface CategoryPaceItem {
+  categoryId: number | null
+  categoryName: string | null
+  categoryColor: string | null
+  currentMonthAmount: number
+  historicalMonthlyAverage: number
+}
+
+/** percentDifference is null when there's no comparable history yet (e.g. a brand new
+ * account). historicalCumulativeAverage/currentMonthCumulative are both cut off at
+ * dayOfMonth -- spend-to-date, not a forward projection to month-end. */
+export interface ExpensePaceResponse {
+  dayOfMonth: number
+  historyMonths: number
+  currentMonthCumulative: number
+  historicalCumulativeAverage: number
+  percentDifference: number | null
+  categoryPace: CategoryPaceItem[]
+}
+
 export interface SuggestedTransferPair {
   a: Transaction
   b: Transaction

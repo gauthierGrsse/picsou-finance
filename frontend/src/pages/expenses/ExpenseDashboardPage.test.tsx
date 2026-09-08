@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ExpenseDashboardPage } from './ExpenseDashboardPage'
-import type { ExpenseDashboardResponse, PendingReimbursements } from '@/types/api'
+import type { ExpenseDashboardResponse, ExpensePaceResponse, PendingReimbursements } from '@/types/api'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -32,8 +32,14 @@ const useExpenseDashboard = vi.fn<(months: number, periodStart: string, periodEn
   () => ({ data: dashboard, isLoading: false }),
 )
 
+const pace: ExpensePaceResponse = {
+  dayOfMonth: 10, historyMonths: 3, currentMonthCumulative: 100,
+  historicalCumulativeAverage: 100, percentDifference: 0, categoryPace: [],
+}
+
 vi.mock('@/features/expenseDashboard/hooks', () => ({
   useExpenseDashboard: (months: number, periodStart: string, periodEnd: string, income: boolean) => useExpenseDashboard(months, periodStart, periodEnd, income),
+  useExpensePace: () => ({ data: pace, isLoading: false }),
 }))
 
 const pending: PendingReimbursements = { expenses: [], totalOwed: 0 }
@@ -93,6 +99,18 @@ describe('ExpenseDashboardPage', () => {
 
     expect(useExpenseDashboard).toHaveBeenLastCalledWith(6, expect.any(String), expect.any(String), false)
     expect(screen.getByText('expenseDashboard.totalPeriodLabel')).toBeInTheDocument()
+  })
+
+  it('shows the pace card for the current month\'s expense view, hides it for year and income views', () => {
+    render(<ExpenseDashboardPage />)
+    expect(screen.getByText('expenseDashboard.paceTitle')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('expenseDashboard.period.year'))
+    expect(screen.queryByText('expenseDashboard.paceTitle')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('expenseDashboard.period.month'))
+    fireEvent.click(screen.getByText('expenseDashboard.view.income'))
+    expect(screen.queryByText('expenseDashboard.paceTitle')).not.toBeInTheDocument()
   })
 
   it('navigates to the filtered transactions page when a breakdown row is clicked', () => {
