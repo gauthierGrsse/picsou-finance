@@ -1,33 +1,68 @@
+import { Fragment, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { Gauge } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
+import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
 import { useExpensePace } from '@/features/expenseDashboard/hooks'
-import { cn, formatPercent } from '@/lib/utils'
-import type { CategoryPaceItem } from '@/types/api'
+import { cn, formatCurrency, formatPercent, localeFromLanguage } from '@/lib/utils'
+import type { CategoryPaceSeries, ExpensePaceResponse } from '@/types/api'
 
 const HISTORY_MONTHS = 3
-// Headroom above the larger of the two values so a bar pinned at its own max doesn't
-// touch the track's edge -- there's still room to read it as "close to" rather than "at".
-const BULLET_HEADROOM = 1.15
+const GLOBAL_COLOR = 'var(--chart-1)'
+
+function categoryKey(series: CategoryPaceSeries) {
+  return `cat_${series.categoryId ?? 'none'}`
+}
+
+function compactAxisValue(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value)
+}
+
+/** One row per day of the month; `undefined` for a day beyond dayOfMonth on a *_current key
+ * (Recharts breaks the line there instead of drawing toward zero) or beyond a category's own
+ * data. */
+function buildChartData(pace: ExpensePaceResponse): Record<string, number | undefined>[] {
+  return Array.from({ length: pace.daysInMonth }, (_, i) => {
+    const day = i + 1
+    const point: Record<string, number | undefined> = {
+      day,
+      globalCurrent: i < pace.currentCumulativeByDay.length ? pace.currentCumulativeByDay[i] : undefined,
+      globalHistorical: pace.historicalCumulativeByDay[i],
+    }
+    for (const series of pace.categorySeries) {
+      const key = categoryKey(series)
+      point[`${key}_current`] = i < series.currentCumulativeByDay.length ? series.currentCumulativeByDay[i] : undefined
+      point[`${key}_historical`] = series.historicalCumulativeByDay[i]
+    }
+    return point
+  })
+}
+
+const chartConfig = {
+  globalCurrent: { label: 'Global' },
+} satisfies ChartConfig
 
 /**
- * How this month's spending compares to the member's usual pace, as of today -- both sides
- * cut off at the same day-of-month rather than projected to month-end (see the backend's
- * ExpensePaceResponse doc for the reasoning). One bullet bar for the overall pace, one thin
- * bar per category against its own historical monthly average. Self-contained: renders a
- * skeleton while loading, nothing once loaded if the backend returned no data.
+ * How this month's spending compares to the member's usual pace, as of today -- a solid line
+ * (this month, stops at today) against a dashed one (the historical average, spans the full
+ * month as a reference trajectory). Category lines are drawn but invisible by default so the
+ * chart isn't cluttered; hovering a category chip below reveals just that one.
  */
 export function ExpensePaceCard() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
   const { data: pace, isLoading } = useExpensePace(HISTORY_MONTHS)
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null)
+
+  const chartData = useMemo(() => (pace ? buildChartData(pace) : []), [pace])
 
   if (isLoading) {
     return (
       <Card size="sm">
         <CardContent>
-          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-48 w-full" />
         </CardContent>
       </Card>
     )
@@ -36,9 +71,13 @@ export function ExpensePaceCard() {
 
   const percent = pace.percentDifference
   const spendingMore = percent != null && percent > 0
-  const barMax = Math.max(pace.currentMonthCumulative, pace.historicalCumulativeAverage, 1) * BULLET_HEADROOM
-  const fillPct = Math.min((pace.currentMonthCumulative / barMax) * 100, 100)
-  const markerPct = Math.min((pace.historicalCumulativeAverage / barMax) * 100, 100)
+
+  function setHovered(key: string, hovering: boolean) {
+    setHoveredKey(prev => {
+      if (hovering) return key
+      return prev === key ? null : prev
+    })
+  }
 
   return (
     <Card size="sm">
@@ -60,63 +99,109 @@ export function ExpensePaceCard() {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div>
-          <div className="relative h-2 rounded-full bg-muted">
-            <div
-              className={cn('h-full rounded-full', spendingMore ? 'bg-destructive' : 'bg-emerald-500')}
-              style={{ width: `${fillPct}%` }}
-            />
-            {pace.historicalCumulativeAverage > 0 && (
-              <div className="absolute top-1/2 h-3.5 w-0.5 -translate-y-1/2 bg-foreground" style={{ left: `${markerPct}%` }} />
-            )}
-          </div>
-          <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-            <span>
-              <CurrencyDisplay value={pace.currentMonthCumulative} className="tabular-nums" /> {t('expenseDashboard.paceSpentSoFar')}
-            </span>
-            {percent == null ? (
-              <span>{t('expenseDashboard.paceNoHistory')}</span>
-            ) : (
-              <span>
-                <CurrencyDisplay value={pace.historicalCumulativeAverage} className="tabular-nums" /> {t('expenseDashboard.paceUsualByNow', { day: pace.dayOfMonth })}
-              </span>
-            )}
-          </div>
-        </div>
+      <CardContent className="space-y-2">
+        {percent == null && (
+          <p className="text-xs text-muted-foreground">{t('expenseDashboard.paceNoHistory')}</p>
+        )}
 
-        {pace.categoryPace.length > 0 && (
-          <div className="space-y-1.5 border-t pt-2">
-            {pace.categoryPace.map((item) => (
-              <CategoryPaceRow key={item.categoryId ?? 'none'} item={item} />
-            ))}
+        <ChartContainer config={chartConfig} className="h-[180px] w-full">
+          <LineChart data={chartData} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={6} />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={6}
+              width={36}
+              tickFormatter={(value) => compactAxisValue(value as number, locale)}
+            />
+            <Tooltip
+              isAnimationActive={false}
+              cursor={{ stroke: 'var(--border)' }}
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null
+                const current = payload.find(p => p.dataKey === 'globalCurrent')?.value as number | undefined
+                const historical = payload.find(p => p.dataKey === 'globalHistorical')?.value as number | undefined
+                return (
+                  <div className="grid gap-1 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+                    <p className="font-medium">{t('expenseDashboard.paceTooltipDay', { day: label })}</p>
+                    {current != null && (
+                      <p className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">{t('expenseDashboard.paceTooltipCurrent')}</span>
+                        <span className="font-mono font-medium tabular-nums">{formatCurrency(current, 'EUR', locale)}</span>
+                      </p>
+                    )}
+                    {historical != null && (
+                      <p className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">{t('expenseDashboard.paceTooltipUsual')}</span>
+                        <span className="font-mono font-medium tabular-nums">{formatCurrency(historical, 'EUR', locale)}</span>
+                      </p>
+                    )}
+                  </div>
+                )
+              }}
+            />
+
+            <Line dataKey="globalHistorical" stroke={GLOBAL_COLOR} strokeOpacity={0.5} strokeDasharray="4 3" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+            <Line dataKey="globalCurrent" stroke={GLOBAL_COLOR} strokeWidth={2} dot={false} isAnimationActive={false} />
+
+            {pace.categorySeries.map((series) => {
+              const key = categoryKey(series)
+              const color = series.categoryColor ?? 'var(--chart-5)'
+              const opacity = hoveredKey === key ? 1 : 0
+              return (
+                <Fragment key={key}>
+                  <Line
+                    dataKey={`${key}_historical`}
+                    stroke={color}
+                    strokeOpacity={opacity * 0.6}
+                    strokeDasharray="4 3"
+                    strokeWidth={1.5}
+                    dot={false}
+                    isAnimationActive={false}
+                    style={{ transition: 'stroke-opacity 150ms' }}
+                  />
+                  <Line
+                    dataKey={`${key}_current`}
+                    stroke={color}
+                    strokeOpacity={opacity}
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                    style={{ transition: 'stroke-opacity 150ms' }}
+                  />
+                </Fragment>
+              )
+            })}
+          </LineChart>
+        </ChartContainer>
+
+        {pace.categorySeries.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 border-t pt-2">
+            {pace.categorySeries.map((series) => {
+              const key = categoryKey(series)
+              const isHovered = hoveredKey === key
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onMouseEnter={() => setHovered(key, true)}
+                  onMouseLeave={() => setHovered(key, false)}
+                  onFocus={() => setHovered(key, true)}
+                  onBlur={() => setHovered(key, false)}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs transition-colors',
+                    isHovered ? 'border-foreground/30 bg-muted' : 'border-transparent bg-muted/50 text-muted-foreground',
+                  )}
+                >
+                  <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: series.categoryColor ?? 'var(--chart-5)' }} />
+                  {series.categoryName ?? t('expenseDashboard.uncategorized')}
+                </button>
+              )
+            })}
           </div>
         )}
       </CardContent>
     </Card>
-  )
-}
-
-function CategoryPaceRow({ item }: { item: CategoryPaceItem }) {
-  const { t } = useTranslation()
-  const ratioPct = item.historicalMonthlyAverage > 0
-    ? Math.min((item.currentMonthAmount / item.historicalMonthlyAverage) * 100, 100)
-    : (item.currentMonthAmount > 0 ? 100 : 0)
-
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-20 shrink-0 truncate text-muted-foreground sm:w-28">
-        {item.categoryName ?? t('expenseDashboard.uncategorized')}
-      </span>
-      <div className="h-1.5 flex-1 rounded-full bg-muted">
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${ratioPct}%`, backgroundColor: item.categoryColor ?? 'var(--chart-5)' }}
-        />
-      </div>
-      <span className="shrink-0 text-right tabular-nums text-muted-foreground">
-        <CurrencyDisplay value={item.currentMonthAmount} /> / <CurrencyDisplay value={item.historicalMonthlyAverage} />
-      </span>
-    </div>
   )
 }

@@ -1,7 +1,7 @@
 package com.picsou.service;
 
 import com.picsou.dto.CategoryBreakdownItem;
-import com.picsou.dto.CategoryPaceItem;
+import com.picsou.dto.CategoryPaceSeries;
 import com.picsou.dto.ExpenseDashboardResponse;
 import com.picsou.dto.ExpensePaceResponse;
 import com.picsou.dto.MonthlyExpenseTotal;
@@ -20,6 +20,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -95,6 +96,7 @@ public class ExpenseDashboardService {
         LocalDate today = LocalDate.now(clock);
         YearMonth currentMonth = YearMonth.from(today);
         int dayOfMonth = today.getDayOfMonth();
+        int daysInMonth = currentMonth.lengthOfMonth();
         YearMonth firstHistoricalMonth = currentMonth.minusMonths(historyMonths);
 
         List<Transaction> window = transactionRepository.findByAccount_Member_IdAndDateBetween(
@@ -102,76 +104,104 @@ public class ExpenseDashboardService {
             .filter(t -> !isExcluded(t, false))
             .toList();
 
-        BigDecimal currentMonthCumulative = sumThrough(window, currentMonth, dayOfMonth);
+        List<BigDecimal> currentCumulativeByDay = cumulativeByDay(window, currentMonth, dayOfMonth, null, false);
+        List<BigDecimal> historicalCumulativeByDay = averagedHistoricalCumulativeByDay(
+            window, firstHistoricalMonth, currentMonth, daysInMonth, historyMonths, null, false);
 
-        List<BigDecimal> historicalCumulatives = new ArrayList<>();
-        for (YearMonth ym = firstHistoricalMonth; ym.isBefore(currentMonth); ym = ym.plusMonths(1)) {
-            int cutoffDay = Math.min(dayOfMonth, ym.lengthOfMonth());
-            historicalCumulatives.add(sumThrough(window, ym, cutoffDay));
-        }
-        BigDecimal historicalCumulativeAverage = average(historicalCumulatives, historyMonths);
+        BigDecimal currentMonthCumulative = lastOrZero(currentCumulativeByDay);
+        BigDecimal historicalCumulativeAverage = historicalCumulativeByDay.get(dayOfMonth - 1);
         BigDecimal percentDifference = percentDifference(currentMonthCumulative, historicalCumulativeAverage);
 
         Map<Long, ExpenseCategory> categoriesById = expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(memberId).stream()
             .collect(Collectors.toMap(ExpenseCategory::getId, c -> c));
-        List<CategoryPaceItem> categoryPace = buildCategoryPace(window, currentMonth, firstHistoricalMonth, historyMonths, categoriesById);
+        List<CategoryPaceSeries> categorySeries = buildCategoryPaceSeries(
+            window, currentMonth, firstHistoricalMonth, dayOfMonth, daysInMonth, historyMonths, categoriesById);
 
-        return new ExpensePaceResponse(dayOfMonth, historyMonths, currentMonthCumulative, historicalCumulativeAverage, percentDifference, categoryPace);
+        return new ExpensePaceResponse(
+            dayOfMonth, daysInMonth, historyMonths, currentMonthCumulative, historicalCumulativeAverage,
+            percentDifference, currentCumulativeByDay, historicalCumulativeByDay, categorySeries);
     }
 
-    /** Sum of amounts within {@code month}, on or before {@code throughDay}. */
-    private BigDecimal sumThrough(List<Transaction> window, YearMonth month, int throughDay) {
-        return window.stream()
-            .filter(t -> YearMonth.from(t.getDate()).equals(month) && t.getDate().getDayOfMonth() <= throughDay)
-            .map(t -> t.getAmount().abs())
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    /** Cumulative amount for each of the first {@code days} days of {@code month} -- index 0 is
+     * day 1. Optionally restricted to one category ({@code categoryId} may itself be null,
+     * meaning the uncategorized bucket, when {@code filterByCategory} is true). */
+    private List<BigDecimal> cumulativeByDay(List<Transaction> window, YearMonth month, int days, Long categoryId, boolean filterByCategory) {
+        BigDecimal[] daily = new BigDecimal[days];
+        Arrays.fill(daily, BigDecimal.ZERO);
+        for (Transaction t : window) {
+            if (!YearMonth.from(t.getDate()).equals(month)) continue;
+            if (filterByCategory && !Objects.equals(t.getExpenseCategoryId(), categoryId)) continue;
+            int day = t.getDate().getDayOfMonth();
+            if (day > days) continue;
+            daily[day - 1] = daily[day - 1].add(t.getAmount().abs());
+        }
+        List<BigDecimal> cumulative = new ArrayList<>(days);
+        BigDecimal running = BigDecimal.ZERO;
+        for (BigDecimal amount : daily) {
+            running = running.add(amount);
+            cumulative.add(running);
+        }
+        return cumulative;
     }
 
-    /** Full-month total (no day cutoff) within one category -- {@code categoryId} may itself be
-     * null, meaning the uncategorized bucket. */
-    private BigDecimal categoryTotal(List<Transaction> window, YearMonth month, Long categoryId) {
-        return window.stream()
-            .filter(t -> YearMonth.from(t.getDate()).equals(month) && Objects.equals(t.getExpenseCategoryId(), categoryId))
-            .map(t -> t.getAmount().abs())
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    /** Average, day by day, of {@code historyMonths} prior full months' cumulative series,
+     * stretched to {@code days} long -- a historical month shorter than that (e.g. February)
+     * plateaus at its own final total for the remaining days rather than ending early. Zero
+     * everywhere when there's no history to average (rather than dividing by zero). */
+    private List<BigDecimal> averagedHistoricalCumulativeByDay(
+        List<Transaction> window, YearMonth firstHistoricalMonth, YearMonth currentMonth, int days,
+        int historyMonths, Long categoryId, boolean filterByCategory
+    ) {
+        BigDecimal[] sums = new BigDecimal[days];
+        Arrays.fill(sums, BigDecimal.ZERO);
+        if (historyMonths > 0) {
+            for (YearMonth ym = firstHistoricalMonth; ym.isBefore(currentMonth); ym = ym.plusMonths(1)) {
+                List<BigDecimal> monthCumulative = cumulativeByDay(window, ym, ym.lengthOfMonth(), categoryId, filterByCategory);
+                for (int day = 1; day <= days; day++) {
+                    BigDecimal value = day <= monthCumulative.size()
+                        ? monthCumulative.get(day - 1)
+                        : monthCumulative.get(monthCumulative.size() - 1);
+                    sums[day - 1] = sums[day - 1].add(value);
+                }
+            }
+        }
+        List<BigDecimal> averaged = new ArrayList<>(days);
+        for (BigDecimal sum : sums) {
+            averaged.add(historyMonths > 0 ? sum.divide(BigDecimal.valueOf(historyMonths), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO);
+        }
+        return averaged;
     }
 
-    /** Per category: this month's total so far, and the average of full prior months' totals
-     * (zero-filled for months with no spending in that category) -- "normally about X/month",
-     * not day-adjusted. Only categories with a nonzero current or historical amount are included. */
-    private List<CategoryPaceItem> buildCategoryPace(
-        List<Transaction> window, YearMonth currentMonth, YearMonth firstHistoricalMonth, int historyMonths,
-        Map<Long, ExpenseCategory> categoriesById
+    private BigDecimal lastOrZero(List<BigDecimal> series) {
+        return series.isEmpty() ? BigDecimal.ZERO : series.get(series.size() - 1);
+    }
+
+    /** One series per category with a nonzero current-so-far or historical-average total --
+     * uncategorized (null categoryId) included. Sorted by current total descending. */
+    private List<CategoryPaceSeries> buildCategoryPaceSeries(
+        List<Transaction> window, YearMonth currentMonth, YearMonth firstHistoricalMonth,
+        int dayOfMonth, int daysInMonth, int historyMonths, Map<Long, ExpenseCategory> categoriesById
     ) {
         Set<Long> categoryIds = window.stream().map(Transaction::getExpenseCategoryId)
             .collect(Collectors.toCollection(LinkedHashSet::new));
 
         return categoryIds.stream()
             .map(categoryId -> {
-                BigDecimal currentAmount = categoryTotal(window, currentMonth, categoryId);
-                List<BigDecimal> historicalTotals = new ArrayList<>();
-                for (YearMonth ym = firstHistoricalMonth; ym.isBefore(currentMonth); ym = ym.plusMonths(1)) {
-                    historicalTotals.add(categoryTotal(window, ym, categoryId));
-                }
-                BigDecimal historicalAverage = average(historicalTotals, historyMonths);
+                List<BigDecimal> current = cumulativeByDay(window, currentMonth, dayOfMonth, categoryId, true);
+                List<BigDecimal> historical = averagedHistoricalCumulativeByDay(
+                    window, firstHistoricalMonth, currentMonth, daysInMonth, historyMonths, categoryId, true);
                 ExpenseCategory category = categoryId != null ? categoriesById.get(categoryId) : null;
-                return new CategoryPaceItem(
+                return new CategoryPaceSeries(
                     category != null ? category.getId() : null,
                     category != null ? category.getName() : null,
                     category != null ? category.getColor() : null,
-                    currentAmount,
-                    historicalAverage
+                    current,
+                    historical
                 );
             })
-            .filter(item -> item.currentMonthAmount().signum() != 0 || item.historicalMonthlyAverage().signum() != 0)
-            .sorted((a, b) -> b.currentMonthAmount().compareTo(a.currentMonthAmount()))
+            .filter(series -> lastOrZero(series.currentCumulativeByDay()).signum() != 0 || lastOrZero(series.historicalCumulativeByDay()).signum() != 0)
+            .sorted((a, b) -> lastOrZero(b.currentCumulativeByDay()).compareTo(lastOrZero(a.currentCumulativeByDay())))
             .toList();
-    }
-
-    private BigDecimal average(List<BigDecimal> values, int count) {
-        if (count <= 0) return BigDecimal.ZERO;
-        BigDecimal sum = values.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-        return sum.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP);
     }
 
     /** Null when there's no comparable history to divide by, rather than a misleading 0% or

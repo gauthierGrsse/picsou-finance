@@ -1567,10 +1567,11 @@
       "year": "Année"
     },
     "paceTitle": "Rythme du mois",
-    "paceSpentSoFar": "Dépensé jusqu'ici",
-    "paceUsualByNow": "Habituellement au jour {{day}}",
     "paceVsUsual": "vs habituel",
-    "paceNoHistory": "Pas encore assez d'historique pour comparer."
+    "paceNoHistory": "Pas encore assez d'historique pour comparer.",
+    "paceTooltipDay": "Jour {{day}}",
+    "paceTooltipCurrent": "Ce mois-ci",
+    "paceTooltipUsual": "Habituellement"
   },
   "internalTransfers": {
     "suggestedTitle": "Virements internes suggérés",

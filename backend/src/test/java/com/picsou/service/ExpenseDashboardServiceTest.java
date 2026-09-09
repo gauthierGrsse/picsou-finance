@@ -304,7 +304,7 @@ class ExpenseDashboardServiceTest {
     }
 
     @Test
-    void getPace_categoryAveragesAreZeroFilledForMonthsWithNoSpendingAndSortedByCurrentAmount() {
+    void getPace_categorySeriesEndValuesAreZeroFilledForMonthsWithNoSpendingAndSortedByCurrentAmount() {
         LocalDate today = LocalDate.of(2026, 8, 10);
         ExpenseCategory resto = ExpenseCategory.builder().id(1L).name("Restauration").color("#f97316").build();
         ExpenseCategory loisirs = ExpenseCategory.builder().id(2L).name("Loisirs").color("#22c55e").build();
@@ -321,19 +321,51 @@ class ExpenseDashboardServiceTest {
 
         ExpensePaceResponse result = serviceAsOf(today).getPace(10L, 2);
 
-        assertThat(result.categoryPace()).hasSize(3);
-        var resultResto = result.categoryPace().get(0); // current=20, highest current amount
+        assertThat(result.categorySeries()).hasSize(3);
+        var resultResto = result.categorySeries().get(0); // current=20, highest current amount
         assertThat(resultResto.categoryName()).isEqualTo("Restauration");
-        assertThat(resultResto.currentMonthAmount()).isEqualByComparingTo("20");
-        assertThat(resultResto.historicalMonthlyAverage()).isEqualByComparingTo("50"); // avg(60, 40)
+        assertThat(resultResto.currentCumulativeByDay()).hasSize(10); // dayOfMonth
+        assertThat(lastOf(resultResto.currentCumulativeByDay())).isEqualByComparingTo("20");
+        assertThat(resultResto.historicalCumulativeByDay()).hasSize(31); // August's length
+        assertThat(lastOf(resultResto.historicalCumulativeByDay())).isEqualByComparingTo("50"); // avg(60, 40)
 
-        var resultUncategorized = result.categoryPace().stream().filter(c -> c.categoryId() == null).findFirst().orElseThrow();
+        var resultUncategorized = result.categorySeries().stream().filter(c -> c.categoryId() == null).findFirst().orElseThrow();
         assertThat(resultUncategorized.categoryName()).isNull();
-        assertThat(resultUncategorized.currentMonthAmount()).isEqualByComparingTo("5");
+        assertThat(lastOf(resultUncategorized.currentCumulativeByDay())).isEqualByComparingTo("5");
 
-        var resultLoisirs = result.categoryPace().stream().filter(c -> c.categoryId() != null && c.categoryId() == 2L).findFirst().orElseThrow();
-        assertThat(resultLoisirs.currentMonthAmount()).isEqualByComparingTo("0");
-        assertThat(resultLoisirs.historicalMonthlyAverage()).isEqualByComparingTo("15"); // avg(0, 30) -- zero-filled June
+        var resultLoisirs = result.categorySeries().stream().filter(c -> c.categoryId() != null && c.categoryId() == 2L).findFirst().orElseThrow();
+        assertThat(lastOf(resultLoisirs.currentCumulativeByDay())).isEqualByComparingTo("0");
+        assertThat(lastOf(resultLoisirs.historicalCumulativeByDay())).isEqualByComparingTo("15"); // avg(0, 30) -- zero-filled June
+    }
+
+    @Test
+    void getPace_seriesAreLengthDayOfMonthAndDaysInMonthAndAShorterHistoricalMonthPlateausAfterItEnds() {
+        LocalDate today = LocalDate.of(2026, 3, 5); // March has 31 days; day5 -> current series length 5
+        List<Transaction> window = List.of(
+            // February 2026 (28 days, not a leap year): jumps to 50 on day 20, nothing after.
+            expense(LocalDate.of(2026, 2, 20), new BigDecimal("-50"), ProStatus.PERSO, null),
+            expense(LocalDate.of(2026, 3, 5), new BigDecimal("-10"), ProStatus.PERSO, null)
+        );
+        when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, LocalDate.of(2026, 2, 1), today))
+            .thenReturn(window);
+        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+
+        ExpensePaceResponse result = serviceAsOf(today).getPace(10L, 1);
+
+        assertThat(result.daysInMonth()).isEqualTo(31);
+        assertThat(result.currentCumulativeByDay()).hasSize(5);
+        assertThat(lastOf(result.currentCumulativeByDay())).isEqualByComparingTo("10");
+
+        assertThat(result.historicalCumulativeByDay()).hasSize(31);
+        assertThat(result.historicalCumulativeByDay().get(18)).isEqualByComparingTo("0");  // day 19, before Feb's jump
+        assertThat(result.historicalCumulativeByDay().get(19)).isEqualByComparingTo("50"); // day 20, the jump
+        assertThat(result.historicalCumulativeByDay().get(27)).isEqualByComparingTo("50"); // day 28, Feb's last day
+        assertThat(result.historicalCumulativeByDay().get(28)).isEqualByComparingTo("50"); // day 29 -- Feb doesn't have one, plateaus
+        assertThat(result.historicalCumulativeByDay().get(30)).isEqualByComparingTo("50"); // day 31 -- still plateaued
+    }
+
+    private static BigDecimal lastOf(List<BigDecimal> series) {
+        return series.get(series.size() - 1);
     }
 
     @Test

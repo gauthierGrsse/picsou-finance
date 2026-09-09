@@ -44,8 +44,9 @@ const useExpenseDashboard = vi.fn<(months: number, periodStart: string, periodEn
 )
 
 const pace: ExpensePaceResponse = {
-  dayOfMonth: 10, historyMonths: 3, currentMonthCumulative: 100,
-  historicalCumulativeAverage: 100, percentDifference: 0, categoryPace: [],
+  dayOfMonth: 10, daysInMonth: 31, historyMonths: 3, currentMonthCumulative: 100,
+  historicalCumulativeAverage: 100, percentDifference: 0,
+  currentCumulativeByDay: [], historicalCumulativeByDay: [], categorySeries: [],
 }
 
 vi.mock('@/features/expenseDashboard/hooks', () => ({

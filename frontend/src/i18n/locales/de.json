@@ -1567,10 +1567,11 @@
       "year": "Jahr"
     },
     "paceTitle": "Tempo diesen Monat",
-    "paceSpentSoFar": "Bisher ausgegeben",
-    "paceUsualByNow": "Üblich bis Tag {{day}}",
     "paceVsUsual": "vs üblich",
-    "paceNoHistory": "Noch nicht genug Verlauf zum Vergleichen."
+    "paceNoHistory": "Noch nicht genug Verlauf zum Vergleichen.",
+    "paceTooltipDay": "Tag {{day}}",
+    "paceTooltipCurrent": "Diesen Monat",
+    "paceTooltipUsual": "Üblich"
   },
   "internalTransfers": {
     "suggestedTitle": "Vorgeschlagene interne Überweisungen",

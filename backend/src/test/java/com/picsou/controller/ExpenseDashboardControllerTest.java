@@ -79,7 +79,7 @@ class ExpenseDashboardControllerTest {
     @Test
     void getPace_defaultsToThreeMonthsOfHistory() {
         when(userContext.currentMemberId()).thenReturn(10L);
-        ExpensePaceResponse expected = new ExpensePaceResponse(10, 3, BigDecimal.ZERO, BigDecimal.ZERO, null, List.of());
+        ExpensePaceResponse expected = new ExpensePaceResponse(10, 31, 3, BigDecimal.ZERO, BigDecimal.ZERO, null, List.of(), List.of(), List.of());
         when(expenseDashboardService.getPace(10L, 3)).thenReturn(expected);
 
         ExpensePaceResponse actual = controller.getPace(3);
@@ -90,7 +90,7 @@ class ExpenseDashboardControllerTest {
     @Test
     void getPace_usesExplicitHistoryMonths() {
         when(userContext.currentMemberId()).thenReturn(10L);
-        ExpensePaceResponse expected = new ExpensePaceResponse(10, 6, BigDecimal.ZERO, BigDecimal.ZERO, null, List.of());
+        ExpensePaceResponse expected = new ExpensePaceResponse(10, 31, 6, BigDecimal.ZERO, BigDecimal.ZERO, null, List.of(), List.of(), List.of());
         when(expenseDashboardService.getPace(10L, 6)).thenReturn(expected);
 
         ExpensePaceResponse actual = controller.getPace(6);

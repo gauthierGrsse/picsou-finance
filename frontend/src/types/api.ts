@@ -821,24 +821,34 @@ export interface ExpenseDashboardResponse {
   totalProAbsorbe: number
 }
 
-export interface CategoryPaceItem {
+/** One category's cumulative-by-day series, same day ranges as ExpensePaceResponse's own
+ * series. categoryId/categoryName are null for the uncategorized bucket. */
+export interface CategoryPaceSeries {
   categoryId: number | null
   categoryName: string | null
   categoryColor: string | null
-  currentMonthAmount: number
-  historicalMonthlyAverage: number
+  currentCumulativeByDay: number[]
+  historicalCumulativeByDay: number[]
 }
 
-/** percentDifference is null when there's no comparable history yet (e.g. a brand new
- * account). historicalCumulativeAverage/currentMonthCumulative are both cut off at
- * dayOfMonth -- spend-to-date, not a forward projection to month-end. */
+/**
+ * How this month's spending compares to the member's usual pace, as a day-by-day cumulative
+ * series. currentCumulativeByDay covers day 1 through dayOfMonth (today) -- it never projects
+ * forward. historicalCumulativeByDay covers the full daysInMonth, averaged across historyMonths
+ * prior months, so it reads as a reference trajectory the current line tracks against.
+ * currentMonthCumulative/historicalCumulativeAverage are just the last/dayOfMonth-th point of
+ * those series. percentDifference is null when there's no comparable history yet.
+ */
 export interface ExpensePaceResponse {
   dayOfMonth: number
+  daysInMonth: number
   historyMonths: number
   currentMonthCumulative: number
   historicalCumulativeAverage: number
   percentDifference: number | null
-  categoryPace: CategoryPaceItem[]
+  currentCumulativeByDay: number[]
+  historicalCumulativeByDay: number[]
+  categorySeries: CategoryPaceSeries[]
 }
 
 export interface SuggestedTransferPair {
