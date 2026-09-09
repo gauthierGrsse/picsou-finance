@@ -46,12 +46,20 @@ export function ExpenseDashboardPage() {
     return { periodStart: `${month}-01`, periodEnd: `${month}-${String(lastDayOfMonth(month)).padStart(2, '0')}`, months: MONTH_MODE_EVOLUTION_MONTHS }
   }, [mode, month, year])
 
-  const { data, isLoading } = useExpenseDashboard(months, periodStart, periodEnd, view === 'income')
-  const isCurrentMonthExpenseView = mode === 'month' && view === 'expense' && month === currentMonthValue()
+  // Fetched in parallel, independent of the expense/income toggle below: the category
+  // breakdown always shows both sides side by side (see the two-column grid further down),
+  // and picking whichever is already cached also makes the toggle itself instant.
+  const { data: expenseData, isLoading: expenseLoading } = useExpenseDashboard(months, periodStart, periodEnd, false)
+  const { data: incomeData, isLoading: incomeLoading } = useExpenseDashboard(months, periodStart, periodEnd, true)
+  const isLoading = expenseLoading || incomeLoading
+  // Pace compares today's spend-to-date to history, so it only makes sense for the
+  // in-progress month -- not a past month or a full year -- regardless of which side
+  // the toggle above is showing.
+  const isCurrentMonth = mode === 'month' && month === currentMonthValue()
 
   const totalThisPeriod = useMemo(
-    () => (data?.categoryBreakdown ?? []).reduce((sum, item) => sum + item.total, 0),
-    [data],
+    () => ((view === 'income' ? incomeData : expenseData)?.categoryBreakdown ?? []).reduce((sum, item) => sum + item.total, 0),
+    [expenseData, incomeData, view],
   )
 
   function goToFilteredTransactions(slice: { categoryId: number | null; proStatus: ProStatus }) {
@@ -67,9 +75,10 @@ export function ExpenseDashboardPage() {
     navigate(`/transactions?${params.toString()}`)
   }
 
-  if (isLoading || !data) {
+  if (isLoading || !expenseData || !incomeData) {
     return <LoadingSkeleton />
   }
+  const data = view === 'income' ? incomeData : expenseData
 
   return (
     <div className="space-y-4">
@@ -137,22 +146,40 @@ export function ExpenseDashboardPage() {
         </Card>
       </div>
 
+      {/* Both sides shown together regardless of the toggle above -- "where does my income
+          go" and "what am I spending on" are two different questions, not one you should
+          have to click to switch between. */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card size="sm">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-sm text-muted-foreground">{t('expenseDashboard.categoryBreakdownTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CategoryProStatusBreakdown
+              data={expenseData.categoryBreakdown}
+              onSliceClick={goToFilteredTransactions}
+              emptyLabel={t('expenseDashboard.noExpenses')}
+            />
+          </CardContent>
+        </Card>
+
+        <Card size="sm">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-sm text-muted-foreground">{t('expenseDashboard.categoryBreakdownIncomeTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CategoryProStatusBreakdown
+              data={incomeData.categoryBreakdown}
+              onSliceClick={goToFilteredTransactions}
+              emptyLabel={t('expenseDashboard.noIncome')}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Pace only makes sense for the in-progress month -- browsing a past month or a
           full year has no "as of today" to compare against. */}
-      {isCurrentMonthExpenseView && <ExpensePaceCard />}
-
-      <Card size="sm">
-        <CardHeader className="pb-1">
-          <CardTitle className="text-sm text-muted-foreground">{t('expenseDashboard.categoryBreakdownTitle')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CategoryProStatusBreakdown
-            data={data.categoryBreakdown}
-            onSliceClick={goToFilteredTransactions}
-            emptyLabel={t(view === 'income' ? 'expenseDashboard.noIncome' : 'expenseDashboard.noExpenses')}
-          />
-        </CardContent>
-      </Card>
+      {isCurrentMonth && <ExpensePaceCard />}
 
       {/* Self-contained cards below: each renders nothing when it has nothing to show,
           so the page doesn't carry permanently-empty sections as filler. Already-linked

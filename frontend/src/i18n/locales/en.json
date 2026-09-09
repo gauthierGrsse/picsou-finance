@@ -1545,7 +1545,8 @@
   },
   "expenseDashboard": {
     "monthlyEvolutionTitle": "Monthly evolution",
-    "categoryBreakdownTitle": "Category breakdown",
+    "categoryBreakdownTitle": "Expenses by category",
+    "categoryBreakdownIncomeTitle": "Income by category",
     "noExpenses": "No expenses for this period.",
     "uncategorized": "Uncategorized",
     "totalPeriodLabel": "Total this month",
@@ -1568,11 +1569,8 @@
     "paceTitle": "This month's pace",
     "paceSpentSoFar": "Spent so far",
     "paceUsualByNow": "Usual by day {{day}}",
-    "paceMoreThanUsual": "more than usual",
-    "paceLessThanUsual": "less than usual",
-    "paceNoHistory": "Not enough history yet to compare.",
-    "paceCategoryUsualPrefix": "usual ~",
-    "paceCategoryUsualSuffix": "/mo"
+    "paceVsUsual": "vs usual",
+    "paceNoHistory": "Not enough history yet to compare."
   },
   "internalTransfers": {
     "suggestedTitle": "Suggested internal transfers",

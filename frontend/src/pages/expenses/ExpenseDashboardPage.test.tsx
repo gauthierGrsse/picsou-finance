@@ -16,7 +16,7 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => navigate,
 }))
 
-const dashboard: ExpenseDashboardResponse = {
+const expenseDashboard: ExpenseDashboardResponse = {
   monthlyEvolution: [
     { yearMonth: '2025-12', total: 850 },
     { yearMonth: '2026-01', total: 920.5 },
@@ -28,8 +28,19 @@ const dashboard: ExpenseDashboardResponse = {
   totalProAbsorbe: 95,
 }
 
+const incomeDashboard: ExpenseDashboardResponse = {
+  monthlyEvolution: [
+    { yearMonth: '2025-12', total: 3000 },
+    { yearMonth: '2026-01', total: 3200 },
+  ],
+  categoryBreakdown: [
+    { categoryId: 2, categoryName: 'Salaire', categoryColor: '#22c55e', proStatus: 'NON_CLASSE', total: 3200 },
+  ],
+  totalProAbsorbe: 0,
+}
+
 const useExpenseDashboard = vi.fn<(months: number, periodStart: string, periodEnd: string, income: boolean) => { data: ExpenseDashboardResponse; isLoading: boolean }>(
-  () => ({ data: dashboard, isLoading: false }),
+  (_months, _periodStart, _periodEnd, income) => ({ data: income ? incomeDashboard : expenseDashboard, isLoading: false }),
 )
 
 const pace: ExpensePaceResponse = {
@@ -69,12 +80,13 @@ describe('ExpenseDashboardPage', () => {
     expect(screen.getByText('€95.00')).toBeInTheDocument()
   })
 
-  it('defaults to the current month with a 6-month evolution window', () => {
+  it('defaults to the current month with a 6-month evolution window, fetching both expense and income sides', () => {
     render(<ExpenseDashboardPage />)
 
     const now = new Date()
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    expect(useExpenseDashboard).toHaveBeenLastCalledWith(6, `${month}-01`, expect.stringContaining(month), false)
+    expect(useExpenseDashboard).toHaveBeenCalledWith(6, `${month}-01`, expect.stringContaining(month), false)
+    expect(useExpenseDashboard).toHaveBeenCalledWith(6, `${month}-01`, expect.stringContaining(month), true)
   })
 
   it('switches to a full calendar year when Year is selected', () => {
@@ -83,33 +95,46 @@ describe('ExpenseDashboardPage', () => {
     fireEvent.click(screen.getByText('expenseDashboard.period.year'))
 
     const year = new Date().getFullYear()
-    expect(useExpenseDashboard).toHaveBeenLastCalledWith(12, `${year}-01-01`, `${year}-12-31`, false)
+    expect(useExpenseDashboard).toHaveBeenCalledWith(12, `${year}-01-01`, `${year}-12-31`, false)
+    expect(useExpenseDashboard).toHaveBeenCalledWith(12, `${year}-01-01`, `${year}-12-31`, true)
     expect(screen.getByText('expenseDashboard.totalPeriodYearLabel')).toBeInTheDocument()
   })
 
-  it('switches to the income view when Income is selected, and back when Expenses is clicked again', () => {
+  it('switches the top total to the income side when Income is selected, and back when Expenses is clicked again', () => {
     render(<ExpenseDashboardPage />)
 
     fireEvent.click(screen.getByText('expenseDashboard.view.income'))
 
-    expect(useExpenseDashboard).toHaveBeenLastCalledWith(6, expect.any(String), expect.any(String), true)
     expect(screen.getByText('expenseDashboard.totalPeriodIncomeLabel')).toBeInTheDocument()
+    expect(screen.getByText('€3,200.00', { selector: '.text-3xl' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('expenseDashboard.view.expense'))
 
-    expect(useExpenseDashboard).toHaveBeenLastCalledWith(6, expect.any(String), expect.any(String), false)
     expect(screen.getByText('expenseDashboard.totalPeriodLabel')).toBeInTheDocument()
+    expect(screen.getByText('€920.50', { selector: '.text-3xl' })).toBeInTheDocument()
   })
 
-  it('shows the pace card for the current month\'s expense view, hides it for year and income views', () => {
+  it('shows the expense and income category breakdowns side by side without needing to toggle', () => {
+    render(<ExpenseDashboardPage />)
+
+    expect(screen.getByText('expenseDashboard.categoryBreakdownTitle')).toBeInTheDocument()
+    expect(screen.getByText('expenseDashboard.categoryBreakdownIncomeTitle')).toBeInTheDocument()
+    expect(screen.getByText('Restauration')).toBeInTheDocument()
+    expect(screen.getByText('Salaire')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('expenseDashboard.view.income'))
+    expect(screen.getByText('Restauration')).toBeInTheDocument()
+    expect(screen.getByText('Salaire')).toBeInTheDocument()
+  })
+
+  it('shows the pace card for the current month regardless of the expense/income toggle, hides it for the year view', () => {
     render(<ExpenseDashboardPage />)
     expect(screen.getByText('expenseDashboard.paceTitle')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('expenseDashboard.period.year'))
-    expect(screen.queryByText('expenseDashboard.paceTitle')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByText('expenseDashboard.period.month'))
     fireEvent.click(screen.getByText('expenseDashboard.view.income'))
+    expect(screen.getByText('expenseDashboard.paceTitle')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('expenseDashboard.period.year'))
     expect(screen.queryByText('expenseDashboard.paceTitle')).not.toBeInTheDocument()
   })
 

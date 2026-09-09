@@ -41,28 +41,30 @@ describe('ExpensePaceCard', () => {
     expect(screen.queryByText('expenseDashboard.paceTitle')).not.toBeInTheDocument()
   })
 
-  it('shows spending more than usual in the destructive direction', () => {
+  it('shows a plus-prefixed badge when spending more than usual', () => {
     useExpensePaceMock.mockReturnValue({ data: pace({ currentMonthCumulative: 111, historicalCumulativeAverage: 100, percentDifference: 11.1 }), isLoading: false })
     render(<ExpensePaceCard />)
 
-    expect(screen.getByText(/expenseDashboard.paceMoreThanUsual/)).toBeInTheDocument()
-    expect(screen.queryByText(/expenseDashboard.paceLessThanUsual/)).not.toBeInTheDocument()
+    const badge = screen.getByText(/expenseDashboard\.paceVsUsual/)
+    expect(badge.textContent).toContain('+')
+    expect(badge.textContent).toContain('11')
   })
 
-  it('shows spending less than usual', () => {
+  it('shows a minus-prefixed badge when spending less than usual', () => {
     useExpensePaceMock.mockReturnValue({ data: pace({ percentDifference: -11.1 }), isLoading: false })
     render(<ExpensePaceCard />)
 
-    expect(screen.getByText(/expenseDashboard.paceLessThanUsual/)).toBeInTheDocument()
+    const badge = screen.getByText(/expenseDashboard\.paceVsUsual/)
+    expect(badge.textContent).toContain('-')
+    expect(badge.textContent).toContain('11')
   })
 
-  it('shows the no-history message instead of a percentage when there is nothing to compare to', () => {
+  it('shows the no-history message instead of a badge when there is nothing to compare to', () => {
     useExpensePaceMock.mockReturnValue({ data: pace({ percentDifference: null }), isLoading: false })
     render(<ExpensePaceCard />)
 
     expect(screen.getByText('expenseDashboard.paceNoHistory')).toBeInTheDocument()
-    expect(screen.queryByText(/expenseDashboard.paceMoreThanUsual/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/expenseDashboard.paceLessThanUsual/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/expenseDashboard.paceVsUsual/)).not.toBeInTheDocument()
   })
 
   it('lists per-category pace, uncategorized included', () => {
