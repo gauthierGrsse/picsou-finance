@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "expense_category")
 @Getter
@@ -39,4 +41,9 @@ public class ExpenseCategory extends AuditableEntity {
      * nesting only); enforced in ExpenseCategoryService since a self-referential FK can't
      * express "no grandparents" as a constraint. */
     private Long parentId;
+
+    /** Optional, purely informational -- shown as progress on the pace card. Null means no
+     * budget set; nothing enforces or blocks spending past it. */
+    @Column(precision = 12, scale = 2)
+    private BigDecimal monthlyBudget;
 }

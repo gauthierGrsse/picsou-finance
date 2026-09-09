@@ -28,7 +28,7 @@ class ExpenseCategoryControllerTest {
     @Test
     void findAll_usesMemberIdFromUserContext() {
         when(userContext.currentMemberId()).thenReturn(10L);
-        List<ExpenseCategoryResponse> expected = List.of(new ExpenseCategoryResponse(1L, "Restauration", "#f97316", CategoryType.EXPENSE, null));
+        List<ExpenseCategoryResponse> expected = List.of(new ExpenseCategoryResponse(1L, "Restauration", "#f97316", CategoryType.EXPENSE, null, null));
         when(expenseCategoryService.findAll(10L)).thenReturn(expected);
 
         List<ExpenseCategoryResponse> actual = controller.findAll();
@@ -40,8 +40,8 @@ class ExpenseCategoryControllerTest {
     @Test
     void create_delegatesWithMemberId() {
         when(userContext.currentMemberId()).thenReturn(10L);
-        ExpenseCategoryRequest req = new ExpenseCategoryRequest("Vacances", "#00ff00", CategoryType.BOTH, null);
-        ExpenseCategoryResponse expected = new ExpenseCategoryResponse(2L, "Vacances", "#00ff00", CategoryType.BOTH, null);
+        ExpenseCategoryRequest req = new ExpenseCategoryRequest("Vacances", "#00ff00", CategoryType.BOTH, null, null);
+        ExpenseCategoryResponse expected = new ExpenseCategoryResponse(2L, "Vacances", "#00ff00", CategoryType.BOTH, null, null);
         when(expenseCategoryService.create(req, 10L)).thenReturn(expected);
 
         ExpenseCategoryResponse actual = controller.create(req);

@@ -774,6 +774,9 @@ export interface ExpenseCategory {
   /** Non-null makes this a subcategory of another (top-level only) category -- one level
    * of nesting, a subcategory may not itself have children. */
   parentId: number | null
+  /** Optional soft monthly budget, purely informational -- shown as progress on the pace
+   * card. Null means none set; nothing is enforced or blocked past it. */
+  monthlyBudget: number | null
 }
 
 export interface ExpenseCategoryRequest {
@@ -781,6 +784,7 @@ export interface ExpenseCategoryRequest {
   color?: string
   type: CategoryType
   parentId: number | null
+  monthlyBudget: number | null
 }
 
 /** "If the description contains `pattern`, classify it as `expenseCategoryId`" (and
@@ -854,6 +858,9 @@ export interface CategoryPaceSeries {
   categoryId: number | null
   categoryName: string | null
   categoryColor: string | null
+  /** The category's own optional soft budget -- null when none is set (always null for the
+   * uncategorized bucket). */
+  monthlyBudget: number | null
   currentCumulativeByDay: number[]
   historicalCumulativeByDay: number[]
 }

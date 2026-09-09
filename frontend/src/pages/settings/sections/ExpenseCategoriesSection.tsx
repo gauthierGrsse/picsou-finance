@@ -11,10 +11,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { NumericInput } from '@/components/shared/NumericInput'
+import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { ColorPicker } from '@/components/shared/ColorPicker'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { formatApiError } from '@/lib/errors'
 import { ACCOUNT_COLORS, buildCategoryTree, CATEGORY_TYPE_OPTIONS } from '@/lib/constants'
+import { parseAmount } from '@/lib/utils'
 import {
   useExpenseCategories,
   useCreateExpenseCategory,
@@ -37,6 +40,7 @@ export function ExpenseCategoriesSection() {
   const [color, setColor] = useState(ACCOUNT_COLORS[0])
   const [type, setType] = useState<CategoryType>('BOTH')
   const [parentId, setParentId] = useState<number | null>(null)
+  const [budget, setBudget] = useState('')
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
   // A parent must itself be top-level (one level of nesting only), and a category can't
@@ -49,6 +53,7 @@ export function ExpenseCategoriesSection() {
     setColor(ACCOUNT_COLORS[0])
     setType('BOTH')
     setParentId(null)
+    setBudget('')
     createCategory.reset()
     setEditing('new')
   }
@@ -58,6 +63,7 @@ export function ExpenseCategoriesSection() {
     setColor(category.color)
     setType(category.type)
     setParentId(category.parentId)
+    setBudget(category.monthlyBudget != null ? String(category.monthlyBudget) : '')
     updateCategory.reset()
     setEditing(category)
   }
@@ -69,7 +75,9 @@ export function ExpenseCategoriesSection() {
     e.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) return
-    const data = { name: trimmed, color, type, parentId }
+    const parsedBudget = budget.trim() === '' ? null : parseAmount(budget)
+    const monthlyBudget = parsedBudget != null && !Number.isNaN(parsedBudget) && parsedBudget > 0 ? parsedBudget : null
+    const data = { name: trimmed, color, type, parentId, monthlyBudget }
     if (editing === 'new') {
       createCategory.mutate(data, { onSuccess: () => setEditing(null) })
     } else if (editing) {
@@ -168,6 +176,16 @@ export function ExpenseCategoriesSection() {
                 </select>
               </div>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ec-budget">{t('expenseCategories.budgetLabel')}</Label>
+              <NumericInput
+                id="ec-budget"
+                value={budget}
+                onChange={e => setBudget(e.target.value)}
+                placeholder={t('expenseCategories.budgetPlaceholder')}
+              />
+              <p className="text-xs text-muted-foreground">{t('expenseCategories.budgetHint')}</p>
+            </div>
             {mutation.isError && (
               <p role="alert" className="text-sm text-destructive">
                 {formatApiError(mutation.error, t, 'expenseCategories.error')}
@@ -209,6 +227,11 @@ function CategoryRow({ category, onEdit, onDelete }: { category: ExpenseCategory
         {category.type !== 'BOTH' && (
           <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
             {t(category.type === 'EXPENSE' ? 'expenseCategories.type.expense' : 'expenseCategories.type.income')}
+          </span>
+        )}
+        {category.monthlyBudget != null && (
+          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            <CurrencyDisplay value={category.monthlyBudget} />{t('expenseCategories.budgetSuffix')}
           </span>
         )}
       </div>

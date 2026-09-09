@@ -74,7 +74,7 @@ describe('AllTransactionsList', () => {
   })
 
   it('right-clicking a row and picking a category quick-classifies it with the row\'s own account', () => {
-    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null }]
+    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null }]
     const transactions: Transaction[] = [
       tx({ id: 42, description: 'Loyer', accountId: 7, accountName: 'Compte Courant' }),
     ]
@@ -93,7 +93,7 @@ describe('AllTransactionsList', () => {
   })
 
   it('shift-clicking a range then right-clicking bulk-classifies every selected row, keeping each one\'s own category', () => {
-    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null }]
+    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null }]
     const transactions: Transaction[] = [
       tx({ id: 1, date: '2026-01-05', description: 'A', accountId: 1, accountName: 'Compte', expenseCategoryId: 1 }),
       tx({ id: 2, date: '2026-01-04', description: 'B', accountId: 2, accountName: 'Livret', expenseCategoryId: null }),
@@ -118,7 +118,7 @@ describe('AllTransactionsList', () => {
   })
 
   it('keeps the selection after a bulk classify, so a second pick (e.g. category after status) doesn\'t need reselecting', () => {
-    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null }]
+    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null }]
     const transactions: Transaction[] = [
       tx({ id: 1, date: '2026-01-05', description: 'A', accountId: 1, accountName: 'Compte' }),
       tx({ id: 2, date: '2026-01-04', description: 'B', accountId: 1, accountName: 'Compte' }),

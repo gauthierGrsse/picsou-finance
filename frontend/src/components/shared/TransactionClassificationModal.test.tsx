@@ -11,8 +11,8 @@ vi.mock('react-i18next', () => ({
 }))
 
 const categories: ExpenseCategory[] = [
-  { id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null },
-  { id: 2, name: 'Courses', color: '#22c55e', type: 'BOTH', parentId: null },
+  { id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null },
+  { id: 2, name: 'Courses', color: '#22c55e', type: 'BOTH', parentId: null, monthlyBudget: null },
 ]
 
 function syncedTransaction(overrides: Partial<Transaction> = {}): Transaction {
@@ -96,9 +96,9 @@ describe('TransactionClassificationModal', () => {
 
   it('only offers categories matching the transaction\'s sign, BOTH always included', () => {
     const typedCategories: ExpenseCategory[] = [
-      { id: 1, name: 'Restauration', color: '#f97316', type: 'EXPENSE', parentId: null },
-      { id: 2, name: 'Salaire', color: '#22c55e', type: 'INCOME', parentId: null },
-      { id: 3, name: 'Autre', color: '#a855f7', type: 'BOTH', parentId: null },
+      { id: 1, name: 'Restauration', color: '#f97316', type: 'EXPENSE', parentId: null, monthlyBudget: null },
+      { id: 2, name: 'Salaire', color: '#22c55e', type: 'INCOME', parentId: null, monthlyBudget: null },
+      { id: 3, name: 'Autre', color: '#a855f7', type: 'BOTH', parentId: null, monthlyBudget: null },
     ]
 
     render(
@@ -118,8 +118,8 @@ describe('TransactionClassificationModal', () => {
 
   it('groups subcategories under their parent as an optgroup', () => {
     const nestedCategories: ExpenseCategory[] = [
-      { id: 1, name: 'Alimentation', color: '#f97316', type: 'BOTH', parentId: null },
-      { id: 2, name: 'Bio', color: '#22c55e', type: 'BOTH', parentId: 1 },
+      { id: 1, name: 'Alimentation', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null },
+      { id: 2, name: 'Bio', color: '#22c55e', type: 'BOTH', parentId: 1, monthlyBudget: null },
     ]
 
     render(

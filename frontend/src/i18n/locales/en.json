@@ -1521,7 +1521,11 @@
       "both": "Expense & income",
       "expense": "Expense",
       "income": "Income"
-    }
+    },
+    "budgetLabel": "Monthly budget (optional)",
+    "budgetPlaceholder": "150",
+    "budgetHint": "Purely informational -- shown as progress on the monthly pace card, nothing is blocked past it.",
+    "budgetSuffix": "/mo"
   },
   "categoryRules": {
     "sectionTitle": "Auto-categorization rules",

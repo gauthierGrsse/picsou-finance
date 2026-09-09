@@ -58,7 +58,7 @@ describe('categoryTypeMatchesAmount', () => {
 
 describe('buildCategoryTree', () => {
   function cat(overrides: Partial<ExpenseCategory>): ExpenseCategory {
-    return { id: 1, name: 'cat', color: '#000000', type: 'BOTH', parentId: null, ...overrides }
+    return { id: 1, name: 'cat', color: '#000000', type: 'BOTH', parentId: null, monthlyBudget: null, ...overrides }
   }
 
   it('groups subcategories under their top-level parent', () => {

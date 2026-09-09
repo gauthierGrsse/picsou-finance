@@ -1521,7 +1521,11 @@
       "both": "Gasto e ingreso",
       "expense": "Gasto",
       "income": "Ingreso"
-    }
+    },
+    "budgetLabel": "Presupuesto mensual (opcional)",
+    "budgetPlaceholder": "150",
+    "budgetHint": "Puramente informativo -- se muestra como progreso en la tarjeta de ritmo mensual, nada se bloquea al superarlo.",
+    "budgetSuffix": "/mes"
   },
   "categoryRules": {
     "sectionTitle": "Reglas de auto-categorización",

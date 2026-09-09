@@ -11,8 +11,8 @@ vi.mock('react-i18next', () => ({
 }))
 
 const categories: ExpenseCategory[] = [
-  { id: 1, name: 'Courses', color: '#22c55e', type: 'EXPENSE', parentId: null },
-  { id: 2, name: 'Salaire', color: '#6366f1', type: 'INCOME', parentId: null },
+  { id: 1, name: 'Courses', color: '#22c55e', type: 'EXPENSE', parentId: null, monthlyBudget: null },
+  { id: 2, name: 'Salaire', color: '#6366f1', type: 'INCOME', parentId: null, monthlyBudget: null },
 ]
 
 const rules: CategoryRule[] = [

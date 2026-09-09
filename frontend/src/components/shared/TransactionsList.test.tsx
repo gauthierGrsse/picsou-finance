@@ -21,7 +21,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
   }
 }
 
-const restauration: ExpenseCategory = { id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null }
+const restauration: ExpenseCategory = { id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null }
 
 const transactions: Transaction[] = [
   tx({ id: 1, description: 'Vers Compte Titre', amount: -50, proStatus: 'VIREMENT_INTERNE' }),

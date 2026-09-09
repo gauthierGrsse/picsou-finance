@@ -89,8 +89,8 @@ describe('ExpensePaceCard', () => {
     useExpensePaceMock.mockReturnValue({
       data: pace({
         categorySeries: [
-          { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', currentCumulativeByDay: [20], historicalCumulativeByDay: Array(31).fill(50) },
-          { categoryId: null, categoryName: null, categoryColor: null, currentCumulativeByDay: [5], historicalCumulativeByDay: Array(31).fill(15) },
+          { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', monthlyBudget: null, currentCumulativeByDay: [20], historicalCumulativeByDay: Array(31).fill(50) },
+          { categoryId: null, categoryName: null, categoryColor: null, monthlyBudget: null, currentCumulativeByDay: [5], historicalCumulativeByDay: Array(31).fill(15) },
         ],
       }),
       isLoading: false,
@@ -106,6 +106,37 @@ describe('ExpensePaceCard', () => {
     expect(restoChip).toHaveClass('border-foreground/30')
     fireEvent.mouseLeave(restoChip!)
     expect(restoChip).toHaveClass('border-transparent')
+  })
+
+  it('shows a budget percentage badge on a chip when the category has a budget, none otherwise', () => {
+    useExpensePaceMock.mockReturnValue({
+      data: pace({
+        categorySeries: [
+          { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', monthlyBudget: 100, currentCumulativeByDay: [90], historicalCumulativeByDay: Array(31).fill(50) },
+          { categoryId: 2, categoryName: 'Loisirs', categoryColor: '#ec4899', monthlyBudget: null, currentCumulativeByDay: [30], historicalCumulativeByDay: Array(31).fill(20) },
+        ],
+      }),
+      isLoading: false,
+    })
+    render(<ExpensePaceCard />)
+
+    expect(screen.getByText('90%')).toBeInTheDocument()
+    const loisirsChip = screen.getByText('Loisirs').closest('button')
+    expect(loisirsChip?.textContent).not.toMatch(/%/)
+  })
+
+  it('colors the budget badge destructive once spending exceeds the budget', () => {
+    useExpensePaceMock.mockReturnValue({
+      data: pace({
+        categorySeries: [
+          { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', monthlyBudget: 100, currentCumulativeByDay: [150], historicalCumulativeByDay: Array(31).fill(50) },
+        ],
+      }),
+      isLoading: false,
+    })
+    render(<ExpensePaceCard />)
+
+    expect(screen.getByText('150%')).toHaveClass('text-destructive')
   })
 
   it('does not render a category legend when there are no category series', () => {

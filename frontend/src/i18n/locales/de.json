@@ -1521,7 +1521,11 @@
       "both": "Ausgabe & Einnahme",
       "expense": "Ausgabe",
       "income": "Einnahme"
-    }
+    },
+    "budgetLabel": "Monatliches Budget (optional)",
+    "budgetPlaceholder": "150",
+    "budgetHint": "Rein informativ -- wird als Fortschritt auf der Tempo-Karte angezeigt, nichts wird darüber hinaus blockiert.",
+    "budgetSuffix": "/Monat"
   },
   "categoryRules": {
     "sectionTitle": "Auto-Kategorisierungsregeln",

@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,7 +68,7 @@ class ExpenseCategoryServiceTest {
         when(expenseCategoryRepository.existsByMemberIdAndNameIgnoreCase(10L, "Restauration")).thenReturn(true);
 
         assertThatThrownBy(() ->
-            expenseCategoryService.create(new ExpenseCategoryRequest("Restauration", "#ffffff", CategoryType.BOTH, null), 10L))
+            expenseCategoryService.create(new ExpenseCategoryRequest("Restauration", "#ffffff", CategoryType.BOTH, null, null), 10L))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Restauration");
 
@@ -85,7 +86,7 @@ class ExpenseCategoryServiceTest {
             return c;
         });
 
-        ExpenseCategoryResponse result = expenseCategoryService.create(new ExpenseCategoryRequest("Vacances", "#00ff00", CategoryType.INCOME, null), 10L);
+        ExpenseCategoryResponse result = expenseCategoryService.create(new ExpenseCategoryRequest("Vacances", "#00ff00", CategoryType.INCOME, null, null), 10L);
 
         assertThat(result.id()).isEqualTo(42L);
         assertThat(result.name()).isEqualTo("Vacances");
@@ -95,6 +96,19 @@ class ExpenseCategoryServiceTest {
         ArgumentCaptor<ExpenseCategory> captor = ArgumentCaptor.forClass(ExpenseCategory.class);
         verify(expenseCategoryRepository).save(captor.capture());
         assertThat(captor.getValue().getMember()).isSameAs(member);
+    }
+
+    @Test
+    void create_withMonthlyBudget_carriesItThrough() {
+        FamilyMember member = FamilyMember.builder().id(10L).build();
+        when(expenseCategoryRepository.existsByMemberIdAndNameIgnoreCase(10L, "Restauration")).thenReturn(false);
+        when(familyMemberRepository.getReferenceById(10L)).thenReturn(member);
+        when(expenseCategoryRepository.save(any(ExpenseCategory.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ExpenseCategoryResponse result = expenseCategoryService.create(
+            new ExpenseCategoryRequest("Restauration", "#00ff00", CategoryType.EXPENSE, null, new BigDecimal("150.00")), 10L);
+
+        assertThat(result.monthlyBudget()).isEqualByComparingTo("150.00");
     }
 
     @Test
@@ -118,7 +132,7 @@ class ExpenseCategoryServiceTest {
         when(familyMemberRepository.getReferenceById(10L)).thenReturn(member);
         when(expenseCategoryRepository.save(any(ExpenseCategory.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ExpenseCategoryResponse result = expenseCategoryService.create(new ExpenseCategoryRequest("Courses", "#00ff00", CategoryType.EXPENSE, 1L), 10L);
+        ExpenseCategoryResponse result = expenseCategoryService.create(new ExpenseCategoryRequest("Courses", "#00ff00", CategoryType.EXPENSE, 1L, null), 10L);
 
         assertThat(result.parentId()).isEqualTo(1L);
     }
@@ -129,7 +143,7 @@ class ExpenseCategoryServiceTest {
         when(expenseCategoryRepository.findByIdAndMemberId(1L, 10L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
-            expenseCategoryService.create(new ExpenseCategoryRequest("Courses", "#00ff00", CategoryType.EXPENSE, 1L), 10L))
+            expenseCategoryService.create(new ExpenseCategoryRequest("Courses", "#00ff00", CategoryType.EXPENSE, 1L, null), 10L))
             .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -141,7 +155,7 @@ class ExpenseCategoryServiceTest {
         when(expenseCategoryRepository.findByIdAndMemberId(2L, 10L)).thenReturn(Optional.of(parent));
 
         assertThatThrownBy(() ->
-            expenseCategoryService.create(new ExpenseCategoryRequest("Bio", "#00ff00", CategoryType.EXPENSE, 2L), 10L))
+            expenseCategoryService.create(new ExpenseCategoryRequest("Bio", "#00ff00", CategoryType.EXPENSE, 2L, null), 10L))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -151,7 +165,7 @@ class ExpenseCategoryServiceTest {
         when(expenseCategoryRepository.findByIdAndMemberId(1L, 10L)).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() ->
-            expenseCategoryService.update(1L, new ExpenseCategoryRequest("Restauration", "#00ff00", CategoryType.EXPENSE, 1L), 10L))
+            expenseCategoryService.update(1L, new ExpenseCategoryRequest("Restauration", "#00ff00", CategoryType.EXPENSE, 1L, null), 10L))
             .isInstanceOf(IllegalArgumentException.class);
     }
 }

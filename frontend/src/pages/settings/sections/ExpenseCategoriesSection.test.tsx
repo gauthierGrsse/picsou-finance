@@ -11,10 +11,10 @@ vi.mock('react-i18next', () => ({
 }))
 
 const categories: ExpenseCategory[] = [
-  { id: 1, name: 'Restauration', color: '#f97316', type: 'EXPENSE', parentId: null },
-  { id: 2, name: 'Courses', color: '#22c55e', type: 'BOTH', parentId: null },
-  { id: 3, name: 'Bio', color: '#22c55e', type: 'EXPENSE', parentId: 2 }, // subcategory of Courses
-  { id: 4, name: 'Salaire', color: '#6366f1', type: 'INCOME', parentId: null },
+  { id: 1, name: 'Restauration', color: '#f97316', type: 'EXPENSE', parentId: null, monthlyBudget: null },
+  { id: 2, name: 'Courses', color: '#22c55e', type: 'BOTH', parentId: null, monthlyBudget: null },
+  { id: 3, name: 'Bio', color: '#22c55e', type: 'EXPENSE', parentId: 2, monthlyBudget: null }, // subcategory of Courses
+  { id: 4, name: 'Salaire', color: '#6366f1', type: 'INCOME', parentId: null, monthlyBudget: null },
 ]
 
 const createMutate = vi.fn()
@@ -59,7 +59,7 @@ describe('ExpenseCategoriesSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.create' }))
 
     await waitFor(() => expect(createMutate).toHaveBeenCalledOnce())
-    expect(createMutate.mock.calls[0][0]).toEqual({ name: 'Vacances', color: expect.any(String), type: 'BOTH', parentId: null })
+    expect(createMutate.mock.calls[0][0]).toEqual({ name: 'Vacances', color: expect.any(String), type: 'BOTH', parentId: null, monthlyBudget: null })
   })
 
   it('creating a subcategory sends the chosen type and parent', async () => {
@@ -72,7 +72,7 @@ describe('ExpenseCategoriesSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.create' }))
 
     await waitFor(() => expect(createMutate).toHaveBeenCalledOnce())
-    expect(createMutate.mock.calls[0][0]).toEqual({ name: 'Bio local', color: expect.any(String), type: 'EXPENSE', parentId: 2 })
+    expect(createMutate.mock.calls[0][0]).toEqual({ name: 'Bio local', color: expect.any(String), type: 'EXPENSE', parentId: 2, monthlyBudget: null })
   })
 
   it('the parent dropdown only offers top-level categories, excluding the one being edited', () => {

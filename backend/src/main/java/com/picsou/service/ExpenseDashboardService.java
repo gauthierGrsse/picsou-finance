@@ -195,6 +195,7 @@ public class ExpenseDashboardService {
                     category != null ? category.getId() : null,
                     category != null ? category.getName() : null,
                     category != null ? category.getColor() : null,
+                    category != null ? category.getMonthlyBudget() : null,
                     current,
                     historical
                 );

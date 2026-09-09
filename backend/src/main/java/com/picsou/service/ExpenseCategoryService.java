@@ -67,6 +67,7 @@ public class ExpenseCategoryService {
             .color(req.color() != null ? req.color() : "#6366f1")
             .type(req.type())
             .parentId(parent != null ? parent.getId() : null)
+            .monthlyBudget(req.monthlyBudget())
             .build();
         return ExpenseCategoryResponse.from(expenseCategoryRepository.save(category));
     }
@@ -85,6 +86,7 @@ public class ExpenseCategoryService {
         }
         category.setType(req.type());
         category.setParentId(parent != null ? parent.getId() : null);
+        category.setMonthlyBudget(req.monthlyBudget());
         return ExpenseCategoryResponse.from(expenseCategoryRepository.save(category));
     }
 

@@ -306,7 +306,7 @@ class ExpenseDashboardServiceTest {
     @Test
     void getPace_categorySeriesEndValuesAreZeroFilledForMonthsWithNoSpendingAndSortedByCurrentAmount() {
         LocalDate today = LocalDate.of(2026, 8, 10);
-        ExpenseCategory resto = ExpenseCategory.builder().id(1L).name("Restauration").color("#f97316").build();
+        ExpenseCategory resto = ExpenseCategory.builder().id(1L).name("Restauration").color("#f97316").monthlyBudget(new BigDecimal("150.00")).build();
         ExpenseCategory loisirs = ExpenseCategory.builder().id(2L).name("Loisirs").color("#22c55e").build();
         List<Transaction> window = List.of(
             expense(LocalDate.of(2026, 6, 5), new BigDecimal("-60"), ProStatus.PERSO, 1L),
@@ -324,6 +324,7 @@ class ExpenseDashboardServiceTest {
         assertThat(result.categorySeries()).hasSize(3);
         var resultResto = result.categorySeries().get(0); // current=20, highest current amount
         assertThat(resultResto.categoryName()).isEqualTo("Restauration");
+        assertThat(resultResto.monthlyBudget()).isEqualByComparingTo("150.00");
         assertThat(resultResto.currentCumulativeByDay()).hasSize(10); // dayOfMonth
         assertThat(lastOf(resultResto.currentCumulativeByDay())).isEqualByComparingTo("20");
         assertThat(resultResto.historicalCumulativeByDay()).hasSize(31); // August's length
@@ -331,6 +332,7 @@ class ExpenseDashboardServiceTest {
 
         var resultUncategorized = result.categorySeries().stream().filter(c -> c.categoryId() == null).findFirst().orElseThrow();
         assertThat(resultUncategorized.categoryName()).isNull();
+        assertThat(resultUncategorized.monthlyBudget()).isNull();
         assertThat(lastOf(resultUncategorized.currentCumulativeByDay())).isEqualByComparingTo("5");
 
         var resultLoisirs = result.categorySeries().stream().filter(c -> c.categoryId() != null && c.categoryId() == 2L).findFirst().orElseThrow();

@@ -22,6 +22,14 @@ function compactAxisValue(value: number, locale: string) {
   return new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value)
 }
 
+/** Under 80% of budget reads as on track, 80-100% as close, over 100% as over -- purely a
+ * color cue on the chip, nothing is blocked or warned about beyond that. */
+function budgetStatusClass(percentUsed: number) {
+  if (percentUsed > 100) return 'bg-destructive/10 text-destructive'
+  if (percentUsed >= 80) return 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+  return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+}
+
 /** One row per day of the month; `undefined` for a day beyond dayOfMonth on a *_current key
  * (Recharts breaks the line there instead of drawing toward zero) or beyond a category's own
  * data. */
@@ -228,6 +236,8 @@ export function ExpensePaceCard() {
             {pace.categorySeries.map((series) => {
               const key = categoryKey(series)
               const isHovered = hoveredKey === key
+              const spentSoFar = series.currentCumulativeByDay.at(-1) ?? 0
+              const percentOfBudget = series.monthlyBudget ? (spentSoFar / series.monthlyBudget) * 100 : null
               return (
                 <button
                   key={key}
@@ -243,6 +253,11 @@ export function ExpensePaceCard() {
                 >
                   <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: series.categoryColor ?? 'var(--chart-5)' }} />
                   {series.categoryName ?? t('expenseDashboard.uncategorized')}
+                  {percentOfBudget != null && (
+                    <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums', budgetStatusClass(percentOfBudget))}>
+                      {Math.round(percentOfBudget)}%
+                    </span>
+                  )}
                 </button>
               )
             })}

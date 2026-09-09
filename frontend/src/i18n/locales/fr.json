@@ -1521,7 +1521,11 @@
       "both": "Dépense et entrée",
       "expense": "Dépense",
       "income": "Entrée"
-    }
+    },
+    "budgetLabel": "Budget mensuel (optionnel)",
+    "budgetPlaceholder": "150",
+    "budgetHint": "Purement informatif -- affiché comme progression sur la carte du rythme mensuel, rien n'est bloqué au-delà.",
+    "budgetSuffix": "/mois"
   },
   "categoryRules": {
     "sectionTitle": "Règles d'auto-catégorisation",
