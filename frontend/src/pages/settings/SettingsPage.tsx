@@ -33,6 +33,7 @@ import {
   ExternalLink,
   Tags,
   Link2,
+  Wand2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { api } from '@/lib/api-client'
@@ -40,6 +41,7 @@ import { APP_VERSION } from '@/lib/app-version'
 import { SecuritySection } from './security/SecuritySection'
 import { AccessKeysSection } from './sections/AccessKeysSection'
 import { ExpenseCategoriesSection } from './sections/ExpenseCategoriesSection'
+import { CategoryRulesSection } from './sections/CategoryRulesSection'
 import { ReimbursementsList } from '@/components/shared/ReimbursementsList'
 
 // ---------------------------------------------------------------------------
@@ -331,6 +333,15 @@ export function SettingsPage() {
         description={t('expenseCategories.sectionDescription')}
       >
         <ExpenseCategoriesSection />
+      </SectionCard>
+
+      {/* Category rules ----------------------------------------------------- */}
+      <SectionCard
+        icon={Wand2}
+        title={t('categoryRules.sectionTitle')}
+        description={t('categoryRules.sectionDescription')}
+      >
+        <CategoryRulesSection />
       </SectionCard>
 
       {/* Linked reimbursements --------------------------------------------- */}

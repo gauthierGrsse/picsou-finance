@@ -37,6 +37,7 @@ public class SyncService {
     private final BankLogoResolver bankLogoResolver;
     private final TransactionRepository transactionRepository;
     private final InternalTransferService internalTransferService;
+    private final CategoryRuleService categoryRuleService;
 
     public SyncService(
         BankConnectorPort bankConnector,
@@ -47,7 +48,8 @@ public class SyncService {
         RequisitionLifecycleWriter requisitionLifecycleWriter,
         BankLogoResolver bankLogoResolver,
         TransactionRepository transactionRepository,
-        InternalTransferService internalTransferService
+        InternalTransferService internalTransferService,
+        CategoryRuleService categoryRuleService
     ) {
         this.bankConnector = bankConnector;
         this.accountRepository = accountRepository;
@@ -58,6 +60,7 @@ public class SyncService {
         this.bankLogoResolver = bankLogoResolver;
         this.transactionRepository = transactionRepository;
         this.internalTransferService = internalTransferService;
+        this.categoryRuleService = categoryRuleService;
     }
 
     /** Step 1: Initiate Enable Banking bank connection for a given institution. */
@@ -510,6 +513,11 @@ public class SyncService {
             // account synced moments ago) without a matching counterpart existing yet at the
             // time. Cheap and idempotent -- already-linked rows are excluded from the pool.
             internalTransferService.autoLinkByReference(account.getMember().getId());
+            // Same reasoning: scans every currently-uncategorized transaction against every
+            // rule, not just this batch -- a no-op when there are no rules or nothing left
+            // to classify, and it also catches up transactions a rule added later would
+            // have matched.
+            categoryRuleService.applyToUncategorized(account.getMember().getId());
         } catch (Exception ex) {
             log.warn("Transaction sync failed for account {} ({}): {}",
                 account.getId(), requisition.getInstitutionName(), ex.getMessage());

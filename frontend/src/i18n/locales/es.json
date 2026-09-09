@@ -1513,7 +1513,32 @@
     "empty": "Sin categorías.",
     "error": "No se pudo guardar la categoría",
     "deleteTitle": "¿Eliminar categoría?",
-    "deleteDescription": "Las transacciones de esta categoría vuelven a quedar sin categorizar."
+    "deleteDescription": "Las transacciones de esta categoría vuelven a quedar sin categorizar.",
+    "typeLabel": "Tipo",
+    "parentLabel": "Categoría padre",
+    "noParent": "Ninguna (nivel superior)",
+    "type": {
+      "both": "Gasto e ingreso",
+      "expense": "Gasto",
+      "income": "Ingreso"
+    }
+  },
+  "categoryRules": {
+    "sectionTitle": "Reglas de auto-categorización",
+    "sectionDescription": "Clasifica automáticamente las nuevas transacciones según su descripción",
+    "newRule": "Nueva regla",
+    "editRule": "Editar regla",
+    "patternLabel": "La descripción contiene",
+    "patternPlaceholder": "carrefour",
+    "patternHint": "No distingue mayúsculas/minúsculas, coincide en cualquier parte de la descripción.",
+    "categoryLabel": "Categoría",
+    "statusLabel": "También fijar el estado (opcional)",
+    "noStatusChange": "No cambiar",
+    "loading": "Cargando…",
+    "empty": "Aún no hay reglas.",
+    "error": "No se pudo guardar la regla",
+    "deleteTitle": "¿Eliminar esta regla?",
+    "deleteDescription": "Las transacciones ya clasificadas conservan su categoría y estado -- solo se detienen las coincidencias futuras."
   },
   "proStatus": {
     "perso": "Personal",

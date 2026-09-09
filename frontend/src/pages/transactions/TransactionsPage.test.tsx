@@ -34,7 +34,7 @@ const transactions: Transaction[] = [
   JSON.parse(JSON.stringify(tx({ id: 3, date: '2026-08-07', description: 'Depuis API', amount: -20, expenseCategoryId: undefined }))) as Transaction,
 ]
 
-const categories: ExpenseCategory[] = [{ id: 1, name: 'Logement', color: '#3b82f6' }]
+const categories: ExpenseCategory[] = [{ id: 1, name: 'Logement', color: '#3b82f6', type: 'BOTH', parentId: null }]
 
 const useAllTransactions = vi.fn<(periodStart: string, periodEnd: string) => { data: Transaction[]; isLoading: boolean }>(
   () => ({ data: transactions, isLoading: false }),

@@ -3,6 +3,7 @@ package com.picsou.service;
 import com.picsou.dto.ExpenseCategoryRequest;
 import com.picsou.dto.ExpenseCategoryResponse;
 import com.picsou.exception.ResourceNotFoundException;
+import com.picsou.model.CategoryType;
 import com.picsou.model.ExpenseCategory;
 import com.picsou.model.FamilyMember;
 import com.picsou.repository.ExpenseCategoryRepository;
@@ -66,7 +67,7 @@ class ExpenseCategoryServiceTest {
         when(expenseCategoryRepository.existsByMemberIdAndNameIgnoreCase(10L, "Restauration")).thenReturn(true);
 
         assertThatThrownBy(() ->
-            expenseCategoryService.create(new ExpenseCategoryRequest("Restauration", "#ffffff"), 10L))
+            expenseCategoryService.create(new ExpenseCategoryRequest("Restauration", "#ffffff", CategoryType.BOTH, null), 10L))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Restauration");
 
@@ -84,11 +85,12 @@ class ExpenseCategoryServiceTest {
             return c;
         });
 
-        ExpenseCategoryResponse result = expenseCategoryService.create(new ExpenseCategoryRequest("Vacances", "#00ff00"), 10L);
+        ExpenseCategoryResponse result = expenseCategoryService.create(new ExpenseCategoryRequest("Vacances", "#00ff00", CategoryType.INCOME, null), 10L);
 
         assertThat(result.id()).isEqualTo(42L);
         assertThat(result.name()).isEqualTo("Vacances");
         assertThat(result.color()).isEqualTo("#00ff00");
+        assertThat(result.type()).isEqualTo(CategoryType.INCOME);
 
         ArgumentCaptor<ExpenseCategory> captor = ArgumentCaptor.forClass(ExpenseCategory.class);
         verify(expenseCategoryRepository).save(captor.capture());
@@ -103,5 +105,53 @@ class ExpenseCategoryServiceTest {
             .isInstanceOf(ResourceNotFoundException.class);
 
         verify(expenseCategoryRepository, never()).delete(any());
+    }
+
+    // ─── parent/subcategory validation ─────────────────────────────────────
+
+    @Test
+    void create_withValidTopLevelParent_setsParentId() {
+        FamilyMember member = FamilyMember.builder().id(10L).build();
+        ExpenseCategory parent = category(1L, "Alimentation");
+        when(expenseCategoryRepository.existsByMemberIdAndNameIgnoreCase(10L, "Courses")).thenReturn(false);
+        when(expenseCategoryRepository.findByIdAndMemberId(1L, 10L)).thenReturn(Optional.of(parent));
+        when(familyMemberRepository.getReferenceById(10L)).thenReturn(member);
+        when(expenseCategoryRepository.save(any(ExpenseCategory.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ExpenseCategoryResponse result = expenseCategoryService.create(new ExpenseCategoryRequest("Courses", "#00ff00", CategoryType.EXPENSE, 1L), 10L);
+
+        assertThat(result.parentId()).isEqualTo(1L);
+    }
+
+    @Test
+    void create_parentBelongingToAnotherMember_throwsNotFound() {
+        when(expenseCategoryRepository.existsByMemberIdAndNameIgnoreCase(10L, "Courses")).thenReturn(false);
+        when(expenseCategoryRepository.findByIdAndMemberId(1L, 10L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() ->
+            expenseCategoryService.create(new ExpenseCategoryRequest("Courses", "#00ff00", CategoryType.EXPENSE, 1L), 10L))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void create_parentThatIsItselfASubcategory_rejectsTwoLevelsOfNesting() {
+        ExpenseCategory grandparent = category(1L, "Alimentation");
+        ExpenseCategory parent = ExpenseCategory.builder().id(2L).name("Courses").color("#6366f1").parentId(1L).build();
+        when(expenseCategoryRepository.existsByMemberIdAndNameIgnoreCase(10L, "Bio")).thenReturn(false);
+        when(expenseCategoryRepository.findByIdAndMemberId(2L, 10L)).thenReturn(Optional.of(parent));
+
+        assertThatThrownBy(() ->
+            expenseCategoryService.create(new ExpenseCategoryRequest("Bio", "#00ff00", CategoryType.EXPENSE, 2L), 10L))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void update_settingCategoryAsItsOwnParent_throws() {
+        ExpenseCategory existing = category(1L, "Restauration");
+        when(expenseCategoryRepository.findByIdAndMemberId(1L, 10L)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() ->
+            expenseCategoryService.update(1L, new ExpenseCategoryRequest("Restauration", "#00ff00", CategoryType.EXPENSE, 1L), 10L))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 }

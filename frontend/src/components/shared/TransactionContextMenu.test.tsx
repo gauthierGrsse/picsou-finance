@@ -22,8 +22,8 @@ function tx(overrides: Partial<Transaction>): Transaction {
 }
 
 const categories: ExpenseCategory[] = [
-  { id: 1, name: 'Restauration', color: '#f97316' },
-  { id: 2, name: 'Courses', color: '#22c55e' },
+  { id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null },
+  { id: 2, name: 'Courses', color: '#22c55e', type: 'BOTH', parentId: null },
 ]
 
 describe('TransactionContextMenu', () => {
@@ -119,6 +119,61 @@ describe('TransactionContextMenu', () => {
     fireEvent.click(screen.getByText('internalTransfers.linkTitle'))
 
     expect(onLinkTransfer).toHaveBeenCalledWith(transaction)
+  })
+
+  it('filters the category list by the transaction\'s sign, BOTH always included', () => {
+    const typedCategories: ExpenseCategory[] = [
+      { id: 1, name: 'Restauration', color: '#f97316', type: 'EXPENSE', parentId: null },
+      { id: 2, name: 'Salaire', color: '#22c55e', type: 'INCOME', parentId: null },
+      { id: 3, name: 'Autre', color: '#a855f7', type: 'BOTH', parentId: null },
+    ]
+
+    const { unmount } = render(
+      <TransactionContextMenu transaction={tx({ amount: -25 })} categories={typedCategories} onQuickClassify={vi.fn()}>
+        <div>Row</div>
+      </TransactionContextMenu>,
+    )
+    fireEvent.contextMenu(screen.getByText('Row'))
+    fireEvent.click(screen.getByText('classification.categoryLabel'))
+    expect(screen.getByText('Restauration')).toBeInTheDocument()
+    expect(screen.getByText('Autre')).toBeInTheDocument()
+    expect(screen.queryByText('Salaire')).not.toBeInTheDocument()
+    unmount()
+
+    render(
+      <TransactionContextMenu transaction={tx({ amount: 2500 })} categories={typedCategories} onQuickClassify={vi.fn()}>
+        <div>Row</div>
+      </TransactionContextMenu>,
+    )
+    fireEvent.contextMenu(screen.getByText('Row'))
+    fireEvent.click(screen.getByText('classification.categoryLabel'))
+    expect(screen.getByText('Salaire')).toBeInTheDocument()
+    expect(screen.getByText('Autre')).toBeInTheDocument()
+    expect(screen.queryByText('Restauration')).not.toBeInTheDocument()
+  })
+
+  it('groups subcategories under their parent as a nested submenu, with the parent itself still selectable', () => {
+    const onQuickClassify = vi.fn()
+    const nestedCategories: ExpenseCategory[] = [
+      { id: 1, name: 'Alimentation', color: '#f97316', type: 'BOTH', parentId: null },
+      { id: 2, name: 'Bio', color: '#22c55e', type: 'BOTH', parentId: 1 },
+    ]
+
+    render(
+      <TransactionContextMenu transaction={tx({})} categories={nestedCategories} onQuickClassify={onQuickClassify}>
+        <div>Row</div>
+      </TransactionContextMenu>,
+    )
+
+    fireEvent.contextMenu(screen.getByText('Row'))
+    fireEvent.click(screen.getByText('classification.categoryLabel'))
+    expect(screen.queryByText('Bio')).not.toBeInTheDocument() // nested, not shown until its submenu opens
+
+    fireEvent.click(screen.getByText('Alimentation'))
+    expect(screen.getAllByText('Alimentation').length).toBeGreaterThan(0) // parent selectable inside its own submenu too
+    fireEvent.click(screen.getByText('Bio'))
+
+    expect(onQuickClassify).toHaveBeenCalledWith({ field: 'category', expenseCategoryId: 2 })
   })
 
   it('does not offer "link as internal transfer" when acting on a multi-row selection', () => {

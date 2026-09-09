@@ -1513,7 +1513,32 @@
     "empty": "No categories.",
     "error": "Could not save the category",
     "deleteTitle": "Delete category?",
-    "deleteDescription": "Transactions in this category become uncategorized."
+    "deleteDescription": "Transactions in this category become uncategorized.",
+    "typeLabel": "Type",
+    "parentLabel": "Parent category",
+    "noParent": "None (top-level)",
+    "type": {
+      "both": "Expense & income",
+      "expense": "Expense",
+      "income": "Income"
+    }
+  },
+  "categoryRules": {
+    "sectionTitle": "Auto-categorization rules",
+    "sectionDescription": "Automatically classify new transactions by matching their description",
+    "newRule": "New rule",
+    "editRule": "Edit rule",
+    "patternLabel": "Description contains",
+    "patternPlaceholder": "carrefour",
+    "patternHint": "Case-insensitive, matches anywhere in the description.",
+    "categoryLabel": "Category",
+    "statusLabel": "Also set status (optional)",
+    "noStatusChange": "Don't change",
+    "loading": "Loading…",
+    "empty": "No rules yet.",
+    "error": "Could not save the rule",
+    "deleteTitle": "Delete rule?",
+    "deleteDescription": "Transactions it already classified keep their category and status -- only future matches stop."
   },
   "proStatus": {
     "perso": "Personal",

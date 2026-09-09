@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ACCOUNT_TYPES, accountTypeLabelKey } from './constants'
-import type { AccountType } from '@/types/api'
+import { ACCOUNT_TYPES, accountTypeLabelKey, buildCategoryTree, categoryTypeMatchesAmount } from './constants'
+import type { AccountType, ExpenseCategory } from '@/types/api'
 import fr from '@/i18n/locales/fr.json'
 import en from '@/i18n/locales/en.json'
 import de from '@/i18n/locales/de.json'
@@ -35,5 +35,52 @@ describe('account type labels', () => {
 
   it('falls back to Other for a value outside the list', () => {
     expect(accountTypeLabelKey('NOT_A_TYPE' as AccountType)).toBe('accountTypes.other')
+  })
+})
+
+describe('categoryTypeMatchesAmount', () => {
+  it('BOTH always matches, regardless of sign', () => {
+    expect(categoryTypeMatchesAmount('BOTH', -10)).toBe(true)
+    expect(categoryTypeMatchesAmount('BOTH', 10)).toBe(true)
+  })
+
+  it('EXPENSE only matches negative amounts', () => {
+    expect(categoryTypeMatchesAmount('EXPENSE', -10)).toBe(true)
+    expect(categoryTypeMatchesAmount('EXPENSE', 10)).toBe(false)
+  })
+
+  it('INCOME only matches non-negative amounts', () => {
+    expect(categoryTypeMatchesAmount('INCOME', 10)).toBe(true)
+    expect(categoryTypeMatchesAmount('INCOME', 0)).toBe(true)
+    expect(categoryTypeMatchesAmount('INCOME', -10)).toBe(false)
+  })
+})
+
+describe('buildCategoryTree', () => {
+  function cat(overrides: Partial<ExpenseCategory>): ExpenseCategory {
+    return { id: 1, name: 'cat', color: '#000000', type: 'BOTH', parentId: null, ...overrides }
+  }
+
+  it('groups subcategories under their top-level parent', () => {
+    const categories = [
+      cat({ id: 1, name: 'Alimentation' }),
+      cat({ id: 2, name: 'Courses', parentId: 1 }),
+      cat({ id: 3, name: 'Restaurant', parentId: 1 }),
+      cat({ id: 4, name: 'Transport' }),
+    ]
+
+    const tree = buildCategoryTree(categories)
+
+    expect(tree.map(n => n.category.name)).toEqual(['Alimentation', 'Transport'])
+    expect(tree[0].children.map(c => c.name)).toEqual(['Courses', 'Restaurant'])
+    expect(tree[1].children).toEqual([])
+  })
+
+  it('promotes a category to top-level when its declared parent is missing from the list', () => {
+    const categories = [cat({ id: 2, name: 'Orphan', parentId: 999 })]
+
+    const tree = buildCategoryTree(categories)
+
+    expect(tree.map(n => n.category.name)).toEqual(['Orphan'])
   })
 })

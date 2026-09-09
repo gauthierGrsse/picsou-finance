@@ -1513,7 +1513,32 @@
     "empty": "Aucune catégorie.",
     "error": "Impossible d'enregistrer la catégorie",
     "deleteTitle": "Supprimer la catégorie ?",
-    "deleteDescription": "Les transactions classées dans cette catégorie redeviennent non catégorisées."
+    "deleteDescription": "Les transactions classées dans cette catégorie redeviennent non catégorisées.",
+    "typeLabel": "Type",
+    "parentLabel": "Catégorie parente",
+    "noParent": "Aucune (niveau supérieur)",
+    "type": {
+      "both": "Dépense et entrée",
+      "expense": "Dépense",
+      "income": "Entrée"
+    }
+  },
+  "categoryRules": {
+    "sectionTitle": "Règles d'auto-catégorisation",
+    "sectionDescription": "Classe automatiquement les nouvelles transactions selon leur description",
+    "newRule": "Nouvelle règle",
+    "editRule": "Modifier la règle",
+    "patternLabel": "La description contient",
+    "patternPlaceholder": "carrefour",
+    "patternHint": "Insensible à la casse, correspond n'importe où dans la description.",
+    "categoryLabel": "Catégorie",
+    "statusLabel": "Fixer aussi le statut (optionnel)",
+    "noStatusChange": "Ne pas changer",
+    "loading": "Chargement…",
+    "empty": "Aucune règle pour le moment.",
+    "error": "Impossible d'enregistrer la règle",
+    "deleteTitle": "Supprimer cette règle ?",
+    "deleteDescription": "Les transactions déjà classées gardent leur catégorie et leur statut -- seules les prochaines correspondances s'arrêtent."
   },
   "proStatus": {
     "perso": "Personnel",

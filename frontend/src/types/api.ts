@@ -764,15 +764,42 @@ export interface Transaction {
   accountName?: string
 }
 
+export type CategoryType = 'EXPENSE' | 'INCOME' | 'BOTH'
+
 export interface ExpenseCategory {
   id: number
   name: string
   color: string
+  type: CategoryType
+  /** Non-null makes this a subcategory of another (top-level only) category -- one level
+   * of nesting, a subcategory may not itself have children. */
+  parentId: number | null
 }
 
 export interface ExpenseCategoryRequest {
   name: string
   color?: string
+  type: CategoryType
+  parentId: number | null
+}
+
+/** "If the description contains `pattern`, classify it as `expenseCategoryId`" (and
+ * optionally set `proStatus`) -- applied to newly-synced transactions and, on create/update,
+ * retroactively to existing uncategorized ones. Never overrides a transaction that already
+ * has a category or an explicitly-set status. */
+export interface CategoryRule {
+  id: number
+  pattern: string
+  expenseCategoryId: number
+  categoryName: string | null
+  categoryColor: string | null
+  proStatus: ProStatus | null
+}
+
+export interface CategoryRuleRequest {
+  pattern: string
+  expenseCategoryId: number
+  proStatus: ProStatus | null
 }
 
 export interface TransactionClassificationRequest {

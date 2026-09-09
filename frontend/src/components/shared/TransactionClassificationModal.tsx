@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { extractErrorMessage } from '@/lib/errors'
-import { PRO_STATUS_OPTIONS } from '@/lib/constants'
+import { buildCategoryTree, categoryTypeMatchesAmount, PRO_STATUS_OPTIONS } from '@/lib/constants'
 import type { ExpenseCategory, ProStatus, Transaction, TransactionClassificationRequest } from '@/types/api'
 
 const selectControlClassName = "flex h-10 w-full rounded-xl border border-input bg-background text-foreground px-4 text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]"
@@ -68,6 +68,11 @@ function ClassificationForm({ transaction, categories, onOpenChange, onSubmit, i
   )
   const [error, setError] = useState<string | null>(null)
 
+  // Same filter as the context menu's quick-classify: don't offer an EXPENSE-only category
+  // when classifying an income credit, or vice versa. BOTH always shows.
+  const applicableCategories = categories.filter(c => categoryTypeMatchesAmount(c.type, transaction.amount))
+  const categoryTree = buildCategoryTree(applicableCategories)
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -107,9 +112,18 @@ function ClassificationForm({ transaction, categories, onOpenChange, onSubmit, i
           className={selectControlClassName}
         >
           <option value="">{t('classification.noCategory')}</option>
-          {categories.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
+          {categoryTree.map(({ category, children }) =>
+            children.length === 0 ? (
+              <option key={category.id} value={category.id}>{category.name}</option>
+            ) : (
+              <optgroup key={category.id} label={category.name}>
+                <option value={category.id}>{category.name}</option>
+                {children.map(child => (
+                  <option key={child.id} value={child.id}>{child.name}</option>
+                ))}
+              </optgroup>
+            ),
+          )}
         </select>
       </div>
 

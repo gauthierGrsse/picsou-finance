@@ -11,8 +11,8 @@ vi.mock('react-i18next', () => ({
 }))
 
 const categories: ExpenseCategory[] = [
-  { id: 1, name: 'Restauration', color: '#f97316' },
-  { id: 2, name: 'Courses', color: '#22c55e' },
+  { id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null },
+  { id: 2, name: 'Courses', color: '#22c55e', type: 'BOTH', parentId: null },
 ]
 
 function syncedTransaction(overrides: Partial<Transaction> = {}): Transaction {
@@ -92,5 +92,50 @@ describe('TransactionClassificationModal', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
     expect(onSubmit).toHaveBeenCalledWith({ proStatus: 'PERSO', expenseCategoryId: null })
+  })
+
+  it('only offers categories matching the transaction\'s sign, BOTH always included', () => {
+    const typedCategories: ExpenseCategory[] = [
+      { id: 1, name: 'Restauration', color: '#f97316', type: 'EXPENSE', parentId: null },
+      { id: 2, name: 'Salaire', color: '#22c55e', type: 'INCOME', parentId: null },
+      { id: 3, name: 'Autre', color: '#a855f7', type: 'BOTH', parentId: null },
+    ]
+
+    render(
+      <TransactionClassificationModal
+        open
+        onOpenChange={vi.fn()}
+        transaction={syncedTransaction({ amount: -25 })}
+        categories={typedCategories}
+        onSubmit={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText('Restauration')).toBeInTheDocument()
+    expect(screen.getByText('Autre')).toBeInTheDocument()
+    expect(screen.queryByText('Salaire')).not.toBeInTheDocument()
+  })
+
+  it('groups subcategories under their parent as an optgroup', () => {
+    const nestedCategories: ExpenseCategory[] = [
+      { id: 1, name: 'Alimentation', color: '#f97316', type: 'BOTH', parentId: null },
+      { id: 2, name: 'Bio', color: '#22c55e', type: 'BOTH', parentId: 1 },
+    ]
+
+    render(
+      <TransactionClassificationModal
+        open
+        onOpenChange={vi.fn()}
+        transaction={syncedTransaction()}
+        categories={nestedCategories}
+        onSubmit={vi.fn()}
+      />
+    )
+
+    const select = screen.getByDisplayValue('classification.noCategory') as HTMLSelectElement
+    const group = select.querySelector('optgroup')
+    expect(group).not.toBeNull()
+    expect(group?.label).toBe('Alimentation')
+    expect(group?.querySelectorAll('option')).toHaveLength(2) // parent itself + Bio
   })
 })

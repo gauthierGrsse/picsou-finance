@@ -3,6 +3,7 @@ package com.picsou.service;
 import com.picsou.dto.ExpenseCategoryRequest;
 import com.picsou.dto.ExpenseCategoryResponse;
 import com.picsou.exception.ResourceNotFoundException;
+import com.picsou.model.CategoryType;
 import com.picsou.model.ExpenseCategory;
 import com.picsou.repository.ExpenseCategoryRepository;
 import com.picsou.repository.FamilyMemberRepository;
@@ -16,7 +17,9 @@ import java.util.List;
 public class ExpenseCategoryService {
 
     /** Name + default hex color, in display order. Colors drawn from the palette already used
-     * for account defaults, for visual consistency across the app. */
+     * for account defaults, for visual consistency across the app. All EXPENSE -- none of
+     * these make sense on the income side, so new members get the context-menu filter's
+     * benefit immediately without having to retag anything by hand. */
     private static final String[][] STARTER_CATEGORIES = {
         {"Restauration", "#f97316"},
         {"Courses", "#22c55e"},
@@ -57,10 +60,13 @@ public class ExpenseCategoryService {
         if (expenseCategoryRepository.existsByMemberIdAndNameIgnoreCase(memberId, req.name())) {
             throw new IllegalArgumentException("A category named '" + req.name() + "' already exists");
         }
+        ExpenseCategory parent = resolveParent(req.parentId(), null, memberId);
         ExpenseCategory category = ExpenseCategory.builder()
             .member(familyMemberRepository.getReferenceById(memberId))
             .name(req.name())
             .color(req.color() != null ? req.color() : "#6366f1")
+            .type(req.type())
+            .parentId(parent != null ? parent.getId() : null)
             .build();
         return ExpenseCategoryResponse.from(expenseCategoryRepository.save(category));
     }
@@ -72,11 +78,30 @@ public class ExpenseCategoryService {
             && expenseCategoryRepository.existsByMemberIdAndNameIgnoreCase(memberId, req.name())) {
             throw new IllegalArgumentException("A category named '" + req.name() + "' already exists");
         }
+        ExpenseCategory parent = resolveParent(req.parentId(), id, memberId);
         category.setName(req.name());
         if (req.color() != null) {
             category.setColor(req.color());
         }
+        category.setType(req.type());
+        category.setParentId(parent != null ? parent.getId() : null);
         return ExpenseCategoryResponse.from(expenseCategoryRepository.save(category));
+    }
+
+    /** Validates and resolves a requested parent: must belong to the same member, must not be
+     * the category itself, and -- one level of nesting only -- must not itself have a parent.
+     * {@code selfId} is null when creating (nothing to compare against yet). */
+    private ExpenseCategory resolveParent(Long parentId, Long selfId, Long memberId) {
+        if (parentId == null) return null;
+        if (parentId.equals(selfId)) {
+            throw new IllegalArgumentException("A category cannot be its own parent");
+        }
+        ExpenseCategory parent = expenseCategoryRepository.findByIdAndMemberId(parentId, memberId)
+            .orElseThrow(() -> ResourceNotFoundException.expenseCategory(parentId));
+        if (parent.getParentId() != null) {
+            throw new IllegalArgumentException("A subcategory cannot itself have subcategories");
+        }
+        return parent;
     }
 
     @Transactional
@@ -88,7 +113,7 @@ public class ExpenseCategoryService {
     private List<ExpenseCategory> seedDefaults(Long memberId) {
         var member = familyMemberRepository.getReferenceById(memberId);
         List<ExpenseCategory> seeded = List.of(STARTER_CATEGORIES).stream()
-            .map(entry -> ExpenseCategory.builder().member(member).name(entry[0]).color(entry[1]).build())
+            .map(entry -> ExpenseCategory.builder().member(member).name(entry[0]).color(entry[1]).type(CategoryType.EXPENSE).build())
             .toList();
         return expenseCategoryRepository.saveAll(seeded);
     }

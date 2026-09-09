@@ -2,6 +2,7 @@ package com.picsou.controller;
 
 import com.picsou.dto.ExpenseCategoryRequest;
 import com.picsou.dto.ExpenseCategoryResponse;
+import com.picsou.model.CategoryType;
 import com.picsou.service.ExpenseCategoryService;
 import com.picsou.service.UserContext;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ class ExpenseCategoryControllerTest {
     @Test
     void findAll_usesMemberIdFromUserContext() {
         when(userContext.currentMemberId()).thenReturn(10L);
-        List<ExpenseCategoryResponse> expected = List.of(new ExpenseCategoryResponse(1L, "Restauration", "#f97316"));
+        List<ExpenseCategoryResponse> expected = List.of(new ExpenseCategoryResponse(1L, "Restauration", "#f97316", CategoryType.EXPENSE, null));
         when(expenseCategoryService.findAll(10L)).thenReturn(expected);
 
         List<ExpenseCategoryResponse> actual = controller.findAll();
@@ -39,8 +40,8 @@ class ExpenseCategoryControllerTest {
     @Test
     void create_delegatesWithMemberId() {
         when(userContext.currentMemberId()).thenReturn(10L);
-        ExpenseCategoryRequest req = new ExpenseCategoryRequest("Vacances", "#00ff00");
-        ExpenseCategoryResponse expected = new ExpenseCategoryResponse(2L, "Vacances", "#00ff00");
+        ExpenseCategoryRequest req = new ExpenseCategoryRequest("Vacances", "#00ff00", CategoryType.BOTH, null);
+        ExpenseCategoryResponse expected = new ExpenseCategoryResponse(2L, "Vacances", "#00ff00", CategoryType.BOTH, null);
         when(expenseCategoryService.create(req, 10L)).thenReturn(expected);
 
         ExpenseCategoryResponse actual = controller.create(req);

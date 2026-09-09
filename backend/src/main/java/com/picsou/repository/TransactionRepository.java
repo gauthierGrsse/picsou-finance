@@ -85,6 +85,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findByAccount_Member_IdAndDateBetween(Long memberId, LocalDate from, LocalDate to);
 
+    /** Every transaction of the member's with no category yet -- the pool a CategoryRule can
+     * fill in, across every account and all of history. */
+    List<Transaction> findByAccount_Member_IdAndExpenseCategoryIdIsNull(Long memberId);
+
     @Query("SELECT t FROM Transaction t WHERE t.account.member.id = :memberId "
         + "AND t.proStatus = :proStatus AND t.reimbursementStatus = :reimbursementStatus ORDER BY t.date DESC")
     List<Transaction> findByMemberAndProStatusAndReimbursementStatus(

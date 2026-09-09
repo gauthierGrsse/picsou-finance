@@ -1513,7 +1513,32 @@
     "empty": "Keine Kategorien.",
     "error": "Kategorie konnte nicht gespeichert werden",
     "deleteTitle": "Kategorie löschen?",
-    "deleteDescription": "Transaktionen in dieser Kategorie werden wieder unkategorisiert."
+    "deleteDescription": "Transaktionen in dieser Kategorie werden wieder unkategorisiert.",
+    "typeLabel": "Typ",
+    "parentLabel": "Übergeordnete Kategorie",
+    "noParent": "Keine (oberste Ebene)",
+    "type": {
+      "both": "Ausgabe & Einnahme",
+      "expense": "Ausgabe",
+      "income": "Einnahme"
+    }
+  },
+  "categoryRules": {
+    "sectionTitle": "Auto-Kategorisierungsregeln",
+    "sectionDescription": "Neue Transaktionen automatisch anhand ihrer Beschreibung klassifizieren",
+    "newRule": "Neue Regel",
+    "editRule": "Regel bearbeiten",
+    "patternLabel": "Beschreibung enthält",
+    "patternPlaceholder": "carrefour",
+    "patternHint": "Groß-/Kleinschreibung wird ignoriert, passt überall in der Beschreibung.",
+    "categoryLabel": "Kategorie",
+    "statusLabel": "Auch Status setzen (optional)",
+    "noStatusChange": "Nicht ändern",
+    "loading": "Wird geladen…",
+    "empty": "Noch keine Regeln.",
+    "error": "Regel konnte nicht gespeichert werden",
+    "deleteTitle": "Regel löschen?",
+    "deleteDescription": "Bereits klassifizierte Transaktionen behalten ihre Kategorie und ihren Status -- nur zukünftige Treffer stoppen."
   },
   "proStatus": {
     "perso": "Privat",
