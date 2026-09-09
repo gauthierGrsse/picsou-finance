@@ -54,6 +54,10 @@ vi.mock('@/features/expenseDashboard/hooks', () => ({
   useExpensePace: () => ({ data: pace, isLoading: false }),
 }))
 
+vi.mock('@/features/goals/hooks', () => ({
+  useGoals: () => ({ data: [] }),
+}))
+
 const pending: PendingReimbursements = { expenses: [], totalOwed: 0 }
 
 vi.mock('@/features/reimbursements/hooks', () => ({

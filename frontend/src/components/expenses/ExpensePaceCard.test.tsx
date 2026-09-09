@@ -16,6 +16,11 @@ vi.mock('@/features/expenseDashboard/hooks', () => ({
   useExpensePace: () => useExpensePaceMock(),
 }))
 
+const useGoalsMock = vi.fn<() => { data: { id: number; name: string }[] }>(() => ({ data: [] }))
+vi.mock('@/features/goals/hooks', () => ({
+  useGoals: () => useGoalsMock(),
+}))
+
 function pace(overrides: Partial<ExpensePaceResponse>): ExpensePaceResponse {
   return {
     dayOfMonth: 10, daysInMonth: 31, historyMonths: 3, currentMonthCumulative: 100,
@@ -30,6 +35,8 @@ function pace(overrides: Partial<ExpensePaceResponse>): ExpensePaceResponse {
 describe('ExpensePaceCard', () => {
   beforeEach(() => {
     useExpensePaceMock.mockReset()
+    useGoalsMock.mockReset()
+    useGoalsMock.mockReturnValue({ data: [] })
   })
 
   it('renders nothing while there is no data and not loading', () => {
@@ -106,5 +113,62 @@ describe('ExpensePaceCard', () => {
     render(<ExpensePaceCard />)
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('shows a daily allowance when still under the usual full-month total', () => {
+    // historicalCumulativeByDay's last point (day 31) is the usual full-month total;
+    // currentMonthCumulative is what's been spent so far -- comfortably under it here.
+    useExpensePaceMock.mockReturnValue({
+      data: pace({ currentMonthCumulative: 100, historicalCumulativeByDay: Array(31).fill(300), percentDifference: -50 }),
+      isLoading: false,
+    })
+    render(<ExpensePaceCard />)
+
+    expect(screen.getByText(/expenseDashboard\.paceAllowanceSuffix/)).toBeInTheDocument()
+    expect(screen.queryByText(/expenseDashboard\.paceOverSuffix/)).not.toBeInTheDocument()
+  })
+
+  it('shows an over-pace message instead once the usual full-month total is exceeded', () => {
+    useExpensePaceMock.mockReturnValue({
+      data: pace({ currentMonthCumulative: 400, historicalCumulativeByDay: Array(31).fill(300), percentDifference: 100 }),
+      isLoading: false,
+    })
+    render(<ExpensePaceCard />)
+
+    expect(screen.getByText(/expenseDashboard\.paceOverSuffix/)).toBeInTheDocument()
+    expect(screen.queryByText(/expenseDashboard\.paceAllowanceSuffix/)).not.toBeInTheDocument()
+  })
+
+  it('ties the current surplus to the first goal when spending less than usual so far', () => {
+    useGoalsMock.mockReturnValue({ data: [{ id: 1, name: 'Vacances' }] })
+    useExpensePaceMock.mockReturnValue({
+      data: pace({ currentMonthCumulative: 60, historicalCumulativeAverage: 100, percentDifference: -40 }),
+      isLoading: false,
+    })
+    render(<ExpensePaceCard />)
+
+    expect(screen.getByText(/expenseDashboard\.paceGoalSuffix/)).toBeInTheDocument()
+  })
+
+  it('does not show a goal tie-in when there is no goal', () => {
+    useGoalsMock.mockReturnValue({ data: [] })
+    useExpensePaceMock.mockReturnValue({
+      data: pace({ currentMonthCumulative: 60, historicalCumulativeAverage: 100, percentDifference: -40 }),
+      isLoading: false,
+    })
+    render(<ExpensePaceCard />)
+
+    expect(screen.queryByText(/expenseDashboard\.paceGoalSuffix/)).not.toBeInTheDocument()
+  })
+
+  it('does not show a goal tie-in when currently spending more than usual', () => {
+    useGoalsMock.mockReturnValue({ data: [{ id: 1, name: 'Vacances' }] })
+    useExpensePaceMock.mockReturnValue({
+      data: pace({ currentMonthCumulative: 150, historicalCumulativeAverage: 100, percentDifference: 50 }),
+      isLoading: false,
+    })
+    render(<ExpensePaceCard />)
+
+    expect(screen.queryByText(/expenseDashboard\.paceGoalSuffix/)).not.toBeInTheDocument()
   })
 })

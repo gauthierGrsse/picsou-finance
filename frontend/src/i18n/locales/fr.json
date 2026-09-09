@@ -1596,7 +1596,13 @@
     "paceNoHistory": "Pas encore assez d'historique pour comparer.",
     "paceTooltipDay": "Jour {{day}}",
     "paceTooltipCurrent": "Ce mois-ci",
-    "paceTooltipUsual": "Habituellement"
+    "paceTooltipUsual": "Habituellement",
+    "paceAllowancePrefix": "≈",
+    "paceAllowanceSuffix": "/jour pour rester dans ta moyenne habituelle",
+    "paceOverPrefix": "Déjà",
+    "paceOverSuffix": "au-dessus de ta moyenne habituelle ce mois-ci",
+    "paceGoalPrefix": "Soit",
+    "paceGoalSuffix": "de plus pour ton objectif {{goal}}"
   },
   "internalTransfers": {
     "suggestedTitle": "Virements internes suggérés",

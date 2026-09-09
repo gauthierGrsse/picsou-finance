@@ -1596,7 +1596,13 @@
     "paceNoHistory": "Not enough history yet to compare.",
     "paceTooltipDay": "Day {{day}}",
     "paceTooltipCurrent": "This month",
-    "paceTooltipUsual": "Usual"
+    "paceTooltipUsual": "Usual",
+    "paceAllowancePrefix": "≈",
+    "paceAllowanceSuffix": "/day left to stay on your usual pace",
+    "paceOverPrefix": "Already",
+    "paceOverSuffix": "over your usual pace this month",
+    "paceGoalPrefix": "That's",
+    "paceGoalSuffix": "extra toward {{goal}}"
   },
   "internalTransfers": {
     "suggestedTitle": "Suggested internal transfers",

@@ -5,7 +5,9 @@ import { Gauge } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
+import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { useExpensePace } from '@/features/expenseDashboard/hooks'
+import { useGoals } from '@/features/goals/hooks'
 import { cn, formatCurrency, formatPercent, localeFromLanguage } from '@/lib/utils'
 import type { CategoryPaceSeries, ExpensePaceResponse } from '@/types/api'
 
@@ -54,6 +56,7 @@ export function ExpensePaceCard() {
   const { t, i18n } = useTranslation()
   const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
   const { data: pace, isLoading } = useExpensePace(HISTORY_MONTHS)
+  const { data: goals } = useGoals()
   const [hoveredKey, setHoveredKey] = useState<string | null>(null)
 
   const chartData = useMemo(() => (pace ? buildChartData(pace) : []), [pace])
@@ -71,6 +74,21 @@ export function ExpensePaceCard() {
 
   const percent = pace.percentDifference
   const spendingMore = percent != null && percent > 0
+
+  // Remaining budget = the usual full month's total minus what's already gone out, spread
+  // over what's left of the month -- simple division of a known remainder, not a forward
+  // projection of spending itself (that's what the naive-linear approach got wrong).
+  const historicalFullMonthTotal = pace.historicalCumulativeByDay.at(-1) ?? 0
+  const remainingBudget = historicalFullMonthTotal - pace.currentMonthCumulative
+  const daysRemaining = Math.max(pace.daysInMonth - pace.dayOfMonth, 1)
+  const dailyAllowance = remainingBudget / daysRemaining
+
+  // Same day-of-month comparison already driving the badge above, just read as an amount --
+  // only surfaced when it's a surplus, to celebrate the win rather than pile onto the badge's
+  // already-negative framing when over pace.
+  const surplusSoFar = pace.historicalCumulativeAverage - pace.currentMonthCumulative
+  const primaryGoal = goals?.[0]
+  const showGoalTieIn = percent != null && primaryGoal != null && surplusSoFar > 0
 
   function setHovered(key: string, hovering: boolean) {
     setHoveredKey(prev => {
@@ -100,8 +118,37 @@ export function ExpensePaceCard() {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {percent == null && (
+        {percent == null ? (
           <p className="text-xs text-muted-foreground">{t('expenseDashboard.paceNoHistory')}</p>
+        ) : (
+          <div className="space-y-0.5 text-xs">
+            <p className={remainingBudget > 0 ? 'text-muted-foreground' : 'text-destructive'}>
+              {remainingBudget > 0 ? (
+                <>
+                  {t('expenseDashboard.paceAllowancePrefix')}
+                  {' '}
+                  <CurrencyDisplay value={dailyAllowance} className="font-medium text-foreground" />
+                  {t('expenseDashboard.paceAllowanceSuffix')}
+                </>
+              ) : (
+                <>
+                  {t('expenseDashboard.paceOverPrefix')}
+                  {' '}
+                  <CurrencyDisplay value={-remainingBudget} className="font-medium" />
+                  {t('expenseDashboard.paceOverSuffix')}
+                </>
+              )}
+            </p>
+            {showGoalTieIn && primaryGoal && (
+              <p className="text-muted-foreground">
+                {t('expenseDashboard.paceGoalPrefix')}
+                {' '}
+                <CurrencyDisplay value={surplusSoFar} className="font-medium text-foreground" />
+                {' '}
+                {t('expenseDashboard.paceGoalSuffix', { goal: primaryGoal.name })}
+              </p>
+            )}
+          </div>
         )}
 
         <ChartContainer config={chartConfig} className="h-[180px] w-full">
