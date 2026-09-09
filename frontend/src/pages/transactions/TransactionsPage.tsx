@@ -69,7 +69,7 @@ export function TransactionsPage() {
     if (search && !tr.description.toLowerCase().includes(search.toLowerCase())) return false
     if (hideInternal && tr.proStatus === 'VIREMENT_INTERNE') return false
     if (statusFilter !== 'all' && tr.proStatus !== statusFilter) return false
-    if (categoryFilter === 'uncategorized' && tr.expenseCategoryId !== null) return false
+    if (categoryFilter === 'uncategorized' && tr.expenseCategoryId != null) return false
     if (typeof categoryFilter === 'number' && tr.expenseCategoryId !== categoryFilter) return false
     return true
   }), [transactions, search, hideInternal, statusFilter, categoryFilter])

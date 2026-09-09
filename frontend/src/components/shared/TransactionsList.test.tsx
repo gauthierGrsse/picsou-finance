@@ -61,6 +61,15 @@ describe('TransactionsList filters', () => {
     expect(screen.queryByText('Boulangerie')).not.toBeInTheDocument()
   })
 
+  it('treats a transaction with no expenseCategoryId key as uncategorized -- the API omits null fields rather than sending null, so it arrives as undefined, not null', () => {
+    const fromApi = JSON.parse(JSON.stringify(tx({ id: 4, description: 'Depuis API', expenseCategoryId: undefined }))) as Transaction
+    render(<TransactionsList transactions={[...transactions, fromApi]} categories={[restauration]} />)
+
+    fireEvent.change(screen.getByDisplayValue('accounts.filterAllCategories'), { target: { value: 'uncategorized' } })
+
+    expect(screen.getByText('Depuis API')).toBeInTheDocument()
+  })
+
   it('shows a no-results message when filters exclude everything', () => {
     render(<TransactionsList transactions={transactions} categories={[restauration]} />)
 

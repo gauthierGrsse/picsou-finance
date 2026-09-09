@@ -16,19 +16,22 @@ vi.mock('react-router-dom', () => ({
   useSearchParams: () => [searchParams],
 }))
 
+function tx(overrides: Partial<Transaction>): Transaction {
+  return {
+    id: 1, date: '2026-08-05', description: 'tx', amount: -10, type: null, category: null,
+    nativeCurrency: 'EUR', isManual: false, txType: null, ticker: null, name: null, quantity: null,
+    pricePerUnit: null, fees: null, proStatus: 'NON_CLASSE', expenseCategoryId: null,
+    reimbursementStatus: null, reimbursementId: null, accountId: 1, accountName: 'Compte Courant',
+    ...overrides,
+  }
+}
+
 const transactions: Transaction[] = [
-  {
-    id: 1, date: '2026-08-05', description: 'Loyer', amount: -850, type: null, category: null,
-    nativeCurrency: 'EUR', isManual: false, txType: null, ticker: null, name: null, quantity: null,
-    pricePerUnit: null, fees: null, proStatus: 'PERSO', expenseCategoryId: 1,
-    reimbursementStatus: null, reimbursementId: null, accountId: 1, accountName: 'Compte Courant',
-  },
-  {
-    id: 2, date: '2026-08-06', description: 'Virement interne', amount: -50, type: null, category: null,
-    nativeCurrency: 'EUR', isManual: false, txType: null, ticker: null, name: null, quantity: null,
-    pricePerUnit: null, fees: null, proStatus: 'VIREMENT_INTERNE', expenseCategoryId: null,
-    reimbursementStatus: null, reimbursementId: null, accountId: 1, accountName: 'Compte Courant',
-  },
+  tx({ id: 1, date: '2026-08-05', description: 'Loyer', amount: -850, proStatus: 'PERSO', expenseCategoryId: 1 }),
+  tx({ id: 2, date: '2026-08-06', description: 'Virement interne', amount: -50, proStatus: 'VIREMENT_INTERNE', expenseCategoryId: null }),
+  // Simulates what the API actually sends: null fields are omitted from the JSON entirely
+  // (default-property-inclusion: non_null), so this key is genuinely absent, not null.
+  JSON.parse(JSON.stringify(tx({ id: 3, date: '2026-08-07', description: 'Depuis API', amount: -20, expenseCategoryId: undefined }))) as Transaction,
 ]
 
 const categories: ExpenseCategory[] = [{ id: 1, name: 'Logement', color: '#3b82f6' }]
@@ -59,6 +62,7 @@ describe('TransactionsPage', () => {
     expect(useAllTransactions).toHaveBeenLastCalledWith(`${month}-01`, expect.stringContaining(month))
     expect(screen.getByText('Loyer')).toBeInTheDocument()
     expect(screen.getByText('Virement interne')).toBeInTheDocument()
+    expect(screen.getByText('Depuis API')).toBeInTheDocument()
   })
 
   it('preselects filters from URL search params, as a slice-click deep link would', () => {
@@ -67,6 +71,15 @@ describe('TransactionsPage', () => {
 
     expect(screen.getByText('Loyer')).toBeInTheDocument()
     expect(screen.queryByText('Virement interne')).not.toBeInTheDocument()
+  })
+
+  it('deep-links to the uncategorized filter and includes transactions the API sent with no expenseCategoryId key at all', () => {
+    searchParams = new URLSearchParams({ category: 'uncategorized', mode: 'month', month: '2026-08' })
+    render(<TransactionsPage />)
+
+    expect(screen.getByText('Virement interne')).toBeInTheDocument()
+    expect(screen.getByText('Depuis API')).toBeInTheDocument()
+    expect(screen.queryByText('Loyer')).not.toBeInTheDocument()
   })
 
   it('preselects a year period from URL search params', () => {
