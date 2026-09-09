@@ -100,7 +100,9 @@ export function AllTransactionsList({ transactions, categories }: AllTransaction
         },
       })
     }
-    setSelectedIds(new Set())
+    // Selection stays put -- setting the status and the category is two separate menu
+    // picks, and clearing after the first meant re-selecting the same rows to do the
+    // second. The floating pill's X still clears it explicitly.
   }
 
   if (transactions.length === 0) {

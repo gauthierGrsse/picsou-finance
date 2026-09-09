@@ -117,6 +117,36 @@ describe('AllTransactionsList', () => {
     expect(quickClassifyMutate).toHaveBeenCalledTimes(3)
   })
 
+  it('keeps the selection after a bulk classify, so a second pick (e.g. category after status) doesn\'t need reselecting', () => {
+    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316' }]
+    const transactions: Transaction[] = [
+      tx({ id: 1, date: '2026-01-05', description: 'A', accountId: 1, accountName: 'Compte' }),
+      tx({ id: 2, date: '2026-01-04', description: 'B', accountId: 1, accountName: 'Compte' }),
+    ]
+
+    render(<AllTransactionsList transactions={transactions} categories={categories} />)
+
+    fireEvent.click(screen.getByText('A'))
+    fireEvent.click(screen.getByText('B'), { shiftKey: true })
+
+    fireEvent.contextMenu(screen.getByText('A'))
+    fireEvent.click(screen.getByText('classification.statusLabel'))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'proStatus.perso' }))
+
+    // Still selected -- not cleared by the classify above -- so the same two rows are
+    // the targets of a second, different classify without reselecting them.
+    expect(screen.getByText('classification.selectedCount')).toBeInTheDocument()
+    quickClassifyMutate.mockClear()
+
+    fireEvent.contextMenu(screen.getByText('A'))
+    fireEvent.click(screen.getByText('classification.categoryLabel'))
+    fireEvent.click(screen.getByText('Restauration'))
+
+    expect(quickClassifyMutate).toHaveBeenCalledWith(expect.objectContaining({ txId: 1, data: expect.objectContaining({ expenseCategoryId: 1 }) }))
+    expect(quickClassifyMutate).toHaveBeenCalledWith(expect.objectContaining({ txId: 2, data: expect.objectContaining({ expenseCategoryId: 1 }) }))
+    expect(quickClassifyMutate).toHaveBeenCalledTimes(2)
+  })
+
   it('ctrl/cmd-clicking toggles a single row in and out of the selection without clearing the rest', () => {
     const transactions: Transaction[] = [
       tx({ id: 1, description: 'A', accountId: 1, accountName: 'Compte' }),
