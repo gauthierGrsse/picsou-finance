@@ -1556,7 +1556,8 @@
     "statusLabel": "Statut",
     "categoryLabel": "Catégorie",
     "noCategory": "Aucune catégorie",
-    "selectedCount": "{{count}} transactions sélectionnées"
+    "selectedCount": "{{count}} transactions sélectionnées",
+    "unusualAmount": "Montant inhabituel pour cette catégorie"
   },
   "reimbursements": {
     "linkTitle": "Lier un remboursement",
@@ -1577,6 +1578,7 @@
     "categoryBreakdownTitle": "Dépenses par catégorie",
     "categoryBreakdownIncomeTitle": "Revenus par catégorie",
     "noExpenses": "Aucune dépense sur cette période.",
+    "monthRanking": "N°{{rank}} sur tes {{outOf}} derniers mois côté dépenses",
     "uncategorized": "Non catégorisé",
     "totalPeriodLabel": "Total ce mois-ci",
     "totalPeriodYearLabel": "Total cette année",

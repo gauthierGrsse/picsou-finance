@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X } from 'lucide-react'
+import { TriangleAlert, X } from 'lucide-react'
 import type { ExpenseCategory, Transaction } from '@/types/api'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { ExpenseCategoryBadge } from '@/components/shared/ExpenseCategoryBadge'
@@ -16,6 +16,11 @@ import { useUnlinkTransfer } from '@/features/internalTransfers/hooks'
 interface AllTransactionsListProps {
   transactions: Transaction[]
   categories: ExpenseCategory[]
+  /** categoryId -> amount above which a single expense in that category is flagged as
+   * unusually large (half the category's historical monthly average -- see
+   * TransactionsPage). Omit to show no flags at all, e.g. when browsing a period the
+   * threshold data doesn't apply to. */
+  unusualThresholds?: Map<number, number>
 }
 
 /** Cross-account transaction list for the global transactions page -- each row carries its
@@ -25,7 +30,7 @@ interface AllTransactionsListProps {
  * then right-click any selected row to classify all of them at once. Internal-transfer rows
  * are never selectable: bulk-setting a status across a pair would desync it from its match,
  * the same reasoning TransactionContextMenu already applies to a single such row. */
-export function AllTransactionsList({ transactions, categories }: AllTransactionsListProps) {
+export function AllTransactionsList({ transactions, categories, unusualThresholds }: AllTransactionsListProps) {
   const { t, i18n } = useTranslation()
   const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
   const quickClassify = useQuickClassifyTransaction()
@@ -151,6 +156,8 @@ export function AllTransactionsList({ transactions, categories }: AllTransaction
               <div className="space-y-0.5">
                 {grouped[date].map((tr, rowIdx) => {
                   const isSelected = visibleSelectedIds.has(tr.id)
+                  const threshold = tr.expenseCategoryId != null ? unusualThresholds?.get(tr.expenseCategoryId) : undefined
+                  const isUnusual = threshold != null && Math.abs(tr.amount) > threshold
                   const row = (
                     <div
                       onClick={(e) => handleRowClick(e, tr)}
@@ -172,13 +179,19 @@ export function AllTransactionsList({ transactions, categories }: AllTransaction
                         )}
                         {tr.proStatus !== 'NON_CLASSE' && <ProStatusBadge status={tr.proStatus} />}
                         <ExpenseCategoryBadge categoryId={tr.expenseCategoryId} categories={categories} />
+                        {isUnusual && (
+                          <TriangleAlert
+                            className="size-3.5 shrink-0 text-amber-500"
+                            aria-label={t('classification.unusualAmount')}
+                          />
+                        )}
                       </div>
                       <CurrencyDisplay
                         value={tr.amount}
                         currency={tr.nativeCurrency}
                         className={cn(
                           'ml-4 shrink-0 text-base font-semibold tabular-nums',
-                          tr.amount >= 0 ? 'text-emerald-500' : 'text-foreground',
+                          tr.amount >= 0 ? 'text-emerald-500' : isUnusual ? 'text-amber-600 dark:text-amber-400' : 'text-foreground',
                         )}
                       />
                     </div>

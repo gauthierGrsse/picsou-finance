@@ -1556,7 +1556,8 @@
     "statusLabel": "Estado",
     "categoryLabel": "Categoría",
     "noCategory": "Sin categoría",
-    "selectedCount": "{{count}} transacciones seleccionadas"
+    "selectedCount": "{{count}} transacciones seleccionadas",
+    "unusualAmount": "Inusualmente alto para esta categoría"
   },
   "reimbursements": {
     "linkTitle": "Vincular un reembolso",
@@ -1577,6 +1578,7 @@
     "categoryBreakdownTitle": "Gastos por categoría",
     "categoryBreakdownIncomeTitle": "Ingresos por categoría",
     "noExpenses": "Sin gastos en este período.",
+    "monthRanking": "Número {{rank}} de tus últimos {{outOf}} meses en gastos",
     "uncategorized": "Sin categorizar",
     "totalPeriodLabel": "Total este mes",
     "totalPeriodYearLabel": "Total este año",

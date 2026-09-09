@@ -1556,7 +1556,8 @@
     "statusLabel": "Status",
     "categoryLabel": "Kategorie",
     "noCategory": "Keine Kategorie",
-    "selectedCount": "{{count}} Transaktionen ausgewählt"
+    "selectedCount": "{{count}} Transaktionen ausgewählt",
+    "unusualAmount": "Ungewöhnlich hoch für diese Kategorie"
   },
   "reimbursements": {
     "linkTitle": "Erstattung verknüpfen",
@@ -1577,6 +1578,7 @@
     "categoryBreakdownTitle": "Ausgaben nach Kategorie",
     "categoryBreakdownIncomeTitle": "Einnahmen nach Kategorie",
     "noExpenses": "Keine Ausgaben in diesem Zeitraum.",
+    "monthRanking": "Nummer {{rank}} deiner letzten {{outOf}} Monate beim Ausgeben",
     "uncategorized": "Nicht kategorisiert",
     "totalPeriodLabel": "Gesamt diesen Monat",
     "totalPeriodYearLabel": "Gesamt dieses Jahr",

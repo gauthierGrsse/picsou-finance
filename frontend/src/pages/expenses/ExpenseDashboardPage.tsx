@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { Trophy } from 'lucide-react'
 import { useExpenseDashboard } from '@/features/expenseDashboard/hooks'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton'
@@ -13,7 +14,7 @@ import { SuggestedTransfersCard } from '@/components/expenses/SuggestedTransfers
 import { PeriodSelector, type PeriodMode } from '@/components/expenses/PeriodSelector'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import type { ProStatus } from '@/types/api'
+import type { MonthlyExpenseTotal, ProStatus } from '@/types/api'
 
 const MONTH_MODE_EVOLUTION_MONTHS = 6
 const YEAR_OPTIONS_BACK = 5
@@ -27,6 +28,18 @@ function currentMonthValue() {
 function lastDayOfMonth(monthValue: string) {
   const [y, m] = monthValue.split('-').map(Number)
   return new Date(y, m, 0).getDate()
+}
+
+/** Ranks the most recently *completed* month (never the in-progress current month, and
+ * never a future placeholder) among the other fully-completed months in the trailing
+ * evolution window -- lower total = better rank. Needs at least 3 completed months to
+ * be a meaningful comparison. */
+function rankMostRecentCompletedMonth(monthlyEvolution: MonthlyExpenseTotal[]) {
+  const completed = monthlyEvolution.filter(m => m.yearMonth < currentMonthValue())
+  if (completed.length < 3) return null
+  const target = completed[completed.length - 1]
+  const rank = [...completed].sort((a, b) => a.total - b.total).findIndex(m => m.yearMonth === target.yearMonth) + 1
+  return { rank, outOf: completed.length, yearMonth: target.yearMonth }
 }
 
 export function ExpenseDashboardPage() {
@@ -61,6 +74,13 @@ export function ExpenseDashboardPage() {
     () => ((view === 'income' ? incomeData : expenseData)?.categoryBreakdown ?? []).reduce((sum, item) => sum + item.total, 0),
     [expenseData, incomeData, view],
   )
+
+  // Only in month mode, expense side: a full-year window mixes in not-yet-happened months
+  // (zero-filled, not genuinely low-spend), and the ranking is about spending, not income.
+  const monthRanking = mode === 'month' && view === 'expense' && expenseData
+    ? rankMostRecentCompletedMonth(expenseData.monthlyEvolution)
+    : null
+  const showMonthRanking = monthRanking != null && monthRanking.rank <= Math.ceil(monthRanking.outOf / 2)
 
   function goToFilteredTransactions(slice: { categoryId: number | null; proStatus: ProStatus }) {
     const params = new URLSearchParams({ status: slice.proStatus })
@@ -129,6 +149,12 @@ export function ExpenseDashboardPage() {
                 <span className="text-muted-foreground">{t('expenseDashboard.totalProAbsorbeLabel')}:</span>
                 <CurrencyDisplay value={data.totalProAbsorbe} />
               </div>
+            )}
+            {showMonthRanking && monthRanking && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Trophy className="size-3.5 shrink-0 text-amber-500" />
+                {t('expenseDashboard.monthRanking', { rank: monthRanking.rank, outOf: monthRanking.outOf })}
+              </p>
             )}
           </CardContent>
         </Card>

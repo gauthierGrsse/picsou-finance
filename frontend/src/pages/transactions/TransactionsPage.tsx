@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { useAllTransactions } from '@/features/transactions/hooks'
 import { useExpenseCategories } from '@/features/expenseCategories/hooks'
+import { useExpensePace } from '@/features/expenseDashboard/hooks'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton'
 import { PeriodSelector, type PeriodMode } from '@/components/expenses/PeriodSelector'
@@ -64,6 +65,23 @@ export function TransactionsPage() {
 
   const { data: transactions, isLoading } = useAllTransactions(periodStart, periodEnd)
   const { data: categories } = useExpenseCategories()
+
+  // Half a category's historical monthly average, in € -- a single expense past that is
+  // flagged as unusually large. Only meaningful for the current, in-progress month (the
+  // pace endpoint is scoped to "today"), so it's a no-op (empty map, no flags) for any
+  // other period being browsed.
+  const isCurrentMonth = mode === 'month' && month === currentMonthValue()
+  const { data: pace } = useExpensePace(3)
+  const unusualThresholds = useMemo(() => {
+    const map = new Map<number, number>()
+    if (!isCurrentMonth || !pace) return map
+    for (const series of pace.categorySeries) {
+      if (series.categoryId == null) continue
+      const historicalAverage = series.historicalCumulativeByDay.at(-1) ?? 0
+      if (historicalAverage > 0) map.set(series.categoryId, historicalAverage * 0.5)
+    }
+    return map
+  }, [isCurrentMonth, pace])
 
   const filtered = useMemo(() => (transactions ?? []).filter(tr => {
     if (search && !tr.description.toLowerCase().includes(search.toLowerCase())) return false
@@ -135,7 +153,7 @@ export function TransactionsPage() {
         </CardContent>
       </Card>
 
-      <AllTransactionsList transactions={filtered} categories={categories ?? []} />
+      <AllTransactionsList transactions={filtered} categories={categories ?? []} unusualThresholds={unusualThresholds} />
     </div>
   )
 }

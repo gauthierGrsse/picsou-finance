@@ -39,8 +39,11 @@ const incomeDashboard: ExpenseDashboardResponse = {
   totalProAbsorbe: 0,
 }
 
+const defaultDashboardImpl = (_months: number, _periodStart: string, _periodEnd: string, income: boolean) =>
+  ({ data: income ? incomeDashboard : expenseDashboard, isLoading: false })
+
 const useExpenseDashboard = vi.fn<(months: number, periodStart: string, periodEnd: string, income: boolean) => { data: ExpenseDashboardResponse; isLoading: boolean }>(
-  (_months, _periodStart, _periodEnd, income) => ({ data: income ? incomeDashboard : expenseDashboard, isLoading: false }),
+  defaultDashboardImpl,
 )
 
 const pace: ExpensePaceResponse = {
@@ -141,6 +144,50 @@ describe('ExpenseDashboardPage', () => {
 
     fireEvent.click(screen.getByText('expenseDashboard.period.year'))
     expect(screen.queryByText('expenseDashboard.paceTitle')).not.toBeInTheDocument()
+  })
+
+  it('shows a best-month ranking badge when the most recent completed month ranks in the top half', () => {
+    const rankingDashboard: ExpenseDashboardResponse = {
+      monthlyEvolution: [
+        { yearMonth: '2026-01', total: 900 },
+        { yearMonth: '2026-02', total: 800 },
+        { yearMonth: '2026-03', total: 700 },
+        { yearMonth: '2026-04', total: 600 },
+        { yearMonth: '2026-05', total: 500 },
+        { yearMonth: '2026-06', total: 100 }, // most recent completed month, lowest of all 6 -> rank 1
+      ],
+      categoryBreakdown: [],
+      totalProAbsorbe: 0,
+    }
+    useExpenseDashboard.mockImplementation((_m, _s, _e, income) => ({ data: income ? incomeDashboard : rankingDashboard, isLoading: false }))
+
+    render(<ExpenseDashboardPage />)
+
+    expect(screen.getByText(/expenseDashboard\.monthRanking/)).toBeInTheDocument()
+
+    useExpenseDashboard.mockImplementation(defaultDashboardImpl)
+  })
+
+  it('hides the ranking badge when the most recent completed month ranks in the bottom half', () => {
+    const rankingDashboard: ExpenseDashboardResponse = {
+      monthlyEvolution: [
+        { yearMonth: '2026-01', total: 100 },
+        { yearMonth: '2026-02', total: 200 },
+        { yearMonth: '2026-03', total: 300 },
+        { yearMonth: '2026-04', total: 400 },
+        { yearMonth: '2026-05', total: 500 },
+        { yearMonth: '2026-06', total: 900 }, // most recent completed month, highest of all 6 -> worst rank
+      ],
+      categoryBreakdown: [],
+      totalProAbsorbe: 0,
+    }
+    useExpenseDashboard.mockImplementation((_m, _s, _e, income) => ({ data: income ? incomeDashboard : rankingDashboard, isLoading: false }))
+
+    render(<ExpenseDashboardPage />)
+
+    expect(screen.queryByText(/expenseDashboard\.monthRanking/)).not.toBeInTheDocument()
+
+    useExpenseDashboard.mockImplementation(defaultDashboardImpl)
   })
 
   it('navigates to the filtered transactions page when a breakdown row is clicked', () => {

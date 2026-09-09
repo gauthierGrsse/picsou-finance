@@ -201,4 +201,39 @@ describe('AllTransactionsList', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getAllByText('Vers Compte Titre').length).toBeGreaterThan(0)
   })
+
+  it('flags a transaction over its category\'s unusual-amount threshold', () => {
+    const transactions: Transaction[] = [
+      tx({ id: 1, description: 'Gros restaurant', amount: -120, expenseCategoryId: 1 }),
+      tx({ id: 2, description: 'Petit resto', amount: -15, expenseCategoryId: 1 }),
+    ]
+
+    render(
+      <AllTransactionsList
+        transactions={transactions}
+        categories={[]}
+        unusualThresholds={new Map([[1, 100]])}
+      />,
+    )
+
+    expect(screen.getByLabelText('classification.unusualAmount')).toBeInTheDocument()
+    expect(screen.getByText('-€120.00')).toHaveClass('text-amber-600')
+  })
+
+  it('does not flag a transaction under the threshold, or one with no threshold set for its category', () => {
+    const transactions: Transaction[] = [
+      tx({ id: 1, description: 'Petit resto', amount: -15, expenseCategoryId: 1 }),
+      tx({ id: 2, description: 'Sans seuil', amount: -500, expenseCategoryId: 2 }),
+    ]
+
+    render(
+      <AllTransactionsList
+        transactions={transactions}
+        categories={[]}
+        unusualThresholds={new Map([[1, 100]])}
+      />,
+    )
+
+    expect(screen.queryByLabelText('classification.unusualAmount')).not.toBeInTheDocument()
+  })
 })

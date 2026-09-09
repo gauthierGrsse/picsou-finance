@@ -1556,7 +1556,8 @@
     "statusLabel": "Status",
     "categoryLabel": "Category",
     "noCategory": "No category",
-    "selectedCount": "{{count}} transactions selected"
+    "selectedCount": "{{count}} transactions selected",
+    "unusualAmount": "Unusually large for this category"
   },
   "reimbursements": {
     "linkTitle": "Link a reimbursement",
@@ -1577,6 +1578,7 @@
     "categoryBreakdownTitle": "Expenses by category",
     "categoryBreakdownIncomeTitle": "Income by category",
     "noExpenses": "No expenses for this period.",
+    "monthRanking": "Number {{rank}} out of your last {{outOf}} months for spending",
     "uncategorized": "Uncategorized",
     "totalPeriodLabel": "Total this month",
     "totalPeriodYearLabel": "Total this year",

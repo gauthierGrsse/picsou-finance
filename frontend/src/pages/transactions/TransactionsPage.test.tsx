@@ -52,6 +52,10 @@ vi.mock('@/features/expenseCategories/hooks', () => ({
   useExpenseCategories: () => ({ data: categories }),
 }))
 
+vi.mock('@/features/expenseDashboard/hooks', () => ({
+  useExpensePace: () => ({ data: undefined, isLoading: false }),
+}))
+
 describe('TransactionsPage', () => {
   it('defaults to the current month and shows every transaction', () => {
     searchParams = new URLSearchParams()
