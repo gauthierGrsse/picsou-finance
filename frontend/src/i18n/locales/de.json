@@ -1557,7 +1557,7 @@
     "categoryLabel": "Kategorie",
     "noCategory": "Keine Kategorie",
     "selectedCount": "{{count}} Transaktionen ausgewählt",
-    "unusualAmount": "Ungewöhnlich hoch für diese Kategorie"
+    "unusualAmount": "Diese Ausgabe übersteigt die Hälfte dessen, was du sonst in einem ganzen Monat in dieser Kategorie ausgibst"
   },
   "recurring": {
     "title": "Abos & Wiederkehrende",

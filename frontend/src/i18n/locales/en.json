@@ -1557,7 +1557,7 @@
     "categoryLabel": "Category",
     "noCategory": "No category",
     "selectedCount": "{{count}} transactions selected",
-    "unusualAmount": "Unusually large for this category"
+    "unusualAmount": "This expense is over half of what you usually spend in this category in a whole month"
   },
   "recurring": {
     "title": "Subscriptions & recurring",

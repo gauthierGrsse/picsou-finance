@@ -1557,7 +1557,7 @@
     "categoryLabel": "Catégorie",
     "noCategory": "Aucune catégorie",
     "selectedCount": "{{count}} transactions sélectionnées",
-    "unusualAmount": "Montant inhabituel pour cette catégorie"
+    "unusualAmount": "Cette dépense dépasse la moitié de ce que tu dépenses d'habitude sur ce poste en un mois entier"
   },
   "recurring": {
     "title": "Abonnements & récurrents",

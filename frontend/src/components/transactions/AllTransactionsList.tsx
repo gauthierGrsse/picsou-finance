@@ -9,6 +9,7 @@ import { TransactionContextMenu, type QuickClassifyChange } from '@/components/s
 import { InternalTransferLinkModal } from '@/components/shared/InternalTransferLinkModal'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn, localeFromLanguage } from '@/lib/utils'
 import { useQuickClassifyTransaction } from '@/features/transactions/hooks'
 import { useUnlinkTransfer } from '@/features/internalTransfers/hooks'
@@ -180,10 +181,16 @@ export function AllTransactionsList({ transactions, categories, unusualThreshold
                         {tr.proStatus !== 'NON_CLASSE' && <ProStatusBadge status={tr.proStatus} />}
                         <ExpenseCategoryBadge categoryId={tr.expenseCategoryId} categories={categories} />
                         {isUnusual && (
-                          <TriangleAlert
-                            className="size-3.5 shrink-0 text-amber-500"
-                            aria-label={t('classification.unusualAmount')}
-                          />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span role="img" aria-label={t('classification.unusualAmount')} className="shrink-0 leading-none">
+                                  <TriangleAlert className="size-3.5 text-amber-500" aria-hidden="true" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-56">{t('classification.unusualAmount')}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                       </div>
                       <CurrencyDisplay
