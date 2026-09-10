@@ -806,6 +806,20 @@ export interface CategoryRuleRequest {
   proStatus: ProStatus | null
 }
 
+/** A high-confidence rule the member could adopt in one click -- the substring `pattern`
+ * shows up on transactions already, repeatedly, filed under `expenseCategoryId`.
+ * matchingCategorized backs the guess; matchingUncategorized is how many uncategorized
+ * transactions the rule would tag right away. */
+export interface CategoryRuleSuggestion {
+  pattern: string
+  expenseCategoryId: number
+  categoryName: string
+  categoryColor: string
+  matchingCategorized: number
+  matchingUncategorized: number
+  dominantSharePercent: number
+}
+
 export interface TransactionClassificationRequest {
   proStatus: ProStatus
   expenseCategoryId: number | null

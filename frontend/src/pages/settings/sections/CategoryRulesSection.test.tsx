@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { CategoryRulesSection } from './CategoryRulesSection'
-import type { CategoryRule, ExpenseCategory } from '@/types/api'
+import type { CategoryRule, CategoryRuleSuggestion, ExpenseCategory } from '@/types/api'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -22,12 +22,16 @@ const rules: CategoryRule[] = [
 const createMutate = vi.fn()
 const updateMutate = vi.fn()
 const deleteMutate = vi.fn()
+const dismissMutate = vi.fn()
+const suggestionsMock = vi.fn<() => { data: CategoryRuleSuggestion[] }>(() => ({ data: [] }))
 
 vi.mock('@/features/categoryRules/hooks', () => ({
   useCategoryRules: () => ({ data: rules, isLoading: false }),
   useCreateCategoryRule: () => ({ mutate: createMutate, reset: vi.fn(), isPending: false, isError: false }),
   useUpdateCategoryRule: () => ({ mutate: updateMutate, reset: vi.fn(), isPending: false, isError: false }),
   useDeleteCategoryRule: () => ({ mutate: deleteMutate, reset: vi.fn(), isPending: false, isError: false }),
+  useCategoryRuleSuggestions: () => suggestionsMock(),
+  useDismissCategoryRuleSuggestion: () => ({ mutate: dismissMutate, isPending: false }),
 }))
 
 vi.mock('@/features/expenseCategories/hooks', () => ({
@@ -39,6 +43,8 @@ describe('CategoryRulesSection', () => {
     createMutate.mockClear()
     updateMutate.mockClear()
     deleteMutate.mockClear()
+    dismissMutate.mockClear()
+    suggestionsMock.mockReturnValue({ data: [] })
   })
 
   it('lists existing rules with their pattern and target category', () => {
@@ -89,5 +95,33 @@ describe('CategoryRulesSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.delete' }))
 
     await waitFor(() => expect(deleteMutate).toHaveBeenCalledWith(10, expect.anything()))
+  })
+
+  it('shows no suggestions block when there are none', () => {
+    render(<CategoryRulesSection />)
+    expect(screen.queryByText('categoryRules.suggestionsTitle')).not.toBeInTheDocument()
+  })
+
+  it('accepting a suggestion creates the rule with its pattern and category', () => {
+    suggestionsMock.mockReturnValue({
+      data: [{ pattern: 'sncf', expenseCategoryId: 1, categoryName: 'Courses', categoryColor: '#22c55e', matchingCategorized: 5, matchingUncategorized: 2, dominantSharePercent: 100 }],
+    })
+    render(<CategoryRulesSection />)
+
+    expect(screen.getByText('categoryRules.suggestionsTitle')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /categoryRules\.suggestionAccept/ }))
+
+    expect(createMutate).toHaveBeenCalledWith({ pattern: 'sncf', expenseCategoryId: 1, proStatus: null })
+  })
+
+  it('dismissing a suggestion calls the dismiss mutation with its pattern', () => {
+    suggestionsMock.mockReturnValue({
+      data: [{ pattern: 'sncf', expenseCategoryId: 1, categoryName: 'Courses', categoryColor: '#22c55e', matchingCategorized: 5, matchingUncategorized: 0, dominantSharePercent: 100 }],
+    })
+    render(<CategoryRulesSection />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'categoryRules.suggestionDismiss' }))
+
+    expect(dismissMutate).toHaveBeenCalledWith('sncf')
   })
 })

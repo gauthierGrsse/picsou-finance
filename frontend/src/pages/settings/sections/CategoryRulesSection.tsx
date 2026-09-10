@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Sparkles, Check, X } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,11 @@ import {
   useCreateCategoryRule,
   useUpdateCategoryRule,
   useDeleteCategoryRule,
+  useCategoryRuleSuggestions,
+  useDismissCategoryRuleSuggestion,
 } from '@/features/categoryRules/hooks'
 import { useExpenseCategories } from '@/features/expenseCategories/hooks'
-import type { CategoryRule, ProStatus } from '@/types/api'
+import type { CategoryRule, CategoryRuleSuggestion, ProStatus } from '@/types/api'
 
 const selectClassName = "flex h-10 items-center rounded-xl border border-input bg-background text-foreground px-3 text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]"
 
@@ -34,9 +36,15 @@ export function CategoryRulesSection() {
   const { t } = useTranslation()
   const { data: rules, isLoading } = useCategoryRules()
   const { data: categories } = useExpenseCategories()
+  const { data: suggestions } = useCategoryRuleSuggestions()
   const createRule = useCreateCategoryRule()
   const updateRule = useUpdateCategoryRule()
   const deleteRule = useDeleteCategoryRule()
+  const dismissSuggestion = useDismissCategoryRuleSuggestion()
+
+  function acceptSuggestion(s: CategoryRuleSuggestion) {
+    createRule.mutate({ pattern: s.pattern, expenseCategoryId: s.expenseCategoryId, proStatus: null })
+  }
 
   const [editing, setEditing] = useState<CategoryRule | 'new' | null>(null)
   const [pattern, setPattern] = useState('')
@@ -88,6 +96,45 @@ export function CategoryRulesSection() {
           {t('categoryRules.newRule')}
         </Button>
       </div>
+
+      {suggestions && suggestions.length > 0 && (
+        <div className="space-y-2 rounded-lg border border-dashed p-3">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+            <Sparkles className="size-4" />
+            {t('categoryRules.suggestionsTitle')}
+          </p>
+          {suggestions.map(s => (
+            <div key={s.pattern} className="flex items-center justify-between gap-3 text-sm">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <span className="truncate rounded-md bg-muted px-1.5 py-0.5 font-mono">{s.pattern}</span>
+                <span className="shrink-0 text-muted-foreground">→</span>
+                <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: s.categoryColor }} />
+                <span className="font-medium">{s.categoryName}</span>
+                <span className="text-xs text-muted-foreground">
+                  {t('categoryRules.suggestionBasis', { count: s.matchingCategorized })}
+                  {s.matchingUncategorized > 0 && ` · ${t('categoryRules.suggestionWouldCatch', { count: s.matchingUncategorized })}`}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button size="sm" variant="outline" disabled={createRule.isPending} onClick={() => acceptSuggestion(s)}>
+                  <Check className="mr-1 size-3.5" />
+                  {t('categoryRules.suggestionAccept')}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label={t('categoryRules.suggestionDismiss')}
+                  disabled={dismissSuggestion.isPending}
+                  onClick={() => dismissSuggestion.mutate(s.pattern)}
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">{t('categoryRules.loading')}</p>

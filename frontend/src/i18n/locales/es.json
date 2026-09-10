@@ -1542,7 +1542,12 @@
     "empty": "Aún no hay reglas.",
     "error": "No se pudo guardar la regla",
     "deleteTitle": "¿Eliminar esta regla?",
-    "deleteDescription": "Las transacciones ya clasificadas conservan su categoría y estado -- solo se detienen las coincidencias futuras."
+    "deleteDescription": "Las transacciones ya clasificadas conservan su categoría y estado -- solo se detienen las coincidencias futuras.",
+    "suggestionsTitle": "Reglas sugeridas",
+    "suggestionBasis": "según {{count}} transacciones",
+    "suggestionWouldCatch": "{{count}} sin categorizar",
+    "suggestionAccept": "Añadir",
+    "suggestionDismiss": "Descartar"
   },
   "proStatus": {
     "perso": "Personal",

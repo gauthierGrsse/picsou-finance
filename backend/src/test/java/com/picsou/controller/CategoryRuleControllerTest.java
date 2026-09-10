@@ -2,8 +2,11 @@ package com.picsou.controller;
 
 import com.picsou.dto.CategoryRuleRequest;
 import com.picsou.dto.CategoryRuleResponse;
+import com.picsou.dto.CategoryRuleSuggestionResponse;
+import com.picsou.dto.DismissSuggestionRequest;
 import com.picsou.model.ProStatus;
 import com.picsou.service.CategoryRuleService;
+import com.picsou.service.CategoryRuleSuggestionService;
 import com.picsou.service.UserContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +24,7 @@ import static org.mockito.Mockito.when;
 class CategoryRuleControllerTest {
 
     @Mock CategoryRuleService categoryRuleService;
+    @Mock CategoryRuleSuggestionService categoryRuleSuggestionService;
     @Mock UserContext userContext;
 
     @InjectMocks CategoryRuleController controller;
@@ -55,5 +59,24 @@ class CategoryRuleControllerTest {
         controller.delete(3L);
 
         verify(categoryRuleService).delete(3L, 10L);
+    }
+
+    @Test
+    void getSuggestions_usesMemberIdFromUserContext() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+        List<CategoryRuleSuggestionResponse> expected = List.of(
+            new CategoryRuleSuggestionResponse("carrefour", 1L, "Courses", "#22c55e", 6, 3, 100));
+        when(categoryRuleSuggestionService.getSuggestions(10L)).thenReturn(expected);
+
+        assertThat(controller.getSuggestions()).isSameAs(expected);
+    }
+
+    @Test
+    void dismissSuggestion_delegatesWithMemberIdAndPattern() {
+        when(userContext.currentMemberId()).thenReturn(10L);
+
+        controller.dismissSuggestion(new DismissSuggestionRequest("carrefour"));
+
+        verify(categoryRuleSuggestionService).dismiss(10L, "carrefour");
     }
 }

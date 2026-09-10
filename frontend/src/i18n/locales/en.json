@@ -1542,7 +1542,12 @@
     "empty": "No rules yet.",
     "error": "Could not save the rule",
     "deleteTitle": "Delete rule?",
-    "deleteDescription": "Transactions it already classified keep their category and status -- only future matches stop."
+    "deleteDescription": "Transactions it already classified keep their category and status -- only future matches stop.",
+    "suggestionsTitle": "Suggested rules",
+    "suggestionBasis": "based on {{count}} transactions",
+    "suggestionWouldCatch": "{{count}} uncategorized",
+    "suggestionAccept": "Add",
+    "suggestionDismiss": "Dismiss"
   },
   "proStatus": {
     "perso": "Personal",

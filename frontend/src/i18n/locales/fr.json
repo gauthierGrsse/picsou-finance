@@ -1542,7 +1542,12 @@
     "empty": "Aucune règle pour le moment.",
     "error": "Impossible d'enregistrer la règle",
     "deleteTitle": "Supprimer cette règle ?",
-    "deleteDescription": "Les transactions déjà classées gardent leur catégorie et leur statut -- seules les prochaines correspondances s'arrêtent."
+    "deleteDescription": "Les transactions déjà classées gardent leur catégorie et leur statut -- seules les prochaines correspondances s'arrêtent.",
+    "suggestionsTitle": "Règles suggérées",
+    "suggestionBasis": "d'après {{count}} transactions",
+    "suggestionWouldCatch": "{{count}} non catégorisées",
+    "suggestionAccept": "Ajouter",
+    "suggestionDismiss": "Ignorer"
   },
   "proStatus": {
     "perso": "Personnel",

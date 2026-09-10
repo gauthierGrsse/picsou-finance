@@ -1542,7 +1542,12 @@
     "empty": "Noch keine Regeln.",
     "error": "Regel konnte nicht gespeichert werden",
     "deleteTitle": "Regel löschen?",
-    "deleteDescription": "Bereits klassifizierte Transaktionen behalten ihre Kategorie und ihren Status -- nur zukünftige Treffer stoppen."
+    "deleteDescription": "Bereits klassifizierte Transaktionen behalten ihre Kategorie und ihren Status -- nur zukünftige Treffer stoppen.",
+    "suggestionsTitle": "Vorgeschlagene Regeln",
+    "suggestionBasis": "basierend auf {{count}} Transaktionen",
+    "suggestionWouldCatch": "{{count}} nicht kategorisiert",
+    "suggestionAccept": "Hinzufügen",
+    "suggestionDismiss": "Verwerfen"
   },
   "proStatus": {
     "perso": "Privat",

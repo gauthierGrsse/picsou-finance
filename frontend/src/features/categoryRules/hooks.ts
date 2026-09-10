@@ -11,13 +11,31 @@ export function useCategoryRules() {
   })
 }
 
+export function useCategoryRuleSuggestions() {
+  return useQuery({
+    queryKey: ['categoryRuleSuggestions'],
+    queryFn: () => categoryRulesApi.listSuggestions(),
+    staleTime: QUERY_STALE_TIMES.categoryRules,
+  })
+}
+
 /** Invalidates transactions and the expense dashboard too -- creating or editing a rule
  * retroactively classifies matching uncategorized transactions server-side, so any list or
- * breakdown currently on screen is stale. */
+ * breakdown currently on screen is stale. The suggestion list also shifts: a pattern that
+ * just became a rule (or was dismissed) drops out of it. */
 function invalidateAfterMutation(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ['categoryRules'] })
+  queryClient.invalidateQueries({ queryKey: ['categoryRuleSuggestions'] })
   queryClient.invalidateQueries({ queryKey: ['transactions'] })
   queryClient.invalidateQueries({ queryKey: ['expenseDashboard'] })
+}
+
+export function useDismissCategoryRuleSuggestion() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (pattern: string) => categoryRulesApi.dismissSuggestion(pattern),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categoryRuleSuggestions'] }),
+  })
 }
 
 export function useCreateCategoryRule() {
