@@ -1559,6 +1559,12 @@
     "selectedCount": "{{count}} Transaktionen ausgewählt",
     "unusualAmount": "Ungewöhnlich hoch für diese Kategorie"
   },
+  "recurring": {
+    "title": "Abos & Wiederkehrende",
+    "perMonthPrefix": "≈",
+    "perMonthSuffix": "/Monat",
+    "upcoming": "um den {{day}}."
+  },
   "reimbursements": {
     "linkTitle": "Erstattung verknüpfen",
     "creditLabel": "Eingehende Überweisung",

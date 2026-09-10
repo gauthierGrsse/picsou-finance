@@ -1559,6 +1559,12 @@
     "selectedCount": "{{count}} transactions selected",
     "unusualAmount": "Unusually large for this category"
   },
+  "recurring": {
+    "title": "Subscriptions & recurring",
+    "perMonthPrefix": "≈",
+    "perMonthSuffix": "/mo",
+    "upcoming": "due ~{{day}}"
+  },
   "reimbursements": {
     "linkTitle": "Link a reimbursement",
     "creditLabel": "Credit transfer",

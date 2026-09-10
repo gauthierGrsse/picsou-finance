@@ -854,6 +854,26 @@ export interface ExpenseDashboardResponse {
 
 /** One category's cumulative-by-day series, same day ranges as ExpensePaceResponse's own
  * series. categoryId/categoryName are null for the uncategorized bucket. */
+/**
+ * A detected recurring charge -- subscription, rent, insurance -- seen in at least 3 distinct
+ * months. previousAmount is non-null only when the latest occurrence's amount changed (a
+ * silent price bump). dueThisMonth is true once an occurrence has landed this month;
+ * otherwise expectedDate is this month's typical day, for the "still to come" view.
+ */
+export interface RecurringTransaction {
+  label: string
+  typicalAmount: number
+  typicalDayOfMonth: number
+  expenseCategoryId: number | null
+  categoryName: string | null
+  categoryColor: string | null
+  lastSeen: string
+  monthsSeen: number
+  previousAmount: number | null
+  dueThisMonth: boolean
+  expectedDate: string
+}
+
 export interface CategoryPaceSeries {
   categoryId: number | null
   categoryName: string | null

@@ -17,3 +17,11 @@ export function useExpensePace(historyMonths: number) {
     staleTime: QUERY_STALE_TIMES.expenseDashboard,
   })
 }
+
+export function useRecurringTransactions() {
+  return useQuery({
+    queryKey: ['recurringTransactions'],
+    queryFn: () => expenseDashboardApi.getRecurring(),
+    staleTime: QUERY_STALE_TIMES.expenseDashboard,
+  })
+}

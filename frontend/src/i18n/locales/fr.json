@@ -1559,6 +1559,12 @@
     "selectedCount": "{{count}} transactions sélectionnées",
     "unusualAmount": "Montant inhabituel pour cette catégorie"
   },
+  "recurring": {
+    "title": "Abonnements & récurrents",
+    "perMonthPrefix": "≈",
+    "perMonthSuffix": "/mois",
+    "upcoming": "vers le {{day}}"
+  },
   "reimbursements": {
     "linkTitle": "Lier un remboursement",
     "creditLabel": "Virement reçu",

@@ -1559,6 +1559,12 @@
     "selectedCount": "{{count}} transacciones seleccionadas",
     "unusualAmount": "Inusualmente alto para esta categoría"
   },
+  "recurring": {
+    "title": "Suscripciones y recurrentes",
+    "perMonthPrefix": "≈",
+    "perMonthSuffix": "/mes",
+    "upcoming": "hacia el {{day}}"
+  },
   "reimbursements": {
     "linkTitle": "Vincular un reembolso",
     "creditLabel": "Transferencia recibida",

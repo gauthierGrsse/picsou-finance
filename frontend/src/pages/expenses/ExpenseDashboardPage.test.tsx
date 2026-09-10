@@ -55,6 +55,7 @@ const pace: ExpensePaceResponse = {
 vi.mock('@/features/expenseDashboard/hooks', () => ({
   useExpenseDashboard: (months: number, periodStart: string, periodEnd: string, income: boolean) => useExpenseDashboard(months, periodStart, periodEnd, income),
   useExpensePace: () => ({ data: pace, isLoading: false }),
+  useRecurringTransactions: () => ({ data: [], isLoading: false }),
 }))
 
 vi.mock('@/features/goals/hooks', () => ({

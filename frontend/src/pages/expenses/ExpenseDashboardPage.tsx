@@ -9,6 +9,7 @@ import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { MonthlyExpenseChart } from '@/components/expenses/MonthlyExpenseChart'
 import { CategoryProStatusBreakdown } from '@/components/expenses/CategoryProStatusBreakdown'
 import { ExpensePaceCard } from '@/components/expenses/ExpensePaceCard'
+import { RecurringTransactionsCard } from '@/components/expenses/RecurringTransactionsCard'
 import { PendingReimbursementsCard } from '@/components/expenses/PendingReimbursementsCard'
 import { SuggestedTransfersCard } from '@/components/expenses/SuggestedTransfersCard'
 import { PeriodSelector, type PeriodMode } from '@/components/expenses/PeriodSelector'
@@ -211,6 +212,7 @@ export function ExpenseDashboardPage() {
           so the page doesn't carry permanently-empty sections as filler. Already-linked
           reimbursements live in Settings -- that's an occasional audit/undo tool, not a
           daily-glance item, so it doesn't need to sit on this dashboard. */}
+      <RecurringTransactionsCard />
       <SuggestedTransfersCard />
       <PendingReimbursementsCard />
     </div>
