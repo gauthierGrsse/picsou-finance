@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts'
-import { Gauge } from 'lucide-react'
+import { Gauge, Target } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
@@ -143,12 +143,14 @@ export function ExpensePaceCard() {
                   {t('expenseDashboard.paceOverPrefix')}
                   {' '}
                   <CurrencyDisplay value={-remainingBudget} className="font-medium" />
+                  {' '}
                   {t('expenseDashboard.paceOverSuffix')}
                 </>
               )}
             </p>
             {showGoalTieIn && primaryGoal && (
-              <p className="text-muted-foreground">
+              <p className="flex items-center gap-1 text-muted-foreground">
+                <Target className="size-3 shrink-0" />
                 {t('expenseDashboard.paceGoalPrefix')}
                 {' '}
                 <CurrencyDisplay value={surplusSoFar} className="font-medium text-foreground" />

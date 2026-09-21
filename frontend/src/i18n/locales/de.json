@@ -1614,12 +1614,12 @@
     "paceTooltipDay": "Tag {{day}}",
     "paceTooltipCurrent": "Diesen Monat",
     "paceTooltipUsual": "Üblich",
-    "paceAllowancePrefix": "≈",
+    "paceAllowancePrefix": "Dir bleiben ≈",
     "paceAllowanceSuffix": "/Tag, um im üblichen Tempo zu bleiben",
-    "paceOverPrefix": "Bereits",
-    "paceOverSuffix": "über deinem üblichen Tempo diesen Monat",
-    "paceGoalPrefix": "Das sind",
-    "paceGoalSuffix": "extra für dein Ziel {{goal}}"
+    "paceOverPrefix": "Du hast diesen Monat bereits",
+    "paceOverSuffix": "mehr ausgegeben als sonst",
+    "paceGoalPrefix": "Du sparst",
+    "paceGoalSuffix": "im Vergleich zu sonst – genug, um dein Ziel {{goal}} voranzubringen"
   },
   "internalTransfers": {
     "suggestedTitle": "Vorgeschlagene interne Überweisungen",
