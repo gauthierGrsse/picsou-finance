@@ -191,6 +191,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The MCP server was unreachable from outside the container.** Both nginx
+  configs (the single-container image and the split-stack frontend) only
+  proxied `/api` and `/actuator`, so `GET /mcp` fell through to the web app and
+  answered `200 text/html` instead of reaching the backend — an MCP client such
+  as Claude Desktop (via `mcp-remote`) could never connect, whatever the access
+  key. `/mcp` is now proxied with SSE-safe settings (no buffering, HTTP/1.1,
+  long read timeout), and the Vite dev server proxies it too so the connect
+  snippet in Settings works in development.
 - **Dropdown options were unreadable in dark mode.** Native `<select>` popups
   (account type, currency, bank country, CSV import mapping, property type…)
   don't honour a translucent background — the browser falls back to an opaque

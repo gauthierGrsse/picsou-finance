@@ -90,6 +90,12 @@ export default defineConfig(({ command }) => {
           target: process.env.VITE_API_TARGET || 'http://localhost:8080',
           changeOrigin: true,
         },
+        // Embedded MCP server (SSE stream + message channel), so the connect snippet in
+        // Settings (which uses the page origin) also works against the dev server.
+        '/mcp': {
+          target: process.env.VITE_API_TARGET || 'http://localhost:8080',
+          changeOrigin: true,
+        },
       },
     },
     build: {

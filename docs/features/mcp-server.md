@@ -156,6 +156,20 @@ and GDPR data export.
   advertisement is a possible later enhancement.
 - **`last_used_at` is throttled** (≤ once per key per ~5 min, via a `REQUIRES_NEW` write) and is
   best-effort — a failure there is logged and never breaks authentication.
+- **Any reverse proxy in front of the backend must forward `/mcp` explicitly and not buffer it.**
+  `docker/nginx.conf` (single-container image) and `frontend/nginx.conf` (split stack) each carry a
+  `location ~ ^/mcp(/|$)` block; the Vite dev server proxies `/mcp` too. Without it the request
+  falls through to the SPA catch-all and answers **`200 text/html`** instead of the `401` the
+  backend gives an unauthenticated client — a misleading "it's up" signal. The block needs
+  `proxy_http_version 1.1`, `proxy_buffering off` and a long `proxy_read_timeout`, because
+  `GET /mcp` is an open SSE stream (buffering holds the `endpoint` event back, so the client's
+  handshake never completes). Caddy and Traefik detect `text/event-stream` and flush on their own,
+  so a TLS terminator in front needs no change. Quick check from a client machine: an unauthenticated
+  `GET https://<host>/mcp` must return `401 application/problem+json`, never HTML.
+- **Claude Desktop reaches a LAN/homelab instance through `mcp-remote`, not through "custom
+  connectors".** `mcp-remote` runs as a local process on the user's machine (configured in
+  `claude_desktop_config.json`), so it can reach any URL that machine can — a private LAN hostname
+  included. Custom connectors are called from Anthropic's side and need a publicly reachable URL.
 - **`MCP_ENABLED`** (default `true`) gates the whole server. `SetupFilter` still blocks `/mcp` until
   first-launch setup completes.
 
