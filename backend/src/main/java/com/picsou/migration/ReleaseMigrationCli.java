@@ -3,6 +3,7 @@ package com.picsou.migration;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
+import com.picsou.config.ForkMigrationReconciliationCallback;
 import com.picsou.config.LegacyMigrationRenumberingCallback;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -147,7 +148,7 @@ public final class ReleaseMigrationCli {
             .ignoreMigrationPatterns(new String[0])
             .loggers("slf4j");
         if (migrate) {
-            configuration.callbacks(new LegacyMigrationRenumberingCallback());
+            configuration.callbacks(new LegacyMigrationRenumberingCallback(), new ForkMigrationReconciliationCallback());
         }
         return configuration.load();
     }

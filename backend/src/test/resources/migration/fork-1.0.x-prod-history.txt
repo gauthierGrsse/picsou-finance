@@ -1,0 +1,70 @@
+1|init schema|-1901568195
+2|goals|-714311276
+3|requisitions|1107735747
+4|trade republic session|-297254367
+5|tr refresh token|-2067311866
+6|rename gocardless column|1102497761
+7|goal month override|1277953021
+9|crypto exchange session|-144920035
+10|wallet address|623362
+11|account holding|-1097190847
+12|transactions|1383036066
+13|goal manual contribution|536610436
+14|price snapshot|-271893893
+15|widen encrypted columns|-1340041620
+16|finary session|-61541580
+17|requisition last synced at|1752135809
+18|snapshot invested amount|-1716865155
+19|real estate and debts|489450710
+20|create family system|2078385666
+21|migrate existing data|1467879504
+22|make member id not null|-1379050504
+23|bourso session|-1172357386
+24|manual transactions|348487527
+25|setup state|-805352967
+26|setup audit|-2039651762
+27|loan extra fields|2033295252
+28|mfa and persistent sessions|590645133
+29|app user token version|-678188737
+30|account soft delete|-85923943
+31|price cleanup gate|182192327
+32|goal history start|2065142221
+36|transaction security name|-924862297
+37|access keys|1983429252
+38|backfill tr crypto transaction tickers|2050086936
+50|account bank logo|-143514598
+52|fix negative loan balances|482072512
+53|transaction fees|-1587847076
+54|wallet ethereum to evm|903440536
+55|wallet evm account name|-1244807568
+56|persistent session previous token|720404896
+57|ibkr connection|1520765453
+58|account cash balance|-694849918
+59|bourse direct session|2053764575
+60|bourse direct integration|236247500
+61|harden bourse direct sync|-840345283
+62|backfill bourse direct valuations|88940041
+63|constrain bourse direct sync errors|-1764174252
+51|requisition oauth state|1952390840
+64|backfill trade republic valuations|664629777
+66|real estate valuation and ownership|-1702517568
+67|real estate bathrooms|-344487203
+68|widen requisition institution id|964932951
+69|account type employee savings|1868227775
+70|amundi session|-128704472
+71|degiro session|-7407515
+73|crypto exchange session optional secret|2086011636
+74|crypto exchange position|2090401392
+75|account logo key|761514827
+76|account requisition link|765044914
+77|merge duplicate sync accounts|-1194692503
+78|bourso session|1572086464
+79|account type french savings|-1867052547
+80|expense classification|-906387287
+81|transaction external id|1692858315
+82|internal transfer|-1271767593
+83|holding acquired date|1335899592
+84|expense category type and parent|343527704
+85|category rule|1072617666
+86|expense category monthly budget|-1608852660
+87|category rule dismissed suggestion|1814055548
