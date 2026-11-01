@@ -7,6 +7,14 @@ import java.time.LocalDate;
 public record HoldingResponse(
     String ticker,
     String name,
+    // The image to show beside the ticker, or null when the asset has no known logo (see
+    // docs/features/holding-logos.md). The UI shows the ticker either way, so a null is a
+    // normal answer, not a failure. A crypto mark is a CoinGecko URL; a share or fund mark is
+    // always Picsou's own /api/instrument-logos endpoint.
+    String logoUrl,
+    // The same mark drawn for a dark background, when the source has a distinct one. Null
+    // means logoUrl is used in both themes.
+    String logoUrlDark,
     BigDecimal quantity,
     BigDecimal averageBuyIn,
     BigDecimal currentPrice,
@@ -24,4 +32,24 @@ public record HoldingResponse(
     boolean priceStale,
     // User-entered, optional. Null means unknown -- see AccountHolding#acquiredAt.
     LocalDate acquiredAt
-) {}
+) {
+    /** Shape without the fork-only acquisition date, which upstream code and tests build. */
+    public HoldingResponse(
+        String ticker,
+        String name,
+        String logoUrl,
+        String logoUrlDark,
+        BigDecimal quantity,
+        BigDecimal averageBuyIn,
+        BigDecimal currentPrice,
+        String quoteCurrency,
+        BigDecimal currentValueEur,
+        BigDecimal costBasisEur,
+        BigDecimal pnlEur,
+        BigDecimal pnlPercent,
+        Instant priceUpdatedAt,
+        LocalDate priceAsOf,
+        boolean priceStale) {
+        this(ticker, name, logoUrl, logoUrlDark, quantity, averageBuyIn, currentPrice, quoteCurrency, currentValueEur, costBasisEur, pnlEur, pnlPercent, priceUpdatedAt, priceAsOf, priceStale, null);
+    }
+}

@@ -48,7 +48,7 @@ describe('RecurringTransactionsCard', () => {
     expect(screen.getByText('Loyer EFI')).toBeInTheDocument()
     expect(screen.getByText('Netflix')).toBeInTheDocument()
     // total = 878.49 -> formatted somewhere in the header
-    expect(screen.getByText('€878.49')).toBeInTheDocument()
+    expect(screen.getByText(/^.878\.49$/)).toBeInTheDocument()
   })
 
   it('shows a price-change badge when the latest amount differs from before', () => {
@@ -58,7 +58,7 @@ describe('RecurringTransactionsCard', () => {
     })
     render(<RecurringTransactionsCard />)
 
-    expect(screen.getByText('€852.92')).toBeInTheDocument()
+    expect(screen.getByText(/^.852\.92$/)).toBeInTheDocument()
   })
 
   it('shows an "upcoming" tag for a charge not yet seen this month', () => {

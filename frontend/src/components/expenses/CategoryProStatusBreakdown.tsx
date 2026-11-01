@@ -3,7 +3,7 @@ import { Cell, Pie, PieChart } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
-import { formatCurrency, localeFromLanguage } from '@/lib/utils'
+import { useMoney } from '@/hooks/use-money'
 import { proStatusLabelKey } from '@/lib/constants'
 import type { CategoryBreakdownItem, ProStatus } from '@/types/api'
 
@@ -24,8 +24,8 @@ const chartConfig = {
  * comes straight from the category's own stored hex, same as Account.color feeding
  * DistributionPie: there are only 5 --chart-N tokens, not enough for an open-ended list. */
 export function CategoryProStatusBreakdown({ data, onSliceClick, emptyLabel }: CategoryProStatusBreakdownProps) {
-  const { t, i18n } = useTranslation()
-  const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
+  const { t } = useTranslation()
+  const money = useMoney()
 
   const items = useMemo(
     () =>
@@ -62,7 +62,7 @@ export function CategoryProStatusBreakdown({ data, onSliceClick, emptyLabel }: C
                     <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.payload.color }} />
                     <span className="min-w-0 truncate">{item.payload.name}</span>
                     <span className="ml-auto font-mono font-medium text-foreground tabular-nums">
-                      {formatCurrency(value as number, 'EUR', locale)}
+                      {money.amount(value as number, 'EUR')}
                     </span>
                   </div>
                 )}

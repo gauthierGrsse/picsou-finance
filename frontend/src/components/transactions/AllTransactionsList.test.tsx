@@ -217,7 +217,7 @@ describe('AllTransactionsList', () => {
     )
 
     expect(screen.getByLabelText('classification.unusualAmount')).toBeInTheDocument()
-    expect(screen.getByText('-€120.00')).toHaveClass('text-amber-600')
+    expect(screen.getByText(/^-.120\.00$/)).toHaveClass('text-amber-600')
   })
 
   it('does not flag a transaction under the threshold, or one with no threshold set for its category', () => {

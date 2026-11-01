@@ -16,7 +16,7 @@ import java.util.List;
  * page -- the per-account list under /api/accounts/{id}/transactions stays as-is for the
  * account detail page. */
 @RestController
-@RequestMapping("/api/transactions")
+@RequestMapping("/api/transactions/by-period")
 public class TransactionsController {
 
     private final TransactionQueryService transactionQueryService;

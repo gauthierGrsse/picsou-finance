@@ -1,7 +1,7 @@
 import type { ExpenseCategory } from '@/types/api'
 
 interface ExpenseCategoryBadgeProps {
-  categoryId: number | null
+  categoryId?: number | null
   categories: ExpenseCategory[]
   className?: string
 }

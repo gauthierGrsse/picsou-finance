@@ -8,7 +8,8 @@ import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
 import { useExpensePace } from '@/features/expenseDashboard/hooks'
 import { useGoals } from '@/features/goals/hooks'
-import { cn, formatCurrency, formatPercent, localeFromLanguage } from '@/lib/utils'
+import { cn, formatPercent } from '@/lib/utils'
+import { useMoney } from '@/hooks/use-money'
 import type { CategoryPaceSeries, ExpensePaceResponse } from '@/types/api'
 
 const HISTORY_MONTHS = 3
@@ -16,10 +17,6 @@ const GLOBAL_COLOR = 'var(--chart-1)'
 
 function categoryKey(series: CategoryPaceSeries) {
   return `cat_${series.categoryId ?? 'none'}`
-}
-
-function compactAxisValue(value: number, locale: string) {
-  return new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value)
 }
 
 /** Under 80% of budget reads as on track, 80-100% as close, over 100% as over -- purely a
@@ -61,8 +58,8 @@ const chartConfig = {
  * chart isn't cluttered; hovering a category chip below reveals just that one.
  */
 export function ExpensePaceCard() {
-  const { t, i18n } = useTranslation()
-  const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
+  const { t } = useTranslation()
+  const money = useMoney()
   const { data: pace, isLoading } = useExpensePace(HISTORY_MONTHS)
   const { data: goals } = useGoals()
   const [hoveredKey, setHoveredKey] = useState<string | null>(null)
@@ -170,7 +167,7 @@ export function ExpensePaceCard() {
               axisLine={false}
               tickMargin={6}
               width={36}
-              tickFormatter={(value) => compactAxisValue(value as number, locale)}
+              tickFormatter={money.tick((value: number) => money.compact(value, { maximumFractionDigits: 1 }))}
             />
             <Tooltip
               isAnimationActive={false}
@@ -185,13 +182,13 @@ export function ExpensePaceCard() {
                     {current != null && (
                       <p className="flex justify-between gap-3">
                         <span className="text-muted-foreground">{t('expenseDashboard.paceTooltipCurrent')}</span>
-                        <span className="font-mono font-medium tabular-nums">{formatCurrency(current, 'EUR', locale)}</span>
+                        <span className="font-mono font-medium tabular-nums">{money.amount(current, 'EUR')}</span>
                       </p>
                     )}
                     {historical != null && (
                       <p className="flex justify-between gap-3">
                         <span className="text-muted-foreground">{t('expenseDashboard.paceTooltipUsual')}</span>
-                        <span className="font-mono font-medium tabular-nums">{formatCurrency(historical, 'EUR', locale)}</span>
+                        <span className="font-mono font-medium tabular-nums">{money.amount(historical, 'EUR')}</span>
                       </p>
                     )}
                   </div>

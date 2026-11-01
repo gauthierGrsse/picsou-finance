@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label'
 import { DateInput } from '@/components/shared/DateInput'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
-import { cn, formatCurrency, formatLocalDate, getLocale } from '@/lib/utils'
+import { cn, formatLocalDate, getLocale } from '@/lib/utils'
+import { useMoney } from '@/hooks/use-money'
 import { extractErrorMessage } from '@/lib/errors'
 import {
   useTransferCandidates,
@@ -52,6 +53,7 @@ export function InternalTransferLinkModal({ transaction, onOpenChange }: Interna
 function InternalTransferLinkForm({ transaction, onOpenChange }: { transaction: Transaction; onOpenChange: (open: boolean) => void }) {
   const { t } = useTranslation()
   const locale = getLocale()
+  const money = useMoney()
   const { data: candidates } = useTransferCandidates()
   const { data: allAccounts } = useAccounts()
   const confirmLink = useConfirmTransferLink()
@@ -270,7 +272,7 @@ function InternalTransferLinkForm({ transaction, onOpenChange }: { transaction: 
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-muted-foreground">
                   {t('internalTransfers.manualCreateAmountHint', {
-                    amount: formatCurrency(-transaction.amount, transaction.nativeCurrency, locale),
+                    amount: money.amount(-transaction.amount, transaction.nativeCurrency),
                   })}
                 </span>
                 <div className="flex shrink-0 gap-2">
@@ -313,8 +315,8 @@ function InternalTransferLinkForm({ transaction, onOpenChange }: { transaction: 
         onOpenChange={setConfirmingMismatch}
         title={t('internalTransfers.mismatchWarningTitle')}
         description={selected ? t('internalTransfers.mismatchWarningDescription', {
-          amountA: formatCurrency(transaction.amount, transaction.nativeCurrency, locale),
-          amountB: formatCurrency(selected.amount, selected.nativeCurrency, locale),
+          amountA: money.amount(transaction.amount, transaction.nativeCurrency),
+          amountB: money.amount(selected.amount, selected.nativeCurrency),
         }) : ''}
         confirmLabel={t('internalTransfers.confirm')}
         variant="default"

@@ -1,7 +1,8 @@
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { formatCurrency, localeFromLanguage } from '@/lib/utils'
+import { localeFromLanguage } from '@/lib/utils'
+import { useMoney } from '@/hooks/use-money'
 import type { MonthlyExpenseTotal } from '@/types/api'
 
 interface MonthlyExpenseChartProps {
@@ -16,10 +17,6 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-function compactAxisValue(value: number, locale: string) {
-  return new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value)
-}
-
 /** Bar chart: discrete monthly totals read more clearly as bars than an interpolated line
  * for month-over-month comparison. The selected period's bar is highlighted in the full
  * accent color; the rest sit at a quarter opacity so the eye lands on "where you are"
@@ -27,6 +24,7 @@ function compactAxisValue(value: number, locale: string) {
 export function MonthlyExpenseChart({ data, highlightMonth }: MonthlyExpenseChartProps) {
   const { i18n } = useTranslation()
   const locale = localeFromLanguage(i18n.resolvedLanguage ?? i18n.language)
+  const money = useMoney()
 
   if (data.length === 0) return null
 
@@ -46,7 +44,7 @@ export function MonthlyExpenseChart({ data, highlightMonth }: MonthlyExpenseChar
           axisLine={false}
           tickMargin={8}
           width={36}
-          tickFormatter={(value) => compactAxisValue(value as number, locale)}
+          tickFormatter={money.tick((value: number) => money.compact(value, { maximumFractionDigits: 1 }))}
         />
         <ChartTooltip
           isAnimationActive={false}
@@ -54,7 +52,7 @@ export function MonthlyExpenseChart({ data, highlightMonth }: MonthlyExpenseChar
           content={
             <ChartTooltipContent
               labelFormatter={(value) => new Date(`${value}-01`).toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
-              formatter={(value) => formatCurrency(value as number, 'EUR', locale)}
+              formatter={(value) => money.amount(value as number, 'EUR')}
             />
           }
         />

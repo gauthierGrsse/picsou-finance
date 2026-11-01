@@ -29,11 +29,19 @@ public interface BankConnectorPort {
     List<AccountData> fetchBalances(String sessionId);
 
     /**
-     * Fetch booked transactions for one account, {@code dateFrom}-{@code dateTo} inclusive.
-     * Providers that don't yet support this return an empty list rather than throwing --
-     * balance sync must keep working even where transaction history isn't available.
+     * Fetch the transactions booked on one account since {@code dateFrom} (inclusive).
+     *
+     * <p>Default: an empty list. Balance-only providers keep working untouched —
+     * {@code SyncService} treats "no transactions" and "cannot serve transactions"
+     * the same way, so a provider only overrides this once it can actually answer.
+     *
+     * @param sessionId         the provider session the account was linked through
+     * @param externalAccountId the provider's own account id, as carried on
+     *                          {@link AccountData#externalId()}
      */
-    List<TransactionData> fetchTransactions(String sessionId, String accountExternalId, LocalDate dateFrom, LocalDate dateTo);
+    default List<TransactionData> fetchTransactions(String sessionId, String externalAccountId, LocalDate dateFrom) {
+        return List.of();
+    }
 
     /** Search institutions by name/country. */
     List<InstitutionData> searchInstitutions(String query, String country);
@@ -72,27 +80,31 @@ public interface BankConnectorPort {
 
     record InitiateResult(String requisitionId, String authLink) {}
 
-    record AccountData(
-        String externalId,
-        String name,
-        String iban,
-        String currency,
-        BigDecimal balance
-    ) {}
-
     /**
-     * @param externalId provider-assigned id, stable across repeated fetches of the same
-     *                    entry -- used to dedupe on resync. Never null: a provider with no
-     *                    stable id of its own must synthesize one (e.g. from date+amount+
-     *                    description) rather than return one that can't be deduped.
-     * @param amount      signed: positive = credit, negative = debit.
+     * One booked account entry, normalized across providers.
+     *
+     * @param externalId  the provider's stable id for this entry, used to avoid re-importing
+     *                    it on the next sync. {@code null} when the provider exposes none —
+     *                    the caller then falls back to a content fingerprint.
+     * @param amount      signed from the account holder's point of view: negative = money out.
+     * @param description free-text label; never blank (adapters substitute a fallback).
+     * @param category    provider-side categorization, if any. {@code null} otherwise.
      */
     record TransactionData(
         String externalId,
         LocalDate date,
         String description,
         BigDecimal amount,
-        String currency
+        String currency,
+        String category
+    ) {}
+
+    record AccountData(
+        String externalId,
+        String name,
+        String iban,
+        String currency,
+        BigDecimal balance
     ) {}
 
     /**

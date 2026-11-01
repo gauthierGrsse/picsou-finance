@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.picsou.config.EnableBankingConfigProvider;
 import com.picsou.exception.SyncException;
 import com.picsou.port.BankConnectorPort;
+import com.picsou.util.LogSanitizer;
 import io.jsonwebtoken.Jwts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,11 +20,14 @@ import java.security.PrivateKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Enable Banking Bank Account Data API connector.
@@ -40,6 +44,15 @@ public class EnableBankingBankConnector implements BankConnectorPort {
     // Bank coverage per country changes rarely; this avoids re-fetching the full
     // ~2400-institution catalog (no country filter) on every "Add Account" open.
     private static final long COUNTRIES_CACHE_TTL_SECONDS = 21_600; // 6 hours
+    /**
+     * Bounds {@link #fetchTransactions} — most ASPSPs return a PSD2 history window
+     * (~90 days) in a handful of pages, but a few paginate very small, and an
+     * unbounded loop there holds an interactive sync open indefinitely.
+     */
+    private static final int MAX_TRANSACTION_PAGES = 20;
+    /** {@code transaction.description} is VARCHAR(255) and {@code category} VARCHAR(100). */
+    private static final int MAX_DESCRIPTION_LENGTH = 255;
+    private static final int MAX_CATEGORY_LENGTH = 100;
 
     private final EnableBankingConfigProvider configProvider;
     private final WebClient webClient;
@@ -166,46 +179,64 @@ public class EnableBankingBankConnector implements BankConnectorPort {
             throw new SyncException("Empty session response from Enable Banking /sessions");
         }
 
-        log.info("Enable Banking session created");
+        log.info("Enable Banking session created: {}", LogSanitizer.fingerprint(session.sessionId()));
         return session.sessionId();
     }
 
     @Override
     public List<AccountData> fetchBalances(String sessionId) {
         List<String> accounts = fetchSessionAccountsWithRetry(sessionId);
-        return accounts.stream()
-            .map(accountId -> fetchAccountData(accountId))
-            .toList();
+        List<AccountData> fetched = new ArrayList<>(accounts.size());
+        RuntimeException firstFailure = null;
+        for (String accountId : accounts) {
+            try {
+                fetched.add(fetchAccountData(accountId));
+            } catch (SyncException | NumberFormatException ex) {
+                // An account uid can rotate independently after a successful session link,
+                // and one ASPSP may send a malformed balance amount. Keep the remaining accounts
+                // syncable; anything else is a bug and must fail the whole sync.
+                log.warn("Failed to fetch account {} from Enable Banking; skipping it for this sync",
+                    LogSanitizer.fingerprint(accountId), ex);
+                if (firstFailure == null) firstFailure = ex;
+            }
+        }
+        // Every account failing is a bank- or consent-level failure (5xx, 429, expired consent),
+        // not a stale uid: an empty list would read as "accounts still linking" upstream.
+        if (fetched.isEmpty() && firstFailure != null) {
+            throw firstFailure;
+        }
+        return fetched;
     }
 
     /**
-     * Only {@code BOOK} (booked) transactions -- pending ones can still change or
-     * disappear before they're booked, and re-fetching them under a changed
-     * {@code entry_reference} would otherwise risk a duplicate row once booked.
-     * Pages via {@code continuation_key} until the provider stops returning one.
+     * {@code GET /accounts/{id}/transactions}, following {@code continuation_key}
+     * until the provider stops handing one out.
+     *
+     * <p>The session id is not part of the request — Enable Banking scopes the
+     * account uid to the session that linked it — but it stays on the signature
+     * because {@link BankConnectorPort} is provider-agnostic and other providers
+     * (Powens) address transactions by token, not by account.
+     *
+     * <p>Paging is capped: a freshly connected account with years of history
+     * would otherwise hold the sync open for as many round trips as the bank
+     * feels like paginating into. Hitting the cap returns what was collected so
+     * far rather than throwing — a truncated import is still a useful one, and
+     * the next sync resumes from the newest stored entry.
      */
     @Override
-    public List<TransactionData> fetchTransactions(
-        String sessionId, String accountExternalId, LocalDate dateFrom, LocalDate dateTo
-    ) {
-        List<TransactionData> results = new java.util.ArrayList<>();
+    public List<TransactionData> fetchTransactions(String sessionId, String externalAccountId, LocalDate dateFrom) {
+        List<TransactionData> collected = new ArrayList<>();
         String continuationKey = null;
-        int page = 0;
-        int maxPages = 50; // safety bound: a runaway continuation_key loop must not hang a sync forever
 
-        do {
-            String finalContinuationKey = continuationKey;
+        for (int page = 1; page <= MAX_TRANSACTION_PAGES; page++) {
+            final String key = continuationKey;
             TransactionsResponse response = mapToSyncException(
                 webClient.get()
                     .uri(uriBuilder -> {
-                        var b = uriBuilder.path("/accounts/{id}/transactions")
-                            .queryParam("date_from", dateFrom)
-                            .queryParam("date_to", dateTo)
-                            .queryParam("transaction_status", "BOOK");
-                        if (finalContinuationKey != null) {
-                            b.queryParam("continuation_key", finalContinuationKey);
-                        }
-                        return b.build(accountExternalId);
+                        var b = uriBuilder.path("/accounts/{id}/transactions");
+                        if (dateFrom != null) b.queryParam("date_from", dateFrom.toString());
+                        if (key != null) b.queryParam("continuation_key", key);
+                        return b.build(externalAccountId);
                     })
                     .header("Authorization", "Bearer " + buildJwt())
                     .retrieve()
@@ -214,78 +245,22 @@ public class EnableBankingBankConnector implements BankConnectorPort {
                 "Failed to fetch account transactions")
                 .block();
 
-            if (response == null || response.transactions() == null) break;
-
-            response.transactions().stream()
-                .map(EnableBankingBankConnector::toTransactionData)
-                .filter(java.util.Objects::nonNull)
-                .forEach(results::add);
+            if (response == null) break;
+            collected.addAll(toTransactions(response.transactions()));
 
             continuationKey = response.continuationKey();
-            page++;
-        } while (continuationKey != null && !continuationKey.isBlank() && page < maxPages);
-
-        log.info("Fetched {} transactions for account {} ({} to {})",
-            results.size(), accountExternalId, dateFrom, dateTo);
-        return results;
-    }
-
-    /**
-     * Maps one wire transaction to the port's provider-neutral shape. Package-private and
-     * static so the sign/date/description/id fallback logic is unit-testable without HTTP.
-     *
-     * <p>Returns null (skipped, not thrown) for a transaction with neither a usable id nor
-     * enough fields to synthesize one -- better to drop one malformed entry than fail the
-     * whole sync.
-     */
-    static TransactionData toTransactionData(TransactionItem item) {
-        LocalDate date = item.bookingDate() != null ? item.bookingDate() : item.transactionDate();
-        if (date == null || item.transactionAmount() == null || item.transactionAmount().amount() == null) {
-            return null;
+            if (continuationKey == null || continuationKey.isBlank()) {
+                // Never log amounts, descriptions or counterparties here (financial PII) —
+                // the count is what operators need to tell "imported nothing" from "never asked".
+                log.info("Fetched {} transactions for account {} since {}",
+                    collected.size(), externalAccountId, dateFrom);
+                return collected;
+            }
         }
 
-        BigDecimal amount = new BigDecimal(item.transactionAmount().amount());
-        if ("DBIT".equals(item.creditDebitIndicator())) {
-            amount = amount.negate();
-        }
-
-        String description = describeTransaction(item);
-
-        String externalId = item.entryReference() != null && !item.entryReference().isBlank()
-            ? item.entryReference()
-            : item.transactionId();
-        if (externalId == null || externalId.isBlank()) {
-            // No stable id from the provider: synthesize one from content. Two genuinely
-            // identical transactions on the same day would collide and dedupe into one --
-            // an acceptable trade-off against the alternative (every sync re-duplicating
-            // every such transaction forever).
-            externalId = "synth:" + date + ":" + amount + ":" + description.hashCode();
-        }
-
-        return new TransactionData(
-            externalId,
-            date,
-            description,
-            amount,
-            item.transactionAmount().currency() != null ? item.transactionAmount().currency() : "EUR"
-        );
-    }
-
-    /**
-     * Prefers the bank's own free-text remittance info; falls back to the counterparty
-     * name (whichever side isn't this account) when remittance info is empty, which
-     * Enable Banking allows for card/POS transactions.
-     */
-    private static String describeTransaction(TransactionItem item) {
-        if (item.remittanceInformation() != null && !item.remittanceInformation().isEmpty()) {
-            String joined = String.join(" ", item.remittanceInformation()).trim();
-            if (!joined.isEmpty()) return joined;
-        }
-        boolean isCredit = "CRDT".equals(item.creditDebitIndicator());
-        String counterparty = isCredit
-            ? (item.debtor() != null ? item.debtor().name() : null)
-            : (item.creditor() != null ? item.creditor().name() : null);
-        return counterparty != null && !counterparty.isBlank() ? counterparty : "Transaction";
+        log.warn("Stopped paging transactions for account {} after {} pages — importing the {} collected so far",
+            externalAccountId, MAX_TRANSACTION_PAGES, collected.size());
+        return collected;
     }
 
     /**
@@ -301,7 +276,7 @@ public class EnableBankingBankConnector implements BankConnectorPort {
      * id. Throwing here turned the legitimate "still linking" case into a 502
      * in production.
      */
-    private List<String> fetchSessionAccountsWithRetry(String sessionId) {
+    List<String> fetchSessionAccountsWithRetry(String sessionId) {
         int maxAttempts = 3;
         int delayMs = 1_500;
 
@@ -317,13 +292,13 @@ public class EnableBankingBankConnector implements BankConnectorPort {
                 .block();
 
             if (session != null && session.accounts() != null && !session.accounts().isEmpty()) {
-                log.info("Enable Banking session has {} accounts (attempt {}, status={})",
-                    session.accounts().size(), attempt, session.status());
+                log.info("Session {} has {} accounts (attempt {}, status={})",
+                    LogSanitizer.fingerprint(sessionId), session.accounts().size(), attempt, session.status());
                 return session.accounts();
             }
 
-            log.info("Enable Banking session has no accounts yet (attempt {}/{}, status={})",
-                attempt, maxAttempts,
+            log.info("Session {} has no accounts yet (attempt {}/{}, status={})",
+                LogSanitizer.fingerprint(sessionId), attempt, maxAttempts,
                 session != null ? session.status() : "null");
 
             if (attempt < maxAttempts) {
@@ -331,8 +306,8 @@ public class EnableBankingBankConnector implements BankConnectorPort {
             }
         }
 
-        log.warn("Enable Banking session still has no accounts after {} attempts — returning empty so the caller can retry asynchronously",
-            maxAttempts);
+        log.warn("Session {} still has no accounts after {} attempts — returning empty so the caller can retry asynchronously",
+            LogSanitizer.fingerprint(sessionId), maxAttempts);
         return List.of();
     }
 
@@ -345,7 +320,7 @@ public class EnableBankingBankConnector implements BankConnectorPort {
      */
     @Override
     public List<InstitutionData> searchInstitutions(String query, String country) {
-        log.info("Searching institutions: query='{}' country='{}'", query, country);
+        log.info("Searching institutions: query='{}' country='{}'", LogSanitizer.safe(query), LogSanitizer.safe(country));
         AspspsResponse response = webClient.get()
             .uri(uriBuilder -> {
                 var b = uriBuilder.path("/aspsps");
@@ -498,6 +473,142 @@ public class EnableBankingBankConnector implements BankConnectorPort {
         return cached != null ? cached.countries() : countries;
     }
 
+    // ─── Transaction mapping (package-private: unit-tested without HTTP) ──────
+
+    /** PSD2 entry statuses: only a booked entry is final enough to store. */
+    private static final String STATUS_BOOKED = "BOOK";
+    private static final String INDICATOR_DEBIT = "DBIT";
+
+    /**
+     * Maps raw provider entries to port records, dropping the ones Picsou cannot
+     * represent rather than failing the whole import: a single unparseable amount
+     * or a dateless entry must not cost the user every other transaction of the
+     * batch.
+     *
+     * <p>Pending entries are skipped on purpose. They carry no stable
+     * {@code entry_reference}, their amount and label still change, and the ASPSP
+     * re-sends them as a booked entry once settled — importing both is how a
+     * ledger ends up with every recent payment twice.
+     */
+    static List<TransactionData> toTransactions(List<TransactionItem> items) {
+        if (items == null) return List.of();
+        List<TransactionData> result = new ArrayList<>(items.size());
+        for (TransactionItem item : items) {
+            if (item == null) continue;
+            if (item.status() != null && !STATUS_BOOKED.equalsIgnoreCase(item.status())) continue;
+
+            LocalDate date = parseTransactionDate(item);
+            BigDecimal amount = signedAmount(item);
+            if (date == null || amount == null) {
+                log.debug("Skipping an Enable Banking entry without a usable date or amount");
+                continue;
+            }
+
+            result.add(new TransactionData(
+                externalIdOf(item),
+                date,
+                truncate(describe(item), MAX_DESCRIPTION_LENGTH),
+                amount,
+                item.transactionAmount() != null ? item.transactionAmount().currency() : null,
+                truncate(categoryOf(item), MAX_CATEGORY_LENGTH)
+            ));
+        }
+        return result;
+    }
+
+    /**
+     * {@code booking_date} is the one that matches the balance the account shows;
+     * the other two are fallbacks for ASPSPs that omit it.
+     */
+    private static LocalDate parseTransactionDate(TransactionItem item) {
+        for (String raw : List.of(
+            nullToEmpty(item.bookingDate()),
+            nullToEmpty(item.valueDate()),
+            nullToEmpty(item.transactionDate()))) {
+            if (raw.isBlank()) continue;
+            try {
+                return LocalDate.parse(raw.trim());
+            } catch (DateTimeParseException ignored) {
+                // Try the next candidate rather than dropping an otherwise usable entry.
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Signs the amount from the account holder's point of view: negative = money out.
+     *
+     * <p>The magnitude is taken as an absolute value before the indicator is applied.
+     * {@code credit_debit_indicator} is the authoritative direction in PSD2, but some
+     * ASPSPs additionally sign the amount string — {@code "-12.34"} with {@code DBIT}
+     * would otherwise negate back to a credit and render a debit as income.
+     */
+    private static BigDecimal signedAmount(TransactionItem item) {
+        if (item.transactionAmount() == null || item.transactionAmount().amount() == null) return null;
+        BigDecimal magnitude;
+        try {
+            magnitude = new BigDecimal(item.transactionAmount().amount().trim()).abs();
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+        return INDICATOR_DEBIT.equalsIgnoreCase(item.creditDebitIndicator()) ? magnitude.negate() : magnitude;
+    }
+
+    /**
+     * The provider's own id for the entry, so a re-sync recognises it instead of
+     * importing it again. {@code entry_reference} first — it is the ASPSP's stable
+     * ledger reference, while {@code transaction_id} is at some banks only
+     * guaranteed to address the entry within the current session. Both are
+     * optional; the caller falls back to a content fingerprint when neither is set.
+     */
+    private static String externalIdOf(TransactionItem item) {
+        if (item.entryReference() != null && !item.entryReference().isBlank()) return item.entryReference().trim();
+        if (item.transactionId() != null && !item.transactionId().isBlank()) return item.transactionId().trim();
+        return null;
+    }
+
+    /**
+     * Builds the row label. {@code remittance_information} is what the holder wrote
+     * (or the merchant sent) and is the most recognisable; the counterparty name is
+     * the next best thing, taken from whichever side is not the holder; the bank's
+     * own categorization description is the last resort before a generic label.
+     * {@code transaction.description} is NOT NULL, so this never returns blank.
+     */
+    private static String describe(TransactionItem item) {
+        if (item.remittanceInformation() != null) {
+            String joined = item.remittanceInformation().stream()
+                .filter(line -> line != null && !line.isBlank())
+                .map(String::trim)
+                .collect(Collectors.joining(" "));
+            if (!joined.isBlank()) return joined;
+        }
+
+        Party counterparty = INDICATOR_DEBIT.equalsIgnoreCase(item.creditDebitIndicator())
+            ? item.creditor() : item.debtor();
+        if (counterparty != null && counterparty.name() != null && !counterparty.name().isBlank()) {
+            return counterparty.name().trim();
+        }
+
+        String category = categoryOf(item);
+        return category != null ? category : "Transaction";
+    }
+
+    /** The ASPSP's own categorization label, when it sends one. */
+    private static String categoryOf(TransactionItem item) {
+        if (item.bankTransactionCode() == null) return null;
+        String description = item.bankTransactionCode().description();
+        return description != null && !description.isBlank() ? description.trim() : null;
+    }
+
+    private static String nullToEmpty(String value) {
+        return value != null ? value : "";
+    }
+
+    private static String truncate(String value, int max) {
+        if (value == null) return null;
+        return value.length() <= max ? value : value.substring(0, max);
+    }
+
     // ─── Private helpers ──────────────────────────────────────────────────────
 
     private record CachedCountries(List<String> countries, Instant cachedAt) {
@@ -506,7 +617,7 @@ public class EnableBankingBankConnector implements BankConnectorPort {
         }
     }
 
-    private AccountData fetchAccountData(String accountId) {
+    AccountData fetchAccountData(String accountId) {
         BalancesResponse balances = mapToSyncException(
             webClient.get()
                 .uri("/accounts/{id}/balances", accountId)
@@ -641,18 +752,29 @@ public class EnableBankingBankConnector implements BankConnectorPort {
     record TransactionItem(
         @com.fasterxml.jackson.annotation.JsonProperty("entry_reference") String entryReference,
         @com.fasterxml.jackson.annotation.JsonProperty("transaction_id") String transactionId,
-        @com.fasterxml.jackson.annotation.JsonProperty("transaction_date") LocalDate transactionDate,
-        @com.fasterxml.jackson.annotation.JsonProperty("booking_date") LocalDate bookingDate,
         @com.fasterxml.jackson.annotation.JsonProperty("transaction_amount") TransactionAmount transactionAmount,
         @com.fasterxml.jackson.annotation.JsonProperty("credit_debit_indicator") String creditDebitIndicator,
+        String status,
+        @com.fasterxml.jackson.annotation.JsonProperty("booking_date") String bookingDate,
+        @com.fasterxml.jackson.annotation.JsonProperty("value_date") String valueDate,
+        @com.fasterxml.jackson.annotation.JsonProperty("transaction_date") String transactionDate,
         @com.fasterxml.jackson.annotation.JsonProperty("remittance_information") List<String> remittanceInformation,
+        Party creditor,
         Party debtor,
-        Party creditor
+        @com.fasterxml.jackson.annotation.JsonProperty("bank_transaction_code") BankTransactionCode bankTransactionCode
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record TransactionAmount(String amount, String currency) {}
 
+    /** Only the name is read; Enable Banking also sends postal address and agent details. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Party(String name) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record BankTransactionCode(
+        String description,
+        String code,
+        @com.fasterxml.jackson.annotation.JsonProperty("sub_code") String subCode
+    ) {}
 }

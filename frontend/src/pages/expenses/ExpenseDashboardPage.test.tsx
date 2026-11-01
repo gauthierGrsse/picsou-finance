@@ -80,13 +80,13 @@ describe('ExpenseDashboardPage', () => {
     render(<ExpenseDashboardPage />)
 
     expect(screen.getByText('expenseDashboard.totalPeriodLabel')).toBeInTheDocument()
-    expect(screen.getByText('€920.50')).toBeInTheDocument()
+    expect(screen.getByText(/^.920\.50$/)).toBeInTheDocument()
   })
 
   it('renders the totalProAbsorbe stat', () => {
     render(<ExpenseDashboardPage />)
 
-    expect(screen.getByText('€95.00')).toBeInTheDocument()
+    expect(screen.getByText(/^.95\.00$/)).toBeInTheDocument()
   })
 
   it('defaults to the current month with a 6-month evolution window, fetching both expense and income sides', () => {
@@ -115,12 +115,12 @@ describe('ExpenseDashboardPage', () => {
     fireEvent.click(screen.getByText('expenseDashboard.view.income'))
 
     expect(screen.getByText('expenseDashboard.totalPeriodIncomeLabel')).toBeInTheDocument()
-    expect(screen.getByText('€3,200.00', { selector: '.text-3xl' })).toBeInTheDocument()
+    expect(screen.getByText(/^.3,200\.00$/, { selector: '.text-3xl' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('expenseDashboard.view.expense'))
 
     expect(screen.getByText('expenseDashboard.totalPeriodLabel')).toBeInTheDocument()
-    expect(screen.getByText('€920.50', { selector: '.text-3xl' })).toBeInTheDocument()
+    expect(screen.getByText(/^.920\.50$/, { selector: '.text-3xl' })).toBeInTheDocument()
   })
 
   it('shows the expense and income category breakdowns side by side without needing to toggle', () => {

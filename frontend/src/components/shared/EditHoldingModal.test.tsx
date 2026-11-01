@@ -1,94 +1,70 @@
 import '@testing-library/jest-dom'
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { EditHoldingModal } from './EditHoldingModal'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import type { HoldingResponse } from '@/types/api'
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, opts?: Record<string, unknown>) => opts ? `${key} ${JSON.stringify(opts)}` : key,
-    i18n: { language: 'en', resolvedLanguage: 'en' },
-  }),
+  useTranslation: () => ({ t: (key: string) => key }),
 }))
 
-// DateInput's own parsing/format logic isn't what's under test here -- stand in with a
-// plain controlled input so this file only exercises EditHoldingModal's own wiring.
+// The fork's acquisition-date field renders DateInput, which probes matchMedia (absent in jsdom);
+// stand in with a plain input -- this file only exercises the cost-basis wiring.
 vi.mock('@/components/shared/DateInput', () => ({
   DateInput: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
     <input aria-label="acquiredAt" value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }))
 
-function holding(overrides: Partial<HoldingResponse>): HoldingResponse {
-  return {
-    ticker: 'AAPL', name: 'Apple Inc.', quantity: 10, averageBuyIn: 150,
-    currentPrice: 180, quoteCurrency: 'USD', currentValueEur: 1800, costBasisEur: 1500,
-    pnlEur: 300, pnlPercent: 20, priceUpdatedAt: null, priceAsOf: null, priceStale: false,
-    acquiredAt: null,
-    ...overrides,
-  }
+const { EditHoldingModal } = await import('./EditHoldingModal')
+
+function holding(): HoldingResponse {
+  return { ticker: 'BTC', name: 'Bitcoin', quantity: 2, averageBuyIn: 30000 } as unknown as HoldingResponse
 }
 
 describe('EditHoldingModal', () => {
-  it('pre-fills quantity, average buy-in and acquired date from the holding', () => {
-    render(
-      <EditHoldingModal
-        open
-        onOpenChange={vi.fn()}
-        holding={holding({ quantity: 15, averageBuyIn: 155, acquiredAt: '2026-03-01' })}
-        onSubmit={vi.fn()}
-      />,
-    )
+  it('derives total invested and average buy-in from each other via the quantity', () => {
+    render(<EditHoldingModal open holding={holding()} onSubmit={vi.fn()} onOpenChange={() => {}} />)
 
-    expect(screen.getByDisplayValue('15')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('155')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('2026-03-01')).toBeInTheDocument()
+    // qty 2, avg 30000 → total seeded to 60000. Editing total updates the average.
+    fireEvent.change(screen.getByDisplayValue('60000'), { target: { value: '80000' } })
+    expect(screen.getByDisplayValue('40000')).toBeInTheDocument()
   })
 
-  it('leaves the acquired-date field blank when the holding has none', () => {
-    render(
-      <EditHoldingModal
-        open
-        onOpenChange={vi.fn()}
-        holding={holding({ acquiredAt: null })}
-        onSubmit={vi.fn()}
-      />,
-    )
-
-    expect(screen.getByLabelText('acquiredAt')).toHaveValue('')
+  it('disables the quantity field for synced accounts', () => {
+    render(<EditHoldingModal open holding={holding()} onSubmit={vi.fn()} onOpenChange={() => {}} quantityReadOnly />)
+    expect(screen.getByDisplayValue('2')).toBeDisabled()
   })
 
-  it('submits the edited acquired date as an ISO string', async () => {
+  it('submits the unchanged synced quantity with the edited cost basis', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined)
-    render(
-      <EditHoldingModal
-        open
-        onOpenChange={vi.fn()}
-        holding={holding({ acquiredAt: null })}
-        onSubmit={onSubmit}
-      />,
-    )
+    render(<EditHoldingModal open holding={holding()} onSubmit={onSubmit} onOpenChange={() => {}} quantityReadOnly />)
 
-    fireEvent.change(screen.getByLabelText('acquiredAt'), { target: { value: '2026-05-20' } })
+    fireEvent.change(screen.getByDisplayValue('30000'), { target: { value: '25000' } })
     fireEvent.click(screen.getByText('common.save'))
 
-    expect(onSubmit).toHaveBeenCalledWith('AAPL', 10, 150, '2026-05-20')
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith('BTC', 2, 25000, null))
   })
 
-  it('submits null when the acquired date is cleared', async () => {
-    const onSubmit = vi.fn().mockResolvedValue(undefined)
-    render(
-      <EditHoldingModal
-        open
-        onOpenChange={vi.fn()}
-        holding={holding({ acquiredAt: '2026-03-01' })}
-        onSubmit={onSubmit}
-      />,
-    )
+  it('blocks submit and shows an error for a zero quantity', () => {
+    const onSubmit = vi.fn()
+    render(<EditHoldingModal open holding={holding()} onSubmit={onSubmit} onOpenChange={() => {}} />)
 
-    fireEvent.change(screen.getByLabelText('acquiredAt'), { target: { value: '' } })
+    // 0 passes the HTML `required` gate but must be rejected by the JS validation.
+    fireEvent.change(screen.getByDisplayValue('2'), { target: { value: '0' } })
     fireEvent.click(screen.getByText('common.save'))
 
-    expect(onSubmit).toHaveBeenCalledWith('AAPL', 10, 150, null)
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(screen.getByText('holdings.quantityInvalid')).toBeInTheDocument()
+  })
+
+  it('keeps the form open when submission fails', async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error('boom'))
+    const onOpenChange = vi.fn()
+    render(<EditHoldingModal open holding={holding()} onSubmit={onSubmit} onOpenChange={onOpenChange} />)
+
+    fireEvent.click(screen.getByText('common.save'))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
+    expect(onOpenChange).not.toHaveBeenCalledWith(false)
   })
 })

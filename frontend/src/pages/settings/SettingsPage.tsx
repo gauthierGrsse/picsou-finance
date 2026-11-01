@@ -30,9 +30,10 @@ import {
   Pencil,
   Shield,
   KeyRound,
+  IdCard,
+  Link2,
   ExternalLink,
   Tags,
-  Link2,
   Wand2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -43,6 +44,8 @@ import { AccessKeysSection } from './sections/AccessKeysSection'
 import { ExpenseCategoriesSection } from './sections/ExpenseCategoriesSection'
 import { CategoryRulesSection } from './sections/CategoryRulesSection'
 import { ReimbursementsList } from '@/components/shared/ReimbursementsList'
+import { ProfileSection } from './sections/ProfileSection'
+import { ConnectedAppsSection } from './sections/ConnectedAppsSection'
 
 // ---------------------------------------------------------------------------
 // Toggle group button (theme / language)
@@ -121,7 +124,7 @@ export function SettingsPage() {
   const user = useAuthStore((s) => s.user)
   const logoutMutation = useLogout()
   const setUsername = useAuthStore((s) => s.setUsername)
-  const { dateFormat, setDateFormat, sidebarStyle, setSidebarStyle } = useAppStore()
+  const { dateFormat, setDateFormat, sidebarStyle, setSidebarStyle, hideAmounts, setHideAmounts } = useAppStore()
 
   // Username editing -------------------------------------------------------
   const [editingUsername, setEditingUsername] = useState(false)
@@ -201,6 +204,11 @@ export function SettingsPage() {
     { value: 'iso', label: t('settings.dateFormatIso') },
   ]
 
+  const amountsOptions: ToggleOption[] = [
+    { value: 'visible', label: t('settings.amountsVisible') },
+    { value: 'hidden', label: t('settings.amountsHidden') },
+  ]
+
   const sidebarStyleOptions: ToggleOption[] = [
     { value: 'current', label: t('settings.sidebarStyleCurrent') },
     { value: 'classic', label: t('settings.sidebarStyleClassic') },
@@ -244,6 +252,18 @@ export function SettingsPage() {
               options={dateFormatOptions}
               value={dateFormat}
               onChange={(v) => setDateFormat(v as DateFormat)}
+            />
+          </div>
+
+          {/* Amounts. Duplicated from the sidebar's eye button on purpose: that button lives in
+              a sidebar that is hidden below 768px, and shoulder-surfing is likelier on a phone
+              than at a desk. */}
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">{t('settings.amounts')}</Label>
+            <ToggleGroup
+              options={amountsOptions}
+              value={hideAmounts ? 'hidden' : 'visible'}
+              onChange={(v) => setHideAmounts(v === 'hidden')}
             />
           </div>
 
@@ -308,6 +328,15 @@ export function SettingsPage() {
         </div>
       </SectionCard>
 
+      {/* Profile (personal + fiscal context) ------------------------------ */}
+      <SectionCard
+        icon={IdCard}
+        title={t('settings.profile.title')}
+        description={t('settings.profile.description')}
+      >
+        <ProfileSection />
+      </SectionCard>
+
       {/* Security --------------------------------------------------------- */}
       <SectionCard
         icon={Shield}
@@ -351,6 +380,15 @@ export function SettingsPage() {
         description={t('settings.reimbursementsDescription')}
       >
         <ReimbursementsList />
+      </SectionCard>
+
+      {/* Connected apps (OAuth) -------------------------------------------- */}
+      <SectionCard
+        icon={Link2}
+        title={t('connectedApps.sectionTitle')}
+        description={t('connectedApps.sectionDescription')}
+      >
+        <ConnectedAppsSection />
       </SectionCard>
 
       {/* Family ----------------------------------------------------------- */}
@@ -407,12 +445,12 @@ export function SettingsPage() {
           <div className="space-y-1 sm:justify-self-end sm:text-right">
             <p className="text-muted-foreground">GitHub</p>
             <a
-              href="https://github.com/zoeille/picsou-finance"
+              href="https://github.com/cloeille/picsou-finance"
               target="_blank"
               rel="noreferrer"
               className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-xl font-medium text-foreground transition-colors hover:text-muted-foreground"
             >
-              <span className="truncate">github.com/zoeille/picsou-finance</span>
+              <span className="truncate">github.com/cloeille/picsou-finance</span>
               <ExternalLink className="size-4 text-muted-foreground" />
             </a>
           </div>

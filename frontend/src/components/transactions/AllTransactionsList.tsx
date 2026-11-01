@@ -102,7 +102,7 @@ export function AllTransactionsList({ transactions, categories, unusualThreshold
         txId: target.id,
         data: {
           proStatus: change.field === 'status' ? change.proStatus : target.proStatus,
-          expenseCategoryId: change.field === 'category' ? change.expenseCategoryId : target.expenseCategoryId,
+          expenseCategoryId: change.field === 'category' ? change.expenseCategoryId : (target.expenseCategoryId ?? null),
         },
       })
     }

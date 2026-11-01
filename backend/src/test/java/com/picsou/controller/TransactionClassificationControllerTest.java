@@ -27,8 +27,9 @@ class TransactionClassificationControllerTest {
         when(userContext.currentMemberId()).thenReturn(10L);
         TransactionClassificationRequest req = new TransactionClassificationRequest(ProStatus.PERSO, null);
         TransactionResponse expected = new TransactionResponse(
-            7L, null, "Restaurant", null, null, null, "EUR", null, false, null, null, null, null, null, null,
-            ProStatus.PERSO, null, null, null, null, null);
+            7L, null, "Restaurant", null, null, null, "EUR", null, false, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null,
+            ProStatus.PERSO, null, null, null);
         when(transactionClassificationService.updateClassification(1L, 7L, 10L, req)).thenReturn(expected);
 
         TransactionResponse actual = controller.updateClassification(1L, 7L, req);

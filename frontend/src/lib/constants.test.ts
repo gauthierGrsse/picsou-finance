@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ACCOUNT_TYPES, accountTypeLabelKey, buildCategoryTree, categoryTypeMatchesAmount } from './constants'
+import { ACCOUNT_TYPES, accountTypeLabelKey, buildCategoryTree, categoryTypeMatchesAmount, HOLDING_ACCOUNT_TYPES, LIABILITY_ACCOUNT_TYPES } from './constants'
 import type { AccountType, ExpenseCategory } from '@/types/api'
 import fr from '@/i18n/locales/fr.json'
 import en from '@/i18n/locales/en.json'
@@ -13,7 +13,8 @@ import es from '@/i18n/locales/es.json'
  */
 const EVERY_TYPE: AccountType[] = [
   'CHECKING', 'SAVINGS', 'LEP', 'LIVRET_A', 'LDDS', 'LIVRET_JEUNE', 'PEL', 'CEL',
-  'PEA', 'COMPTE_TITRES', 'CRYPTO', 'REAL_ESTATE', 'EMPLOYEE_SAVINGS', 'LOAN', 'OTHER',
+  'PEA', 'COMPTE_TITRES', 'CRYPTO', 'ASSURANCE_VIE', 'PER', 'REAL_ESTATE', 'SCPI',
+  'EMPLOYEE_SAVINGS', 'LOAN', 'CREDIT_CARD', 'OTHER',
 ]
 
 const LOCALES = { fr, en, de, es } as Record<string, { accountTypes: Record<string, string> }>
@@ -82,5 +83,16 @@ describe('buildCategoryTree', () => {
     const tree = buildCategoryTree(categories)
 
     expect(tree.map(n => n.category.name)).toEqual(['Orphan'])
+  })
+})
+
+describe('PER account type', () => {
+  it('holds positions like an assurance-vie, and is not a debt', () => {
+    expect(HOLDING_ACCOUNT_TYPES).toContain('PER')
+    expect(LIABILITY_ACCOUNT_TYPES).not.toContain('PER')
+  })
+
+  it('has its own label rather than falling back to Other', () => {
+    expect(accountTypeLabelKey('PER')).toBe('accountTypes.per')
   })
 })

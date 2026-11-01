@@ -5,6 +5,8 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
     {
       ticker: 'AAPL',
       name: 'Apple Inc.',
+      logoUrl: null,
+      // an equity: no logo source yet, so the ticker stands (issue #162)
       quantity: 15,
       averageBuyIn: 155.0,
       currentPrice: 182.5,
@@ -20,6 +22,8 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
     {
       ticker: 'MSFT',
       name: 'Microsoft Corp.',
+      logoUrl: null,
+      // an equity: no logo source yet, so the ticker stands (issue #162)
       quantity: 8,
       averageBuyIn: 340.0,
       currentPrice: 415.0,
@@ -35,6 +39,8 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
     {
       ticker: 'AMZN',
       name: 'Amazon.com Inc.',
+      logoUrl: null,
+      // an equity: no logo source yet, so the ticker stands (issue #162)
       quantity: 20,
       averageBuyIn: 145.0,
       currentPrice: 178.0,
@@ -50,6 +56,8 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
     {
       ticker: 'NVDA',
       name: 'NVIDIA Corp.',
+      logoUrl: null,
+      // an equity: no logo source yet, so the ticker stands (issue #162)
       quantity: 10,
       averageBuyIn: 480.0,
       currentPrice: 880.0,
@@ -67,6 +75,8 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
     {
       ticker: 'BTC',
       name: 'Bitcoin',
+      logoUrl: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png?1696501400',
+      // the CoinGecko image a real instance resolves
       quantity: 0.032,
       averageBuyIn: 52000.0,
       currentPrice: 84500.0,
@@ -82,6 +92,8 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
     {
       ticker: 'ETH',
       name: 'Ethereum',
+      logoUrl: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png?1696501400',
+      // the CoinGecko image a real instance resolves
       quantity: 1.2,
       averageBuyIn: 1800.0,
       currentPrice: 2100.0,
@@ -97,6 +109,8 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
     {
       ticker: 'SOL',
       name: 'Solana',
+      logoUrl: 'https://coin-images.coingecko.com/coins/images/4128/small/solana.png?1718769756',
+      // the CoinGecko image a real instance resolves
       quantity: 15,
       averageBuyIn: 95.0,
       currentPrice: 148.0,
@@ -114,6 +128,8 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
     {
       ticker: 'IWDA',
       name: 'iShares Core MSCI World',
+      logoUrl: null,
+      // an equity: no logo source yet, so the ticker stands (issue #162)
       quantity: 25,
       averageBuyIn: 72.0,
       currentPrice: 85.0,
@@ -129,6 +145,8 @@ export const mockHoldings: Record<number, HoldingResponse[]> = {
     {
       ticker: 'EUNL',
       name: 'iShares Core S&P 500',
+      logoUrl: null,
+      // an equity: no logo source yet, so the ticker stands (issue #162)
       quantity: 30,
       averageBuyIn: 38.0,
       currentPrice: 44.0,
