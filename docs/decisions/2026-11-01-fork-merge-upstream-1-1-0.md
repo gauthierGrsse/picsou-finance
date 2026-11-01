@@ -35,17 +35,41 @@ formatter. None of the fork-only features exist upstream.
   cannot leak; the fork's dashboard components now use the same formatter. A guard test forbids a
   literal currency symbol in any `.tsx`, tests included.
 
-## Still to do before deploying
+## Deploy runbook (homelab) -- run only on an explicit go
 
-1. Add `APP_SIDECAR_API_KEY` to the server's `docker/.env`; the app and every `*-auth` sidecar
-   refuse to start without it, so the sidecar images must move to 1.1.0 too.
-2. Back up the database, then smoke-test the built image against a restored copy.
-3. Unify the two category systems (fork `expense_category` / `category_rule` vs upstream `category` /
-   `categorization_rule` / `budget` / `recurring_series`). Both run side by side for now.
+The merge changes the database history, so **rolling back the image alone does not work**: the old
+image would fail Flyway validation against the reconciled history. A rollback is: stop the app,
+restore the pre-deploy `pg_dump`, `git reset --hard c738ea3`, set the app image back to
+`picsou-finance:c738ea3`, start the app. Keep that backup until the new version has run for a while.
 
-## Rehearsal result (2026-11-01, restored production dump)
+1. Fast-forward `main` to `merge/upstream-1.1.0` and push (the server syncs from `origin/main`).
+2. `pg_dump` the production database to a local file; check it is not empty.
+3. Ship the app image: `docker buildx build --platform linux/amd64 ... -t picsou-finance:<sha> --load .`
+   then `docker save picsou-finance:<sha> | ssh picsou-prod docker load`.
+4. On the server, in this order: `git fetch && git reset --hard origin/main`; append
+   `APP_SIDECAR_API_KEY` to `docker/.env` if absent (`openssl rand -base64 32`; the app and every
+   sidecar refuse to start without it -- and since the compose interpolates it with `:?`, *every*
+   `docker compose` command fails until it is set); set the `app` image line (still line 6) to the
+   local tag; pin the sidecar images from `:latest` to `:1.1.0` (`:latest` follows upstream's
+   `main`, not the release); pull the four sidecar images.
+5. `cd docker && docker compose up -d --no-deps --no-build app tr-auth bourso-auth bourse-direct-auth amundi-auth`.
+   - `--no-deps`: `app` depends on all 11 sidecars; without it Compose would start the seven the
+     homelab does not use (Revolut, Fortuneo, Amex, ...).
+   - `--no-build`: the sidecars declare `additional_contexts: service:sidecar-chromium`, which makes
+     Compose build that base image from source instead of using the published ones.
+6. Verify: `/actuator/health` UP; logs show `Reconciled 21 fork schema-history row(s)` then
+   `Successfully applied 52 migrations ... now at version v207`; `GET /mcp` without a key is 401;
+   the four sidecars are up (`/health` is open, every other path needs `X-Picsou-Sidecar-Key`).
+
+## Rehearsal results (2026-11-01, restored production dump)
 
 `ReleaseMigrationCli migrate` then `verify`: 21 history rows reconciled, 52 migrations applied
 (history 70 → 122 rows, all successful, highest V207), Hibernate schema validation passed, and the
 data was untouched (1042 transactions, 23 categories, 14 rules, 19 reimbursements, identical
 pro-status distribution).
+
+Full-image smoke test (the real `picsou-finance` image + tr-auth 1.1.0 + a restored dump, isolated
+Compose project): the app boots in ~21 s, reconciles the history and applies 52 migrations; `/` is
+200, `/mcp` without a key is 401; the sidecar answers 401 without or with a wrong key and passes
+authentication with the right one; an existing `psk_` access key still opens an MCP session, which
+now advertises 86 tools (the fork's 30 plus upstream's) and `list_accounts` returns every account.
