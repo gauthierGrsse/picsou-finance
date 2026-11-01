@@ -5,11 +5,14 @@ import com.picsou.dto.CategoryPaceSeries;
 import com.picsou.dto.ExpenseDashboardResponse;
 import com.picsou.dto.ExpensePaceResponse;
 import com.picsou.dto.MonthlyExpenseTotal;
-import com.picsou.model.ExpenseCategory;
+import com.picsou.model.Budget;
+import com.picsou.model.Category;
+import com.picsou.model.CategoryKind;
 import com.picsou.model.ProStatus;
 import com.picsou.model.ReimbursementStatus;
 import com.picsou.model.Transaction;
-import com.picsou.repository.ExpenseCategoryRepository;
+import com.picsou.repository.BudgetRepository;
+import com.picsou.repository.CategoryRepository;
 import com.picsou.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,17 +37,30 @@ import java.util.stream.Collectors;
 public class ExpenseDashboardService {
 
     private final TransactionRepository transactionRepository;
-    private final ExpenseCategoryRepository expenseCategoryRepository;
+    private final CategoryRepository categoryRepository;
+    private final BudgetRepository budgetRepository;
     private final Clock clock;
 
     public ExpenseDashboardService(
         TransactionRepository transactionRepository,
-        ExpenseCategoryRepository expenseCategoryRepository,
+        CategoryRepository categoryRepository,
+        BudgetRepository budgetRepository,
         Clock clock
     ) {
         this.transactionRepository = transactionRepository;
-        this.expenseCategoryRepository = expenseCategoryRepository;
+        this.categoryRepository = categoryRepository;
+        this.budgetRepository = budgetRepository;
         this.clock = clock;
+    }
+
+    private Map<Long, Category> categoriesById(Long memberId) {
+        return categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(memberId).stream()
+            .collect(Collectors.toMap(Category::getId, c -> c));
+    }
+
+    /** The id only -- reading it never loads the lazily-fetched category itself. */
+    private static Long categoryIdOf(Transaction t) {
+        return t.getCategoryRef() != null ? t.getCategoryRef().getId() : null;
     }
 
     /**
@@ -67,14 +83,13 @@ public class ExpenseDashboardService {
         List<Transaction> window = transactionRepository.findByAccount_Member_IdAndDateBetween(
             memberId, windowStart, periodEndMonth.atEndOfMonth());
 
-        List<MonthlyExpenseTotal> monthlyEvolution = buildMonthlyEvolution(window, evolutionStart, periodEndMonth, income);
+        Map<Long, Category> categoriesById = categoriesById(memberId);
+
+        List<MonthlyExpenseTotal> monthlyEvolution = buildMonthlyEvolution(window, evolutionStart, periodEndMonth, income, categoriesById);
 
         List<Transaction> periodTransactions = window.stream()
             .filter(t -> !t.getDate().isBefore(periodStart) && !t.getDate().isAfter(periodEnd))
             .toList();
-
-        Map<Long, ExpenseCategory> categoriesById = expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(memberId).stream()
-            .collect(Collectors.toMap(ExpenseCategory::getId, c -> c));
 
         List<CategoryBreakdownItem> categoryBreakdown = buildCategoryBreakdown(periodTransactions, categoriesById, income);
 
@@ -99,9 +114,10 @@ public class ExpenseDashboardService {
         int daysInMonth = currentMonth.lengthOfMonth();
         YearMonth firstHistoricalMonth = currentMonth.minusMonths(historyMonths);
 
+        Map<Long, Category> categoriesById = categoriesById(memberId);
         List<Transaction> window = transactionRepository.findByAccount_Member_IdAndDateBetween(
                 memberId, firstHistoricalMonth.atDay(1), today).stream()
-            .filter(t -> !isExcluded(t, false))
+            .filter(t -> !isExcluded(t, false, categoriesById))
             .toList();
 
         List<BigDecimal> currentCumulativeByDay = cumulativeByDay(window, currentMonth, dayOfMonth, null, false);
@@ -112,10 +128,10 @@ public class ExpenseDashboardService {
         BigDecimal historicalCumulativeAverage = historicalCumulativeByDay.get(dayOfMonth - 1);
         BigDecimal percentDifference = percentDifference(currentMonthCumulative, historicalCumulativeAverage);
 
-        Map<Long, ExpenseCategory> categoriesById = expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(memberId).stream()
-            .collect(Collectors.toMap(ExpenseCategory::getId, c -> c));
+        Map<Long, BigDecimal> budgetByCategory = budgetRepository.findAllByMemberIdOrderByIdAsc(memberId).stream()
+            .collect(Collectors.toMap(b -> b.getCategory().getId(), Budget::getMonthlyLimit, BigDecimal::add));
         List<CategoryPaceSeries> categorySeries = buildCategoryPaceSeries(
-            window, currentMonth, firstHistoricalMonth, dayOfMonth, daysInMonth, historyMonths, categoriesById);
+            window, currentMonth, firstHistoricalMonth, dayOfMonth, daysInMonth, historyMonths, categoriesById, budgetByCategory);
 
         return new ExpensePaceResponse(
             dayOfMonth, daysInMonth, historyMonths, currentMonthCumulative, historicalCumulativeAverage,
@@ -130,7 +146,7 @@ public class ExpenseDashboardService {
         Arrays.fill(daily, BigDecimal.ZERO);
         for (Transaction t : window) {
             if (!YearMonth.from(t.getDate()).equals(month)) continue;
-            if (filterByCategory && !Objects.equals(t.getExpenseCategoryId(), categoryId)) continue;
+            if (filterByCategory && !Objects.equals(categoryIdOf(t), categoryId)) continue;
             int day = t.getDate().getDayOfMonth();
             if (day > days) continue;
             daily[day - 1] = daily[day - 1].add(t.getAmount().abs());
@@ -180,9 +196,10 @@ public class ExpenseDashboardService {
      * uncategorized (null categoryId) included. Sorted by current total descending. */
     private List<CategoryPaceSeries> buildCategoryPaceSeries(
         List<Transaction> window, YearMonth currentMonth, YearMonth firstHistoricalMonth,
-        int dayOfMonth, int daysInMonth, int historyMonths, Map<Long, ExpenseCategory> categoriesById
+        int dayOfMonth, int daysInMonth, int historyMonths, Map<Long, Category> categoriesById,
+        Map<Long, BigDecimal> budgetByCategory
     ) {
-        Set<Long> categoryIds = window.stream().map(Transaction::getExpenseCategoryId)
+        Set<Long> categoryIds = window.stream().map(ExpenseDashboardService::categoryIdOf)
             .collect(Collectors.toCollection(LinkedHashSet::new));
 
         return categoryIds.stream()
@@ -190,12 +207,12 @@ public class ExpenseDashboardService {
                 List<BigDecimal> current = cumulativeByDay(window, currentMonth, dayOfMonth, categoryId, true);
                 List<BigDecimal> historical = averagedHistoricalCumulativeByDay(
                     window, firstHistoricalMonth, currentMonth, daysInMonth, historyMonths, categoryId, true);
-                ExpenseCategory category = categoryId != null ? categoriesById.get(categoryId) : null;
+                Category category = categoryId != null ? categoriesById.get(categoryId) : null;
                 return new CategoryPaceSeries(
                     category != null ? category.getId() : null,
                     category != null ? category.getName() : null,
                     category != null ? category.getColor() : null,
-                    category != null ? category.getMonthlyBudget() : null,
+                    category != null ? budgetByCategory.get(category.getId()) : null,
                     current,
                     historical
                 );
@@ -218,13 +235,15 @@ public class ExpenseDashboardService {
     /** Transactions on the requested side (expenses = negative, income = positive), summed per
      * month over the window -- every month in range is present even at zero, so the chart never
      * silently skips a month with no data. */
-    private List<MonthlyExpenseTotal> buildMonthlyEvolution(List<Transaction> window, YearMonth start, YearMonth end, boolean income) {
+    private List<MonthlyExpenseTotal> buildMonthlyEvolution(
+        List<Transaction> window, YearMonth start, YearMonth end, boolean income, Map<Long, Category> categoriesById
+    ) {
         Map<YearMonth, BigDecimal> totals = new LinkedHashMap<>();
         for (YearMonth ym = start; !ym.isAfter(end); ym = ym.plusMonths(1)) {
             totals.put(ym, BigDecimal.ZERO);
         }
         for (Transaction t : window) {
-            if (isExcluded(t, income)) continue;
+            if (isExcluded(t, income, categoriesById)) continue;
             totals.computeIfPresent(YearMonth.from(t.getDate()), (ym, sum) -> sum.add(t.getAmount().abs()));
         }
         return totals.entrySet().stream()
@@ -235,19 +254,19 @@ public class ExpenseDashboardService {
     /** Transactions on the requested side grouped by (category, pro_status) for the given
      * period; uncategorized ones are grouped under a null categoryId rather than dropped. */
     private List<CategoryBreakdownItem> buildCategoryBreakdown(
-        List<Transaction> periodTransactions, Map<Long, ExpenseCategory> categoriesById, boolean income
+        List<Transaction> periodTransactions, Map<Long, Category> categoriesById, boolean income
     ) {
         record Key(Long categoryId, ProStatus proStatus) {
         }
         Map<Key, BigDecimal> totals = new LinkedHashMap<>();
         for (Transaction t : periodTransactions) {
-            if (isExcluded(t, income)) continue;
-            Key key = new Key(t.getExpenseCategoryId(), t.getProStatus());
+            if (isExcluded(t, income, categoriesById)) continue;
+            Key key = new Key(categoryIdOf(t), t.getProStatus());
             totals.merge(key, t.getAmount().abs(), BigDecimal::add);
         }
         return totals.entrySet().stream()
             .map(e -> {
-                ExpenseCategory category = e.getKey().categoryId() != null
+                Category category = e.getKey().categoryId() != null
                     ? categoriesById.get(e.getKey().categoryId())
                     : null;
                 return new CategoryBreakdownItem(
@@ -267,9 +286,14 @@ public class ExpenseDashboardService {
      * makes it a net-zero round-trip, not real personal spending, even though proStatus
      * itself stays PRO_A_REMBOURSER (see {@link ProStatus#PRO_A_REMBOURSER}). Not-yet-reimbursed
      * PRO_A_REMBOURSER expenses still count: the cash has genuinely left the account and
-     * reimbursement isn't guaranteed or timely. */
-    private boolean isExcluded(Transaction t, boolean income) {
+     * reimbursement isn't guaranteed or timely. A transaction filed under a TRANSFER category
+     * (savings, investment, own-account moves) is excluded as well, the same way the budget
+     * pages leave it out of cash flow. */
+    private boolean isExcluded(Transaction t, boolean income, Map<Long, Category> categoriesById) {
         if (t.getProStatus() == ProStatus.VIREMENT_INTERNE) return true;
+        Long categoryId = categoryIdOf(t);
+        Category category = categoryId != null ? categoriesById.get(categoryId) : null;
+        if (category != null && category.getKind() == CategoryKind.TRANSFER) return true;
         if (t.getProStatus() == ProStatus.PRO_A_REMBOURSER && t.getReimbursementStatus() == ReimbursementStatus.REMBOURSE) return true;
         int sign = t.getAmount().signum();
         return income ? sign <= 0 : sign >= 0;

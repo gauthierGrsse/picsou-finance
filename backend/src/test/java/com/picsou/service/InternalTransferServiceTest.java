@@ -33,6 +33,7 @@ class InternalTransferServiceTest {
     @Mock TransactionRepository transactionRepository;
     @Mock AccountRepository accountRepository;
     @Mock ManualTransactionService manualTransactionService;
+    @Mock TransferCategoryService transferCategoryService;
 
     @InjectMocks InternalTransferService internalTransferService;
 
@@ -261,6 +262,19 @@ class InternalTransferServiceTest {
     }
 
     @Test
+    void confirmLink_filesBothLegsUnderTheTransferCategory() {
+        Transaction a = tx(10L, account(1L), LocalDate.now(), new BigDecimal("-10"), null);
+        Transaction b = tx(20L, account(2L), LocalDate.now(), new BigDecimal("10"), null);
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
+        when(transactionRepository.findByIdAndAccount_Member_Id(20L, 1L)).thenReturn(java.util.Optional.of(b));
+
+        internalTransferService.confirmLink(10L, 20L, 1L, false);
+
+        verify(transferCategoryService).fileAsTransfer(a, 1L);
+        verify(transferCategoryService).fileAsTransfer(b, 1L);
+    }
+
+    @Test
     void confirmLink_allowAmountMismatch_linksDespiteDifferentAmounts() {
         Account accountA = account(1L);
         Account accountB = account(2L);
@@ -316,6 +330,23 @@ class InternalTransferServiceTest {
     }
 
     @Test
+    void unlink_releasesBothLegsFromTheTransferCategory() {
+        Transaction a = tx(10L, account(1L), LocalDate.now(), new BigDecimal("-10"), null);
+        a.setProStatus(ProStatus.VIREMENT_INTERNE);
+        a.setLinkedTransactionId(20L);
+        Transaction b = tx(20L, account(2L), LocalDate.now(), new BigDecimal("10"), null);
+        b.setProStatus(ProStatus.VIREMENT_INTERNE);
+        b.setLinkedTransactionId(10L);
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
+        when(transactionRepository.findByIdAndAccount_Member_Id(20L, 1L)).thenReturn(java.util.Optional.of(b));
+
+        internalTransferService.unlink(10L, 1L);
+
+        verify(transferCategoryService).releaseFromTransfer(a);
+        verify(transferCategoryService).releaseFromTransfer(b);
+    }
+
+    @Test
     void unlink_throwsWhenTransactionNotMarkedAsTransfer() {
         Account account = account(1L);
         Transaction a = tx(10L, account, LocalDate.now(), new BigDecimal("-10"), null);
@@ -353,6 +384,16 @@ class InternalTransferServiceTest {
         assertThat(a.getProStatus()).isEqualTo(ProStatus.VIREMENT_INTERNE);
         assertThat(a.getLinkedTransactionId()).isNull();
         verify(transactionRepository).save(a);
+    }
+
+    @Test
+    void markWithoutMatch_filesTheTransactionUnderTheTransferCategory() {
+        Transaction a = tx(10L, account(1L), LocalDate.now(), new BigDecimal("-500"), null);
+        when(transactionRepository.findByIdAndAccount_Member_Id(10L, 1L)).thenReturn(java.util.Optional.of(a));
+
+        internalTransferService.markWithoutMatch(10L, 1L);
+
+        verify(transferCategoryService).fileAsTransfer(a, 1L);
     }
 
     @Test

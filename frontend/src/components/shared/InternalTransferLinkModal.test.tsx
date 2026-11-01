@@ -27,7 +27,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
   return {
     id: 1, date: '2026-01-05', description: 'tx', amount: 0, type: null, category: null,
     nativeCurrency: 'EUR', isManual: false, txType: null, ticker: null, name: null, quantity: null,
-    pricePerUnit: null, fees: null, proStatus: 'NON_CLASSE', expenseCategoryId: null,
+    pricePerUnit: null, fees: null, proStatus: 'NON_CLASSE', categoryId: null,
     reimbursementStatus: null, reimbursementId: null, accountId: 1, accountName: 'Compte Courant',
     ...overrides,
   }

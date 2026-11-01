@@ -136,20 +136,12 @@ public class Transaction {
     @Builder.Default
     private ProStatus proStatus = ProStatus.NON_CLASSE;
 
-    /**
-     * Plain id, not {@code @ManyToOne}: mirrors {@link Account#requisitionId} — nothing needs to
-     * navigate to the category from here, and the association would drag a lazy proxy through
-     * every transaction read for a column most reads don't consult. Resolved to a name/color by
-     * the frontend, which caches the small per-member category list separately.
-     */
-    @Column(name = "expense_category_id")
-    private Long expenseCategoryId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "reimbursement_status", length = 20)
     private ReimbursementStatus reimbursementStatus;
 
-    /** Plain id, same reasoning as {@link #expenseCategoryId}. Set only while {@link #proStatus}
+    /** Plain id. Set only while {@link #proStatus}
      * is {@code PRO_A_REMBOURSER} (enforced by a DB CHECK constraint and by
      * {@code TransactionClassificationService}/{@code ReimbursementService}). */
     @Column(name = "reimbursement_id")
@@ -158,8 +150,8 @@ public class Transaction {
     /** Symmetric self-reference to the other leg of an internal transfer (both rows point
      * at each other) once {@link #proStatus} is {@code VIREMENT_INTERNE}. Null while that
      * status holds for a transaction marked internal with no counterpart row to link to
-     * (see {@code InternalTransferService#markWithoutMatch}). Plain id, same reasoning as
-     * {@link #expenseCategoryId}. */
+     * (see {@code InternalTransferService#markWithoutMatch}). A plain id rather than a JPA
+     * association. */
     @Column(name = "linked_transaction_id")
     private Long linkedTransactionId;
 }

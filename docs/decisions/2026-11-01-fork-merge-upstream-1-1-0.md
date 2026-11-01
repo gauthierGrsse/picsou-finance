@@ -73,3 +73,31 @@ Compose project): the app boots in ~21 s, reconciles the history and applies 52 
 200, `/mcp` without a key is 401; the sidecar answers 401 without or with a wrong key and passes
 authentication with the right one; an existing `psk_` access key still opens an MCP session, which
 now advertises 86 tools (the fork's 30 plus upstream's) and `list_accounts` returns every account.
+
+## Follow-up: one category system (branch `feat/unify-categories`)
+
+The fork's own categories, rules, budgets and subscription detector are gone; upstream's budget
+module (`category`, `categorization_rule`, `budget`, `recurring_series`) is the only system.
+
+- **Data (V208):** expense categories -> `category` (onto upstream defaults by name, one-level
+  sub-categories, custom otherwise; a legacy "Both" becomes an expense, "Autre" sends its inflows to
+  income), classifications -> `transaction.category_id` (marked manual so the categorizer never
+  overwrites them), rules -> KEYWORD rules, monthly budgets -> `budget`, every internal transfer ->
+  the TRANSFER category "Virement interne". The legacy tables/columns are **kept, unused**, for a
+  later V209 clean-up once production has proven the result.
+- **Kept, re-pointed to `category_id`:** pro/perso status and reimbursements, internal-transfer
+  linking, the expense dashboard (breakdown, pace card with budgets from `budget`, daily allowance,
+  unusual-amount flag, best-month badge) and the rule suggestions (now on `/api/rule-suggestions`,
+  adopted as ordinary KEYWORD rules from the Budget -> Manage tab).
+- **Replaced by upstream's:** category and rule management (Budget -> Manage), the subscription
+  detector (the dashboard card now lists confirmed `recurring_series`), the right-click category menu
+  now offers upstream categories by kind (expense for outflows, income for inflows, transfer either).
+- **New behaviour:** a transaction marked as an internal transfer is filed under "Virement interne"
+  (and released when unlinked), so the budget pages -- which only know categories -- leave it out of
+  cash flow like the expense dashboard does. The dashboard also leaves out anything in a TRANSFER
+  category (savings, investment).
+- **The two pages still differ by design:** Dashboard nets out reimbursed professional expenses,
+  Budget reads raw cash flow.
+- **Regression found and fixed on the way:** taking upstream's `SyncService` for the Enable Banking
+  import dropped the fork's post-sync internal-transfer auto-link (the merge commit message wrongly
+  said it was re-attached). It is back, with tests.

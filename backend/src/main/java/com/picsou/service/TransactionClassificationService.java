@@ -4,11 +4,12 @@ import com.picsou.dto.TransactionClassificationRequest;
 import com.picsou.dto.TransactionResponse;
 import com.picsou.exception.ResourceNotFoundException;
 import com.picsou.model.Account;
+import com.picsou.model.Category;
 import com.picsou.model.ProStatus;
 import com.picsou.model.ReimbursementStatus;
 import com.picsou.model.Transaction;
 import com.picsou.repository.AccountRepository;
-import com.picsou.repository.ExpenseCategoryRepository;
+import com.picsou.repository.CategoryRepository;
 import com.picsou.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,8 @@ public class TransactionClassificationService {
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
-    private final ExpenseCategoryRepository expenseCategoryRepository;
+    private final CategoryRepository categoryRepository;
+    private final TransferCategoryService transferCategoryService;
 
     @Transactional
     public TransactionResponse updateClassification(
@@ -38,11 +40,16 @@ public class TransactionClassificationService {
         Transaction tx = transactionRepository.findByIdAndAccountId(txId, account.getId())
             .orElseThrow(() -> ResourceNotFoundException.transaction(txId));
 
-        if (req.expenseCategoryId() != null) {
-            expenseCategoryRepository.findByIdAndMemberId(req.expenseCategoryId(), memberId)
-                .orElseThrow(() -> ResourceNotFoundException.expenseCategory(req.expenseCategoryId()));
+        if (req.categoryId() != null) {
+            Category category = categoryRepository.findByIdAndMemberId(req.categoryId(), memberId)
+                .orElseThrow(() -> ResourceNotFoundException.category(req.categoryId()));
+            tx.setCategoryRef(category);
+            // A choice made here is the member's: upstream's categorizer never overwrites it.
+            tx.setCategoryManual(true);
+        } else {
+            tx.setCategoryRef(null);
+            tx.setCategoryManual(false);
         }
-        tx.setExpenseCategoryId(req.expenseCategoryId());
 
         if (req.proStatus() != ProStatus.PRO_A_REMBOURSER) {
             // Leaving PRO_A_REMBOURSER auto-unlinks any reimbursement -- more forgiving than
@@ -53,6 +60,11 @@ public class TransactionClassificationService {
             tx.setReimbursementStatus(ReimbursementStatus.EN_ATTENTE);
         }
         tx.setProStatus(req.proStatus());
+        // The category follows the transfer status, so the budget pages (which only know
+        // categories) leave the movement out of cash flow like the expense dashboard does.
+        if (req.proStatus() == ProStatus.VIREMENT_INTERNE) {
+            transferCategoryService.fileAsTransfer(tx, memberId);
+        }
 
         transactionRepository.save(tx);
         return TransactionResponse.from(tx);

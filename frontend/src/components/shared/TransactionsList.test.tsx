@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { TransactionsList } from './TransactionsList'
-import type { ExpenseCategory, Transaction } from '@/types/api'
+import type { Category, Transaction } from '@/types/api'
 
 // jsdom lacks matchMedia, which useIsMobile (TransactionDetailSheet) probes.
 beforeAll(() => {
@@ -46,7 +46,7 @@ function transaction(overrides: Partial<Transaction>): Transaction {
     pricePerUnit: null,
     fees: null,
     proStatus: 'NON_CLASSE',
-    expenseCategoryId: null,
+    categoryId: null,
     reimbursementStatus: null,
     reimbursementId: null,
     ...overrides,
@@ -150,7 +150,7 @@ describe('TransactionsList', () => {
 })
 
 
-const restauration: ExpenseCategory = { id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null }
+const restauration: Category = { id: 1, name: 'Restauration', color: '#f97316', kind: 'EXPENSE', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null }
 
 function tx(overrides: Partial<Transaction>): Transaction {
   return transaction({ date: '2026-01-05', description: 'tx', amount: -10, ...overrides })
@@ -158,13 +158,13 @@ function tx(overrides: Partial<Transaction>): Transaction {
 
 const transactions: Transaction[] = [
   tx({ id: 1, description: 'Vers Compte Titre', amount: -50, proStatus: 'VIREMENT_INTERNE' }),
-  tx({ id: 2, description: 'Boulangerie', amount: -8, proStatus: 'PERSO', expenseCategoryId: 1 }),
+  tx({ id: 2, description: 'Boulangerie', amount: -8, proStatus: 'PERSO', categoryId: 1 }),
   tx({ id: 3, description: 'Facture non triée', amount: -20, proStatus: 'NON_CLASSE' }),
 ]
 
 describe('TransactionsList filters', () => {
   it('hides internal transfers when the toggle is on', () => {
-    render(<TransactionsList transactions={transactions} expenseCategories={[restauration]} />)
+    render(<TransactionsList transactions={transactions} categories={[restauration]} />)
 
     expect(screen.getByText('Vers Compte Titre')).toBeInTheDocument()
 
@@ -175,7 +175,7 @@ describe('TransactionsList filters', () => {
   })
 
   it('filters to a single pro status', () => {
-    render(<TransactionsList transactions={transactions} expenseCategories={[restauration]} />)
+    render(<TransactionsList transactions={transactions} categories={[restauration]} />)
 
     fireEvent.change(screen.getByDisplayValue('accounts.filterAllStatuses'), { target: { value: 'NON_CLASSE' } })
 
@@ -185,7 +185,7 @@ describe('TransactionsList filters', () => {
   })
 
   it('filters to uncategorized transactions', () => {
-    render(<TransactionsList transactions={transactions} expenseCategories={[restauration]} />)
+    render(<TransactionsList transactions={transactions} categories={[restauration]} />)
 
     fireEvent.change(screen.getByDisplayValue('accounts.filterAllCategories'), { target: { value: 'uncategorized' } })
 
@@ -194,9 +194,9 @@ describe('TransactionsList filters', () => {
     expect(screen.queryByText('Boulangerie')).not.toBeInTheDocument()
   })
 
-  it('treats a transaction with no expenseCategoryId key as uncategorized -- the API omits null fields rather than sending null, so it arrives as undefined, not null', () => {
-    const fromApi = JSON.parse(JSON.stringify(tx({ id: 4, description: 'Depuis API', expenseCategoryId: undefined }))) as Transaction
-    render(<TransactionsList transactions={[...transactions, fromApi]} expenseCategories={[restauration]} />)
+  it('treats a transaction with no categoryId key as uncategorized -- the API omits null fields rather than sending null, so it arrives as undefined, not null', () => {
+    const fromApi = JSON.parse(JSON.stringify(tx({ id: 4, description: 'Depuis API', categoryId: undefined }))) as Transaction
+    render(<TransactionsList transactions={[...transactions, fromApi]} categories={[restauration]} />)
 
     fireEvent.change(screen.getByDisplayValue('accounts.filterAllCategories'), { target: { value: 'uncategorized' } })
 
@@ -204,7 +204,7 @@ describe('TransactionsList filters', () => {
   })
 
   it('shows a no-results message when filters exclude everything', () => {
-    render(<TransactionsList transactions={transactions} expenseCategories={[restauration]} />)
+    render(<TransactionsList transactions={transactions} categories={[restauration]} />)
 
     fireEvent.change(screen.getByDisplayValue('accounts.filterAllCategories'), { target: { value: '1' } })
     fireEvent.change(screen.getByDisplayValue('accounts.filterAllStatuses'), { target: { value: 'PRO_ABSORBE' } })
@@ -219,7 +219,7 @@ describe('TransactionsList quick classify', () => {
     render(
       <TransactionsList
         transactions={transactions}
-        expenseCategories={[restauration]}
+        categories={[restauration]}
         onQuickClassify={onQuickClassify}
       />,
     )
@@ -230,12 +230,12 @@ describe('TransactionsList quick classify', () => {
 
     expect(onQuickClassify).toHaveBeenCalledWith(
       expect.objectContaining({ id: 3, description: 'Facture non triée' }),
-      { proStatus: 'PERSO', expenseCategoryId: null },
+      { proStatus: 'PERSO', categoryId: null },
     )
   })
 
   it('does not offer a context menu when onQuickClassify is not provided', () => {
-    render(<TransactionsList transactions={transactions} expenseCategories={[restauration]} />)
+    render(<TransactionsList transactions={transactions} categories={[restauration]} />)
 
     fireEvent.contextMenu(screen.getByText('Facture non triée'))
 

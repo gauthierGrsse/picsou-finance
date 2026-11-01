@@ -9,7 +9,6 @@ import {
   useUpdateTransaction, useUpdateTransactionClassification, useUpdateHolding, useDeleteHolding, useImportTRTransactions
 } from '@/features/accounts/hooks'
 import { useCategories, useCategorize } from '@/features/budget/hooks'
-import { useExpenseCategories } from '@/features/expenseCategories/hooks'
 import { useUnlinkTransfer } from '@/features/internalTransfers/hooks'
 import { TransactionClassificationModal } from '@/components/shared/TransactionClassificationModal'
 import { InternalTransferLinkModal } from '@/components/shared/InternalTransferLinkModal'
@@ -68,7 +67,6 @@ export function AccountDetailPage() {
   const { data: pnlData } = useHistory(accountId ? [accountId] : [], 12)
   const { data: savingsSuggestions } = useSavingsSuggestions()
   const { data: categories } = useCategories()
-  const { data: expenseCategories } = useExpenseCategories()
   const categorizeMutation = useCategorize()
   const qc = useQueryClient()
 
@@ -206,7 +204,6 @@ export function AccountDetailPage() {
             transactions={transactions}
             onDelete={(txId) => deleteTxMutation.mutate(txId)}
             onEdit={(tx) => setEditingTx(tx)}
-            expenseCategories={expenseCategories}
             onClassify={(tx) => setClassifyingTx(tx)}
             onQuickClassify={(tx, data) => classifyTxMutation.mutate({ txId: tx.id, data })}
             onUnlinkTransfer={(txId) => unlinkTransferMutation.mutate(txId)}
@@ -475,7 +472,7 @@ export function AccountDetailPage() {
         open={!!classifyingTx}
         onOpenChange={(open) => { if (!open) setClassifyingTx(null) }}
         transaction={classifyingTx}
-        categories={expenseCategories ?? []}
+        categories={categories ?? []}
         onSubmit={async (data) => {
           await classifyTxMutation.mutateAsync({ txId: classifyingTx!.id, data })
           setClassifyingTx(null)

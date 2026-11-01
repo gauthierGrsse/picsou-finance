@@ -2868,53 +2868,6 @@
       "no": "No"
     }
   },
-  "expenseCategories": {
-    "sectionTitle": "Expense categories",
-    "sectionDescription": "Customize the categories used to classify your transactions",
-    "newCategory": "New category",
-    "editCategory": "Edit category",
-    "nameLabel": "Name",
-    "colorLabel": "Color",
-    "loading": "Loading…",
-    "empty": "No categories.",
-    "error": "Could not save the category",
-    "deleteTitle": "Delete category?",
-    "deleteDescription": "Transactions in this category become uncategorized.",
-    "typeLabel": "Type",
-    "parentLabel": "Parent category",
-    "noParent": "None (top-level)",
-    "type": {
-      "both": "Expense & income",
-      "expense": "Expense",
-      "income": "Income"
-    },
-    "budgetLabel": "Monthly budget (optional)",
-    "budgetPlaceholder": "150",
-    "budgetHint": "Purely informational -- shown as progress on the monthly pace card, nothing is blocked past it.",
-    "budgetSuffix": "/mo"
-  },
-  "categoryRules": {
-    "sectionTitle": "Auto-categorization rules",
-    "sectionDescription": "Automatically classify new transactions by matching their description",
-    "newRule": "New rule",
-    "editRule": "Edit rule",
-    "patternLabel": "Description contains",
-    "patternPlaceholder": "carrefour",
-    "patternHint": "Case-insensitive, matches anywhere in the description.",
-    "categoryLabel": "Category",
-    "statusLabel": "Also set status (optional)",
-    "noStatusChange": "Don't change",
-    "loading": "Loading…",
-    "empty": "No rules yet.",
-    "error": "Could not save the rule",
-    "deleteTitle": "Delete rule?",
-    "deleteDescription": "Transactions it already classified keep their category and status -- only future matches stop.",
-    "suggestionsTitle": "Suggested rules",
-    "suggestionBasis": "based on {{count}} transactions",
-    "suggestionWouldCatch": "{{count}} uncategorized",
-    "suggestionAccept": "Add",
-    "suggestionDismiss": "Dismiss"
-  },
   "proStatus": {
     "perso": "Personal",
     "proARembourser": "Business (to be reimbursed)",
@@ -2934,7 +2887,7 @@
     "title": "Subscriptions & recurring",
     "perMonthPrefix": "≈",
     "perMonthSuffix": "/mo",
-    "upcoming": "due ~{{day}}"
+    "nextDue": "on {{date}}"
   },
   "reimbursements": {
     "linkTitle": "Link a reimbursement",
@@ -3008,5 +2961,13 @@
     "amountMismatch": "Different amount",
     "mismatchWarningTitle": "Amounts don't match",
     "mismatchWarningDescription": "{{amountA}} vs {{amountB}} — the amounts aren't exactly opposite. Confirm these are really the two sides of the same transfer?"
+  },
+  "ruleSuggestions": {
+    "title": "Suggested rules",
+    "hint": "Based on how you've already filed your transactions.",
+    "basis": "based on {{count}} transactions",
+    "wouldCatch": "{{count}} uncategorized",
+    "accept": "Add",
+    "dismiss": "Dismiss"
   }
 }

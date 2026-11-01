@@ -2868,53 +2868,6 @@
     "configureSavings": "Configure",
     "uncertain": "Uncertain classification — please verify"
   },
-  "expenseCategories": {
-    "sectionTitle": "Ausgabenkategorien",
-    "sectionDescription": "Passe die Kategorien an, mit denen deine Transaktionen eingeordnet werden",
-    "newCategory": "Neue Kategorie",
-    "editCategory": "Kategorie bearbeiten",
-    "nameLabel": "Name",
-    "colorLabel": "Farbe",
-    "loading": "Wird geladen…",
-    "empty": "Keine Kategorien.",
-    "error": "Kategorie konnte nicht gespeichert werden",
-    "deleteTitle": "Kategorie löschen?",
-    "deleteDescription": "Transaktionen in dieser Kategorie werden wieder unkategorisiert.",
-    "typeLabel": "Typ",
-    "parentLabel": "Übergeordnete Kategorie",
-    "noParent": "Keine (oberste Ebene)",
-    "type": {
-      "both": "Ausgabe & Einnahme",
-      "expense": "Ausgabe",
-      "income": "Einnahme"
-    },
-    "budgetLabel": "Monatliches Budget (optional)",
-    "budgetPlaceholder": "150",
-    "budgetHint": "Rein informativ -- wird als Fortschritt auf der Tempo-Karte angezeigt, nichts wird darüber hinaus blockiert.",
-    "budgetSuffix": "/Monat"
-  },
-  "categoryRules": {
-    "sectionTitle": "Auto-Kategorisierungsregeln",
-    "sectionDescription": "Neue Transaktionen automatisch anhand ihrer Beschreibung klassifizieren",
-    "newRule": "Neue Regel",
-    "editRule": "Regel bearbeiten",
-    "patternLabel": "Beschreibung enthält",
-    "patternPlaceholder": "carrefour",
-    "patternHint": "Groß-/Kleinschreibung wird ignoriert, passt überall in der Beschreibung.",
-    "categoryLabel": "Kategorie",
-    "statusLabel": "Auch Status setzen (optional)",
-    "noStatusChange": "Nicht ändern",
-    "loading": "Wird geladen…",
-    "empty": "Noch keine Regeln.",
-    "error": "Regel konnte nicht gespeichert werden",
-    "deleteTitle": "Regel löschen?",
-    "deleteDescription": "Bereits klassifizierte Transaktionen behalten ihre Kategorie und ihren Status -- nur zukünftige Treffer stoppen.",
-    "suggestionsTitle": "Vorgeschlagene Regeln",
-    "suggestionBasis": "basierend auf {{count}} Transaktionen",
-    "suggestionWouldCatch": "{{count}} nicht kategorisiert",
-    "suggestionAccept": "Hinzufügen",
-    "suggestionDismiss": "Verwerfen"
-  },
   "proStatus": {
     "perso": "Privat",
     "proARembourser": "Geschäftlich (zu erstatten)",
@@ -2934,7 +2887,7 @@
     "title": "Abos & Wiederkehrende",
     "perMonthPrefix": "≈",
     "perMonthSuffix": "/Monat",
-    "upcoming": "um den {{day}}."
+    "nextDue": "am {{date}}"
   },
   "reimbursements": {
     "linkTitle": "Erstattung verknüpfen",
@@ -3008,5 +2961,13 @@
     "amountMismatch": "Abweichender Betrag",
     "mismatchWarningTitle": "Beträge stimmen nicht überein",
     "mismatchWarningDescription": "{{amountA}} vs. {{amountB}} — die Beträge sind nicht exakt entgegengesetzt. Bestätigst du, dass es sich wirklich um beide Seiten derselben Überweisung handelt?"
+  },
+  "ruleSuggestions": {
+    "title": "Vorgeschlagene Regeln",
+    "hint": "Basierend darauf, wie du deine Transaktionen bereits eingeordnet hast.",
+    "basis": "basierend auf {{count}} Transaktionen",
+    "wouldCatch": "{{count}} nicht kategorisiert",
+    "accept": "Hinzufügen",
+    "dismiss": "Ignorieren"
   }
 }

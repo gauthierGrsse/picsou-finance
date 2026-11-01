@@ -1,16 +1,16 @@
 package com.picsou.service;
 
 import com.picsou.dto.CategoryRuleSuggestionResponse;
-import com.picsou.model.CategoryRule;
+import com.picsou.model.Category;
+import com.picsou.model.CategorizationRule;
 import com.picsou.model.DismissedRuleSuggestion;
-import com.picsou.model.ExpenseCategory;
 import com.picsou.model.FamilyMember;
 import com.picsou.model.ProStatus;
 import com.picsou.model.ReimbursementStatus;
 import com.picsou.model.Transaction;
-import com.picsou.repository.CategoryRuleRepository;
+import com.picsou.repository.CategorizationRuleRepository;
+import com.picsou.repository.CategoryRepository;
 import com.picsou.repository.DismissedRuleSuggestionRepository;
-import com.picsou.repository.ExpenseCategoryRepository;
 import com.picsou.repository.FamilyMemberRepository;
 import com.picsou.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
@@ -35,6 +35,10 @@ import java.util.stream.Collectors;
  * {@link #MIN_CATEGORIZED} supporting transactions AND a {@link #MIN_DOMINANT_SHARE}+ single
  * -category share are suggested; anything already covered by an existing rule, or explicitly
  * dismissed, is filtered out.
+ *
+ * <p>Learns from the member's <em>own</em> decisions only: a transaction counts as evidence when the
+ * member (or a migrated manual choice) filed it, not when upstream's categorizer guessed it from
+ * the merchant knowledge base -- those are already handled going forward.
  */
 @Service
 @Transactional(readOnly = true)
@@ -55,23 +59,23 @@ public class CategoryRuleSuggestionService {
     );
 
     private final TransactionRepository transactionRepository;
-    private final ExpenseCategoryRepository expenseCategoryRepository;
-    private final CategoryRuleRepository categoryRuleRepository;
+    private final CategoryRepository categoryRepository;
+    private final CategorizationRuleRepository categorizationRuleRepository;
     private final DismissedRuleSuggestionRepository dismissedRuleSuggestionRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final Clock clock;
 
     public CategoryRuleSuggestionService(
         TransactionRepository transactionRepository,
-        ExpenseCategoryRepository expenseCategoryRepository,
-        CategoryRuleRepository categoryRuleRepository,
+        CategoryRepository categoryRepository,
+        CategorizationRuleRepository categorizationRuleRepository,
         DismissedRuleSuggestionRepository dismissedRuleSuggestionRepository,
         FamilyMemberRepository familyMemberRepository,
         Clock clock
     ) {
         this.transactionRepository = transactionRepository;
-        this.expenseCategoryRepository = expenseCategoryRepository;
-        this.categoryRuleRepository = categoryRuleRepository;
+        this.categoryRepository = categoryRepository;
+        this.categorizationRuleRepository = categorizationRuleRepository;
         this.dismissedRuleSuggestionRepository = dismissedRuleSuggestionRepository;
         this.familyMemberRepository = familyMemberRepository;
         this.clock = clock;
@@ -85,12 +89,12 @@ public class CategoryRuleSuggestionService {
             .toList();
         if (window.isEmpty()) return List.of();
 
-        List<String> existingPatterns = categoryRuleRepository.findAllByMemberIdOrderByIdAsc(memberId).stream()
-            .map(CategoryRule::getPattern).map(p -> p.toLowerCase(Locale.ROOT)).toList();
+        List<String> existingPatterns = categorizationRuleRepository.findAllByMemberIdOrderByPriorityDescIdAsc(memberId).stream()
+            .map(CategorizationRule::getPattern).map(p -> p.toLowerCase(Locale.ROOT)).toList();
         Set<String> dismissed = dismissedRuleSuggestionRepository.findAllByMemberId(memberId).stream()
             .map(d -> d.getPattern().toLowerCase(Locale.ROOT)).collect(Collectors.toSet());
-        Map<Long, ExpenseCategory> categoriesById = expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(memberId).stream()
-            .collect(Collectors.toMap(ExpenseCategory::getId, c -> c));
+        Map<Long, Category> categoriesById = categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(memberId).stream()
+            .collect(Collectors.toMap(Category::getId, c -> c));
 
         // token -> transactions whose normalized description contains it
         Map<String, List<Transaction>> byToken = new LinkedHashMap<>();
@@ -107,8 +111,8 @@ public class CategoryRuleSuggestionService {
 
             List<Transaction> matches = entry.getValue();
             Map<Long, Long> byCategory = matches.stream()
-                .filter(t -> t.getExpenseCategoryId() != null)
-                .collect(Collectors.groupingBy(Transaction::getExpenseCategoryId, Collectors.counting()));
+                .filter(t -> t.getCategoryRef() != null && t.isCategoryManual())
+                .collect(Collectors.groupingBy(t -> t.getCategoryRef().getId(), Collectors.counting()));
             long categorized = byCategory.values().stream().mapToLong(Long::longValue).sum();
             if (categorized < MIN_CATEGORIZED) continue;
 
@@ -116,10 +120,10 @@ public class CategoryRuleSuggestionService {
             double share = dominant.getValue() / (double) categorized;
             if (share < MIN_DOMINANT_SHARE) continue;
 
-            ExpenseCategory category = categoriesById.get(dominant.getKey());
+            Category category = categoriesById.get(dominant.getKey());
             if (category == null) continue; // category deleted since -- nothing to suggest
 
-            long uncategorized = matches.stream().filter(t -> t.getExpenseCategoryId() == null).count();
+            long uncategorized = matches.stream().filter(t -> t.getCategoryRef() == null).count();
             candidates.add(new Candidate(
                 token,
                 category,
@@ -191,7 +195,7 @@ public class CategoryRuleSuggestionService {
     }
 
     private record Candidate(
-        String pattern, ExpenseCategory category, int matchingCategorized, int matchingUncategorized,
+        String pattern, Category category, int matchingCategorized, int matchingUncategorized,
         int dominantSharePercent, Set<Long> txIds
     ) {}
 }

@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TransactionClassificationModal } from './TransactionClassificationModal'
-import type { ExpenseCategory, Transaction } from '@/types/api'
+import type { Category, Transaction } from '@/types/api'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -10,9 +10,9 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-const categories: ExpenseCategory[] = [
-  { id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null },
-  { id: 2, name: 'Courses', color: '#22c55e', type: 'BOTH', parentId: null, monthlyBudget: null },
+const categories: Category[] = [
+  { id: 1, name: 'Restauration', color: '#f97316', kind: 'EXPENSE', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null },
+  { id: 2, name: 'Courses', color: '#22c55e', kind: 'EXPENSE', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null },
 ]
 
 function syncedTransaction(overrides: Partial<Transaction> = {}): Transaction {
@@ -32,7 +32,7 @@ function syncedTransaction(overrides: Partial<Transaction> = {}): Transaction {
     pricePerUnit: null,
     fees: null,
     proStatus: 'NON_CLASSE',
-    expenseCategoryId: null,
+    categoryId: null,
     reimbursementStatus: null,
     reimbursementId: null,
     ...overrides,
@@ -57,7 +57,7 @@ describe('TransactionClassificationModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.save' }))
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
-    expect(onSubmit).toHaveBeenCalledWith({ proStatus: 'PERSO', expenseCategoryId: 1 })
+    expect(onSubmit).toHaveBeenCalledWith({ proStatus: 'PERSO', categoryId: 1 })
   })
 
   it('preselects the transaction current classification', () => {
@@ -65,7 +65,7 @@ describe('TransactionClassificationModal', () => {
       <TransactionClassificationModal
         open
         onOpenChange={vi.fn()}
-        transaction={syncedTransaction({ proStatus: 'PRO_ABSORBE', expenseCategoryId: 2 })}
+        transaction={syncedTransaction({ proStatus: 'PRO_ABSORBE', categoryId: 2 })}
         categories={categories}
         onSubmit={vi.fn()}
       />
@@ -81,7 +81,7 @@ describe('TransactionClassificationModal', () => {
       <TransactionClassificationModal
         open
         onOpenChange={vi.fn()}
-        transaction={syncedTransaction({ proStatus: 'PERSO', expenseCategoryId: 1 })}
+        transaction={syncedTransaction({ proStatus: 'PERSO', categoryId: 1 })}
         categories={categories}
         onSubmit={onSubmit}
       />
@@ -91,14 +91,14 @@ describe('TransactionClassificationModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.save' }))
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
-    expect(onSubmit).toHaveBeenCalledWith({ proStatus: 'PERSO', expenseCategoryId: null })
+    expect(onSubmit).toHaveBeenCalledWith({ proStatus: 'PERSO', categoryId: null })
   })
 
   it('only offers categories matching the transaction\'s sign, BOTH always included', () => {
-    const typedCategories: ExpenseCategory[] = [
-      { id: 1, name: 'Restauration', color: '#f97316', type: 'EXPENSE', parentId: null, monthlyBudget: null },
-      { id: 2, name: 'Salaire', color: '#22c55e', type: 'INCOME', parentId: null, monthlyBudget: null },
-      { id: 3, name: 'Autre', color: '#a855f7', type: 'BOTH', parentId: null, monthlyBudget: null },
+    const typedCategories: Category[] = [
+      { id: 1, name: 'Restauration', color: '#f97316', kind: 'EXPENSE', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null },
+      { id: 2, name: 'Salaire', color: '#22c55e', kind: 'INCOME', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null },
+      { id: 3, name: 'Autre', color: '#a855f7', kind: 'EXPENSE', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null },
     ]
 
     render(
@@ -117,9 +117,9 @@ describe('TransactionClassificationModal', () => {
   })
 
   it('groups subcategories under their parent as an optgroup', () => {
-    const nestedCategories: ExpenseCategory[] = [
-      { id: 1, name: 'Alimentation', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null },
-      { id: 2, name: 'Bio', color: '#22c55e', type: 'BOTH', parentId: 1, monthlyBudget: null },
+    const nestedCategories: Category[] = [
+      { id: 1, name: 'Alimentation', color: '#f97316', kind: 'EXPENSE', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null },
+      { id: 2, name: 'Bio', color: '#22c55e', kind: 'EXPENSE', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: 1 },
     ]
 
     render(

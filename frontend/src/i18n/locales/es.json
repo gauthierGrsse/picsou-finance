@@ -2868,53 +2868,6 @@
     "configureSavings": "Configure",
     "uncertain": "Uncertain classification — please verify"
   },
-  "expenseCategories": {
-    "sectionTitle": "Categorías de gastos",
-    "sectionDescription": "Personaliza las categorías usadas para clasificar tus transacciones",
-    "newCategory": "Nueva categoría",
-    "editCategory": "Editar categoría",
-    "nameLabel": "Nombre",
-    "colorLabel": "Color",
-    "loading": "Cargando…",
-    "empty": "Sin categorías.",
-    "error": "No se pudo guardar la categoría",
-    "deleteTitle": "¿Eliminar categoría?",
-    "deleteDescription": "Las transacciones de esta categoría vuelven a quedar sin categorizar.",
-    "typeLabel": "Tipo",
-    "parentLabel": "Categoría padre",
-    "noParent": "Ninguna (nivel superior)",
-    "type": {
-      "both": "Gasto e ingreso",
-      "expense": "Gasto",
-      "income": "Ingreso"
-    },
-    "budgetLabel": "Presupuesto mensual (opcional)",
-    "budgetPlaceholder": "150",
-    "budgetHint": "Puramente informativo -- se muestra como progreso en la tarjeta de ritmo mensual, nada se bloquea al superarlo.",
-    "budgetSuffix": "/mes"
-  },
-  "categoryRules": {
-    "sectionTitle": "Reglas de auto-categorización",
-    "sectionDescription": "Clasifica automáticamente las nuevas transacciones según su descripción",
-    "newRule": "Nueva regla",
-    "editRule": "Editar regla",
-    "patternLabel": "La descripción contiene",
-    "patternPlaceholder": "carrefour",
-    "patternHint": "No distingue mayúsculas/minúsculas, coincide en cualquier parte de la descripción.",
-    "categoryLabel": "Categoría",
-    "statusLabel": "También fijar el estado (opcional)",
-    "noStatusChange": "No cambiar",
-    "loading": "Cargando…",
-    "empty": "Aún no hay reglas.",
-    "error": "No se pudo guardar la regla",
-    "deleteTitle": "¿Eliminar esta regla?",
-    "deleteDescription": "Las transacciones ya clasificadas conservan su categoría y estado -- solo se detienen las coincidencias futuras.",
-    "suggestionsTitle": "Reglas sugeridas",
-    "suggestionBasis": "según {{count}} transacciones",
-    "suggestionWouldCatch": "{{count}} sin categorizar",
-    "suggestionAccept": "Añadir",
-    "suggestionDismiss": "Descartar"
-  },
   "proStatus": {
     "perso": "Personal",
     "proARembourser": "Profesional (a reembolsar)",
@@ -2934,7 +2887,7 @@
     "title": "Suscripciones y recurrentes",
     "perMonthPrefix": "≈",
     "perMonthSuffix": "/mes",
-    "upcoming": "hacia el {{day}}"
+    "nextDue": "el {{date}}"
   },
   "reimbursements": {
     "linkTitle": "Vincular un reembolso",
@@ -3008,5 +2961,13 @@
     "amountMismatch": "Importe distinto",
     "mismatchWarningTitle": "Los importes no coinciden",
     "mismatchWarningDescription": "{{amountA}} vs {{amountB}} — los importes no son exactamente opuestos. ¿Confirmas que se trata realmente de los dos lados de la misma transferencia?"
+  },
+  "ruleSuggestions": {
+    "title": "Reglas sugeridas",
+    "hint": "Según cómo ya has clasificado tus transacciones.",
+    "basis": "según {{count}} transacciones",
+    "wouldCatch": "{{count}} sin categorizar",
+    "accept": "Añadir",
+    "dismiss": "Ignorar"
   }
 }

@@ -700,6 +700,13 @@ information architecture.
 
 ### Changed
 
+- **One category system.** The expense dashboard, the transactions page and the right-click menu
+  now use the same categories, rules and budgets as the Budget module; the separate expense
+  categories, auto-categorization rules and subscription detector are gone. Existing categories,
+  classifications, rules and budgets were migrated (V208) and internal transfers are filed under
+  "Virement interne" so the budget pages leave them out of cash flow. Suggested rules now live in
+  Budget -> Manage.
+
 - The budget section's single 7-tab page was replaced by the nested-route IA above, and recurring
   detection was rewritten around canonical merchant identity (it previously drifted on the raw
   bank counterparty and never auto-acted).

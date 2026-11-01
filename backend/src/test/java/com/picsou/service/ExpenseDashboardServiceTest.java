@@ -4,11 +4,14 @@ import com.picsou.dto.ExpenseDashboardResponse;
 import com.picsou.dto.ExpensePaceResponse;
 import com.picsou.model.Account;
 import com.picsou.model.AccountType;
-import com.picsou.model.ExpenseCategory;
+import com.picsou.model.Budget;
+import com.picsou.model.Category;
+import com.picsou.model.CategoryKind;
 import com.picsou.model.ProStatus;
 import com.picsou.model.ReimbursementStatus;
 import com.picsou.model.Transaction;
-import com.picsou.repository.ExpenseCategoryRepository;
+import com.picsou.repository.BudgetRepository;
+import com.picsou.repository.CategoryRepository;
 import com.picsou.repository.TransactionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,7 +34,8 @@ import static org.mockito.Mockito.when;
 class ExpenseDashboardServiceTest {
 
     @Mock TransactionRepository transactionRepository;
-    @Mock ExpenseCategoryRepository expenseCategoryRepository;
+    @Mock CategoryRepository categoryRepository;
+    @Mock BudgetRepository budgetRepository;
     @Mock Clock clock;
 
     @InjectMocks ExpenseDashboardService expenseDashboardService;
@@ -41,7 +45,7 @@ class ExpenseDashboardServiceTest {
      * their own instance pinned to a fixed date instead of stubbing the mock's Instant/ZoneId. */
     private ExpenseDashboardService serviceAsOf(LocalDate today) {
         Clock fixed = Clock.fixed(today.atStartOfDay(ZoneOffset.UTC).toInstant(), ZoneOffset.UTC);
-        return new ExpenseDashboardService(transactionRepository, expenseCategoryRepository, fixed);
+        return new ExpenseDashboardService(transactionRepository, categoryRepository, budgetRepository, fixed);
     }
 
     private Account account() {
@@ -57,7 +61,9 @@ class ExpenseDashboardServiceTest {
         Transaction tx = Transaction.builder().account(account()).date(date)
             .description("expense").amount(amount).isManual(false).nativeCurrency("EUR")
             .proStatus(proStatus).reimbursementStatus(reimbursementStatus).build();
-        tx.setExpenseCategoryId(categoryId);
+        if (categoryId != null) {
+            tx.setCategoryRef(Category.builder().id(categoryId).build());
+        }
         return tx;
     }
 
@@ -70,7 +76,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         var result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
@@ -90,7 +96,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
@@ -106,7 +112,7 @@ class ExpenseDashboardServiceTest {
         YearMonth period = YearMonth.of(2026, 3);
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2026, 1).atDay(1), period.atEndOfMonth()))
             .thenReturn(List.of());
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 3, period.atDay(1), period.atEndOfMonth(), false);
 
@@ -123,7 +129,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
@@ -142,7 +148,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         var result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
@@ -162,7 +168,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 9).atDay(1), period.atEndOfMonth()))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
@@ -180,7 +186,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, periodStart, periodEnd))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 12, periodStart, periodEnd, false);
 
@@ -197,7 +203,7 @@ class ExpenseDashboardServiceTest {
         LocalDate periodEnd = LocalDate.of(2026, 12, 31);
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, periodStart, periodEnd))
             .thenReturn(List.of());
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         expenseDashboardService.getDashboard(10L, 1, periodStart, periodEnd, false);
 
@@ -207,18 +213,54 @@ class ExpenseDashboardServiceTest {
     @Test
     void getDashboard_resolvesCategoryNameAndColorFromMap() {
         YearMonth period = YearMonth.of(2026, 1);
-        ExpenseCategory restauration = ExpenseCategory.builder().id(1L).name("Restauration").color("#f97316").build();
+        Category restauration = Category.builder().id(1L).name("Restauration").kind(CategoryKind.EXPENSE).color("#f97316").build();
         List<Transaction> window = List.of(
             expense(LocalDate.of(2026, 1, 5), new BigDecimal("-15"), ProStatus.PERSO, 1L)
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of(restauration));
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of(restauration));
 
         ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
 
         assertThat(result.categoryBreakdown().get(0).categoryName()).isEqualTo("Restauration");
         assertThat(result.categoryBreakdown().get(0).categoryColor()).isEqualTo("#f97316");
+    }
+
+    @Test
+    void getDashboard_excludesTransactionsFiledUnderATransferCategory() {
+        YearMonth period = YearMonth.of(2026, 1);
+        Category epargne = Category.builder().id(5L).name("Épargne").kind(CategoryKind.TRANSFER).build();
+        Category courses = Category.builder().id(6L).name("Courses").kind(CategoryKind.EXPENSE).color("#22c55e").build();
+        List<Transaction> window = List.of(
+            expense(LocalDate.of(2026, 1, 5), new BigDecimal("-200"), ProStatus.PERSO, 5L),
+            expense(LocalDate.of(2026, 1, 6), new BigDecimal("-30"), ProStatus.PERSO, 6L)
+        );
+        when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
+            .thenReturn(window);
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of(epargne, courses));
+
+        ExpenseDashboardResponse result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), false);
+
+        assertThat(result.categoryBreakdown()).hasSize(1);
+        assertThat(result.categoryBreakdown().get(0).categoryName()).isEqualTo("Courses");
+        assertThat(result.monthlyEvolution().get(result.monthlyEvolution().size() - 1).total()).isEqualByComparingTo("30");
+    }
+
+    @Test
+    void getPace_excludesTransactionsFiledUnderATransferCategory() {
+        LocalDate today = LocalDate.of(2026, 8, 10);
+        Category invest = Category.builder().id(5L).name("Investissement").kind(CategoryKind.TRANSFER).build();
+        List<Transaction> window = List.of(
+            expense(LocalDate.of(2026, 8, 3), new BigDecimal("-500"), ProStatus.PERSO, 5L),
+            expense(LocalDate.of(2026, 8, 4), new BigDecimal("-20"), ProStatus.PERSO, null)
+        );
+        when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, LocalDate.of(2026, 7, 1), today)).thenReturn(window);
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of(invest));
+
+        ExpensePaceResponse result = serviceAsOf(today).getPace(10L, 1);
+
+        assertThat(result.currentMonthCumulative()).isEqualByComparingTo("20");
     }
 
     // ─── income=true ────────────────────────────────────────────────────────
@@ -232,7 +274,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         var result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), true);
 
@@ -258,7 +300,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, LocalDate.of(2026, 6, 1), today))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         ExpensePaceResponse result = serviceAsOf(today).getPace(10L, 2);
 
@@ -280,7 +322,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, LocalDate.of(2026, 6, 1), today))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         ExpensePaceResponse result = serviceAsOf(today).getPace(10L, 2);
 
@@ -295,7 +337,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, LocalDate.of(2026, 8, 1), today))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         ExpensePaceResponse result = serviceAsOf(today).getPace(10L, 0);
 
@@ -306,8 +348,8 @@ class ExpenseDashboardServiceTest {
     @Test
     void getPace_categorySeriesEndValuesAreZeroFilledForMonthsWithNoSpendingAndSortedByCurrentAmount() {
         LocalDate today = LocalDate.of(2026, 8, 10);
-        ExpenseCategory resto = ExpenseCategory.builder().id(1L).name("Restauration").color("#f97316").monthlyBudget(new BigDecimal("150.00")).build();
-        ExpenseCategory loisirs = ExpenseCategory.builder().id(2L).name("Loisirs").color("#22c55e").build();
+        Category resto = Category.builder().id(1L).name("Restauration").kind(CategoryKind.EXPENSE).color("#f97316").build();
+        Category loisirs = Category.builder().id(2L).name("Loisirs").kind(CategoryKind.EXPENSE).color("#22c55e").build();
         List<Transaction> window = List.of(
             expense(LocalDate.of(2026, 6, 5), new BigDecimal("-60"), ProStatus.PERSO, 1L),
             expense(LocalDate.of(2026, 7, 5), new BigDecimal("-40"), ProStatus.PERSO, 1L),
@@ -317,7 +359,9 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, LocalDate.of(2026, 6, 1), today))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of(resto, loisirs));
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of(resto, loisirs));
+        when(budgetRepository.findAllByMemberIdOrderByIdAsc(10L))
+            .thenReturn(List.of(Budget.builder().category(resto).monthlyLimit(new BigDecimal("150.00")).build()));
 
         ExpensePaceResponse result = serviceAsOf(today).getPace(10L, 2);
 
@@ -350,7 +394,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, LocalDate.of(2026, 2, 1), today))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         ExpensePaceResponse result = serviceAsOf(today).getPace(10L, 1);
 
@@ -379,7 +423,7 @@ class ExpenseDashboardServiceTest {
         );
         when(transactionRepository.findByAccount_Member_IdAndDateBetween(10L, YearMonth.of(2025, 8).atDay(1), period.atEndOfMonth()))
             .thenReturn(window);
-        when(expenseCategoryRepository.findAllByMemberIdOrderByNameAsc(10L)).thenReturn(List.of());
+        when(categoryRepository.findAllByMemberIdOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
         var result = expenseDashboardService.getDashboard(10L, 6, period.atDay(1), period.atEndOfMonth(), true);
 

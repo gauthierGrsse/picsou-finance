@@ -1,4 +1,4 @@
-import type { AccountType, CategoryType, ExpenseCategory, ProStatus } from '@/types/api'
+import type { AccountType, Category, CategoryKind, ProStatus } from '@/types/api'
 
 /**
  * Manually assignable via the classification modal. VIREMENT_INTERNE is deliberately
@@ -26,28 +26,23 @@ export function proStatusLabelKey(status: ProStatus): string {
   return PRO_STATUS_LABEL_KEYS[status] ?? 'proStatus.nonClasse'
 }
 
-export const CATEGORY_TYPE_OPTIONS: { value: CategoryType; labelKey: string }[] = [
-  { value: 'BOTH', labelKey: 'expenseCategories.type.both' },
-  { value: 'EXPENSE', labelKey: 'expenseCategories.type.expense' },
-  { value: 'INCOME', labelKey: 'expenseCategories.type.income' },
-]
-
-/** Whether a category of `type` should be offered when classifying a transaction of the
- * given sign -- BOTH always applies, EXPENSE/INCOME only match their own side. */
-export function categoryTypeMatchesAmount(type: CategoryType, amount: number): boolean {
-  if (type === 'BOTH') return true
-  return type === 'INCOME' ? amount >= 0 : amount < 0
+/** Whether a category of `kind` should be offered when classifying a transaction of the given
+ * sign -- an expense category for an outflow, an income category for an inflow, and a transfer
+ * category (savings, investment, own-account moves) for either. */
+export function categoryKindMatchesAmount(kind: CategoryKind, amount: number): boolean {
+  if (kind === 'TRANSFER') return true
+  return kind === 'INCOME' ? amount >= 0 : amount < 0
 }
 
 export interface CategoryTreeNode {
-  category: ExpenseCategory
-  children: ExpenseCategory[]
+  category: Category
+  children: Category[]
 }
 
 /** Groups a flat category list into top-level nodes with their (at most one level of)
  * children -- a category whose declared parent isn't in the list (filtered out, or the
  * parent itself got deleted) is promoted to top-level rather than silently dropped. */
-export function buildCategoryTree(categories: ExpenseCategory[]): CategoryTreeNode[] {
+export function buildCategoryTree(categories: Category[]): CategoryTreeNode[] {
   const byId = new Map(categories.map(c => [c.id, c]))
   return categories
     .filter(c => c.parentId == null || !byId.has(c.parentId))
@@ -128,7 +123,6 @@ export const QUERY_STALE_TIMES = {
   // Property valuations refresh monthly at most -- the underlying open data is published
   // twice a year -- so anything shorter would just re-fetch an identical answer.
   realEstate: 10 * 60 * 1000,
-  expenseCategories: 2 * 60 * 1000,
   categoryRules: 2 * 60 * 1000,
   reimbursements: 60 * 1000,
   expenseDashboard: 5 * 60 * 1000,

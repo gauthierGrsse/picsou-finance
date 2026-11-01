@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { AllTransactionsList } from './AllTransactionsList'
-import type { ExpenseCategory, Transaction } from '@/types/api'
+import type { Category, Transaction } from '@/types/api'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -32,7 +32,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
   return {
     id: 1, date: '2026-01-05', description: 'tx', amount: -10, type: null, category: null,
     nativeCurrency: 'EUR', isManual: false, txType: null, ticker: null, name: null, quantity: null,
-    pricePerUnit: null, fees: null, proStatus: 'NON_CLASSE', expenseCategoryId: null,
+    pricePerUnit: null, fees: null, proStatus: 'NON_CLASSE', categoryId: null,
     reimbursementStatus: null, reimbursementId: null,
     ...overrides,
   }
@@ -74,7 +74,7 @@ describe('AllTransactionsList', () => {
   })
 
   it('right-clicking a row and picking a category quick-classifies it with the row\'s own account', () => {
-    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null }]
+    const categories: Category[] = [{ id: 1, name: 'Restauration', color: '#f97316', kind: 'EXPENSE', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null }]
     const transactions: Transaction[] = [
       tx({ id: 42, description: 'Loyer', accountId: 7, accountName: 'Compte Courant' }),
     ]
@@ -88,16 +88,16 @@ describe('AllTransactionsList', () => {
     expect(quickClassifyMutate).toHaveBeenCalledWith({
       accountId: 7,
       txId: 42,
-      data: { proStatus: 'NON_CLASSE', expenseCategoryId: 1 },
+      data: { proStatus: 'NON_CLASSE', categoryId: 1 },
     })
   })
 
   it('shift-clicking a range then right-clicking bulk-classifies every selected row, keeping each one\'s own category', () => {
-    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null }]
+    const categories: Category[] = [{ id: 1, name: 'Restauration', color: '#f97316', kind: 'EXPENSE', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null }]
     const transactions: Transaction[] = [
-      tx({ id: 1, date: '2026-01-05', description: 'A', accountId: 1, accountName: 'Compte', expenseCategoryId: 1 }),
-      tx({ id: 2, date: '2026-01-04', description: 'B', accountId: 2, accountName: 'Livret', expenseCategoryId: null }),
-      tx({ id: 3, date: '2026-01-03', description: 'C', accountId: 1, accountName: 'Compte', expenseCategoryId: 1 }),
+      tx({ id: 1, date: '2026-01-05', description: 'A', accountId: 1, accountName: 'Compte', categoryId: 1 }),
+      tx({ id: 2, date: '2026-01-04', description: 'B', accountId: 2, accountName: 'Livret', categoryId: null }),
+      tx({ id: 3, date: '2026-01-03', description: 'C', accountId: 1, accountName: 'Compte', categoryId: 1 }),
     ]
 
     render(<AllTransactionsList transactions={transactions} categories={categories} />)
@@ -111,14 +111,14 @@ describe('AllTransactionsList', () => {
     fireEvent.click(screen.getByText('classification.statusLabel'))
     fireEvent.click(screen.getByRole('menuitem', { name: 'proStatus.perso' }))
 
-    expect(quickClassifyMutate).toHaveBeenCalledWith({ accountId: 1, txId: 1, data: { proStatus: 'PERSO', expenseCategoryId: 1 } })
-    expect(quickClassifyMutate).toHaveBeenCalledWith({ accountId: 2, txId: 2, data: { proStatus: 'PERSO', expenseCategoryId: null } })
-    expect(quickClassifyMutate).toHaveBeenCalledWith({ accountId: 1, txId: 3, data: { proStatus: 'PERSO', expenseCategoryId: 1 } })
+    expect(quickClassifyMutate).toHaveBeenCalledWith({ accountId: 1, txId: 1, data: { proStatus: 'PERSO', categoryId: 1 } })
+    expect(quickClassifyMutate).toHaveBeenCalledWith({ accountId: 2, txId: 2, data: { proStatus: 'PERSO', categoryId: null } })
+    expect(quickClassifyMutate).toHaveBeenCalledWith({ accountId: 1, txId: 3, data: { proStatus: 'PERSO', categoryId: 1 } })
     expect(quickClassifyMutate).toHaveBeenCalledTimes(3)
   })
 
   it('keeps the selection after a bulk classify, so a second pick (e.g. category after status) doesn\'t need reselecting', () => {
-    const categories: ExpenseCategory[] = [{ id: 1, name: 'Restauration', color: '#f97316', type: 'BOTH', parentId: null, monthlyBudget: null }]
+    const categories: Category[] = [{ id: 1, name: 'Restauration', color: '#f97316', kind: 'EXPENSE', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null }]
     const transactions: Transaction[] = [
       tx({ id: 1, date: '2026-01-05', description: 'A', accountId: 1, accountName: 'Compte' }),
       tx({ id: 2, date: '2026-01-04', description: 'B', accountId: 1, accountName: 'Compte' }),
@@ -142,8 +142,8 @@ describe('AllTransactionsList', () => {
     fireEvent.click(screen.getByText('classification.categoryLabel'))
     fireEvent.click(screen.getByText('Restauration'))
 
-    expect(quickClassifyMutate).toHaveBeenCalledWith(expect.objectContaining({ txId: 1, data: expect.objectContaining({ expenseCategoryId: 1 }) }))
-    expect(quickClassifyMutate).toHaveBeenCalledWith(expect.objectContaining({ txId: 2, data: expect.objectContaining({ expenseCategoryId: 1 }) }))
+    expect(quickClassifyMutate).toHaveBeenCalledWith(expect.objectContaining({ txId: 1, data: expect.objectContaining({ categoryId: 1 }) }))
+    expect(quickClassifyMutate).toHaveBeenCalledWith(expect.objectContaining({ txId: 2, data: expect.objectContaining({ categoryId: 1 }) }))
     expect(quickClassifyMutate).toHaveBeenCalledTimes(2)
   })
 
@@ -204,8 +204,8 @@ describe('AllTransactionsList', () => {
 
   it('flags a transaction over its category\'s unusual-amount threshold', () => {
     const transactions: Transaction[] = [
-      tx({ id: 1, description: 'Gros restaurant', amount: -120, expenseCategoryId: 1 }),
-      tx({ id: 2, description: 'Petit resto', amount: -15, expenseCategoryId: 1 }),
+      tx({ id: 1, description: 'Gros restaurant', amount: -120, categoryId: 1 }),
+      tx({ id: 2, description: 'Petit resto', amount: -15, categoryId: 1 }),
     ]
 
     render(
@@ -222,8 +222,8 @@ describe('AllTransactionsList', () => {
 
   it('does not flag a transaction under the threshold, or one with no threshold set for its category', () => {
     const transactions: Transaction[] = [
-      tx({ id: 1, description: 'Petit resto', amount: -15, expenseCategoryId: 1 }),
-      tx({ id: 2, description: 'Sans seuil', amount: -500, expenseCategoryId: 2 }),
+      tx({ id: 1, description: 'Petit resto', amount: -15, categoryId: 1 }),
+      tx({ id: 2, description: 'Sans seuil', amount: -500, categoryId: 2 }),
     ]
 
     render(

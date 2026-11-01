@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ACCOUNT_TYPES, accountTypeLabelKey, buildCategoryTree, categoryTypeMatchesAmount, HOLDING_ACCOUNT_TYPES, LIABILITY_ACCOUNT_TYPES } from './constants'
-import type { AccountType, ExpenseCategory } from '@/types/api'
+import { ACCOUNT_TYPES, accountTypeLabelKey, buildCategoryTree, categoryKindMatchesAmount, HOLDING_ACCOUNT_TYPES, LIABILITY_ACCOUNT_TYPES } from './constants'
+import type { AccountType, Category } from '@/types/api'
 import fr from '@/i18n/locales/fr.json'
 import en from '@/i18n/locales/en.json'
 import de from '@/i18n/locales/de.json'
@@ -39,27 +39,27 @@ describe('account type labels', () => {
   })
 })
 
-describe('categoryTypeMatchesAmount', () => {
-  it('BOTH always matches, regardless of sign', () => {
-    expect(categoryTypeMatchesAmount('BOTH', -10)).toBe(true)
-    expect(categoryTypeMatchesAmount('BOTH', 10)).toBe(true)
+describe('categoryKindMatchesAmount', () => {
+  it('EXPENSE only matches outflows', () => {
+    expect(categoryKindMatchesAmount('EXPENSE', -10)).toBe(true)
+    expect(categoryKindMatchesAmount('EXPENSE', 10)).toBe(false)
   })
 
-  it('EXPENSE only matches negative amounts', () => {
-    expect(categoryTypeMatchesAmount('EXPENSE', -10)).toBe(true)
-    expect(categoryTypeMatchesAmount('EXPENSE', 10)).toBe(false)
+  it('INCOME only matches inflows, zero included', () => {
+    expect(categoryKindMatchesAmount('INCOME', 10)).toBe(true)
+    expect(categoryKindMatchesAmount('INCOME', 0)).toBe(true)
+    expect(categoryKindMatchesAmount('INCOME', -10)).toBe(false)
   })
 
-  it('INCOME only matches non-negative amounts', () => {
-    expect(categoryTypeMatchesAmount('INCOME', 10)).toBe(true)
-    expect(categoryTypeMatchesAmount('INCOME', 0)).toBe(true)
-    expect(categoryTypeMatchesAmount('INCOME', -10)).toBe(false)
+  it('TRANSFER matches either direction -- savings go both ways', () => {
+    expect(categoryKindMatchesAmount('TRANSFER', -10)).toBe(true)
+    expect(categoryKindMatchesAmount('TRANSFER', 10)).toBe(true)
   })
 })
 
 describe('buildCategoryTree', () => {
-  function cat(overrides: Partial<ExpenseCategory>): ExpenseCategory {
-    return { id: 1, name: 'cat', color: '#000000', type: 'BOTH', parentId: null, monthlyBudget: null, ...overrides }
+  function cat(overrides: Partial<Category>): Category {
+    return { id: 1, name: 'cat', kind: 'EXPENSE', color: '#000000', icon: null, isDefault: false, archived: false, sortOrder: 0, parentId: null, ...overrides }
   }
 
   it('groups subcategories under their top-level parent', () => {

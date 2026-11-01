@@ -1330,60 +1330,17 @@ export interface Transaction {
   /** Per-trade broker fees folded into the PMP cost basis (null when none recorded). */
   fees: number | null
   proStatus: ProStatus
-  expenseCategoryId?: number | null
   reimbursementStatus?: ReimbursementStatusType | null
   reimbursementId?: number | null
 }
 
-export type CategoryType = 'EXPENSE' | 'INCOME' | 'BOTH'
-
-export interface ExpenseCategory {
-  id: number
-  name: string
-  color: string
-  type: CategoryType
-  /** Non-null makes this a subcategory of another (top-level only) category -- one level
-   * of nesting, a subcategory may not itself have children. */
-  parentId: number | null
-  /** Optional soft monthly budget, purely informational -- shown as progress on the pace
-   * card. Null means none set; nothing is enforced or blocked past it. */
-  monthlyBudget: number | null
-}
-
-export interface ExpenseCategoryRequest {
-  name: string
-  color?: string
-  type: CategoryType
-  parentId: number | null
-  monthlyBudget: number | null
-}
-
-/** "If the description contains `pattern`, classify it as `expenseCategoryId`" (and
- * optionally set `proStatus`) -- applied to newly-synced transactions and, on create/update,
- * retroactively to existing uncategorized ones. Never overrides a transaction that already
- * has a category or an explicitly-set status. */
-export interface CategoryRule {
-  id: number
-  pattern: string
-  expenseCategoryId: number
-  categoryName: string | null
-  categoryColor: string | null
-  proStatus: ProStatus | null
-}
-
-export interface CategoryRuleRequest {
-  pattern: string
-  expenseCategoryId: number
-  proStatus: ProStatus | null
-}
-
 /** A high-confidence rule the member could adopt in one click -- the substring `pattern`
- * shows up on transactions already, repeatedly, filed under `expenseCategoryId`.
+ * shows up on transactions the member already filed, repeatedly, under `categoryId`.
  * matchingCategorized backs the guess; matchingUncategorized is how many uncategorized
- * transactions the rule would tag right away. */
+ * transactions the rule would tag right away. Adopting it is an ordinary categorization rule. */
 export interface CategoryRuleSuggestion {
   pattern: string
-  expenseCategoryId: number
+  categoryId: number
   categoryName: string
   categoryColor: string
   matchingCategorized: number
@@ -1393,7 +1350,7 @@ export interface CategoryRuleSuggestion {
 
 export interface TransactionClassificationRequest {
   proStatus: ProStatus
-  expenseCategoryId: number | null
+  categoryId: number | null
 }
 
 export interface Reimbursement {
@@ -1439,25 +1396,6 @@ export interface ExpenseDashboardResponse {
 
 /** One category's cumulative-by-day series, same day ranges as ExpensePaceResponse's own
  * series. categoryId/categoryName are null for the uncategorized bucket. */
-/**
- * A detected recurring charge -- subscription, rent, insurance -- seen in at least 3 distinct
- * months. previousAmount is non-null only when the latest occurrence's amount changed (a
- * silent price bump). dueThisMonth is true once an occurrence has landed this month;
- * otherwise expectedDate is this month's typical day, for the "still to come" view.
- */
-export interface RecurringTransaction {
-  label: string
-  typicalAmount: number
-  typicalDayOfMonth: number
-  expenseCategoryId: number | null
-  categoryName: string | null
-  categoryColor: string | null
-  lastSeen: string
-  monthsSeen: number
-  previousAmount: number | null
-  dueThisMonth: boolean
-  expectedDate: string
-}
 
 export interface CategoryPaceSeries {
   categoryId: number | null

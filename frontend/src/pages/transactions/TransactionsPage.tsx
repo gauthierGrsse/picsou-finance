@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { useAllTransactions } from '@/features/transactions/hooks'
-import { useExpenseCategories } from '@/features/expenseCategories/hooks'
+import { useCategories } from '@/features/budget/hooks'
 import { useExpensePace } from '@/features/expenseDashboard/hooks'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { LoadingSkeleton } from '@/components/shared/LoadingSkeleton'
@@ -64,7 +64,7 @@ export function TransactionsPage() {
   }, [mode, month, year])
 
   const { data: transactions, isLoading } = useAllTransactions(periodStart, periodEnd)
-  const { data: categories } = useExpenseCategories()
+  const { data: categories } = useCategories()
 
   // Half a category's historical monthly average, in € -- a single expense past that is
   // flagged as unusually large. Only meaningful for the current, in-progress month (the
@@ -87,8 +87,8 @@ export function TransactionsPage() {
     if (search && !tr.description.toLowerCase().includes(search.toLowerCase())) return false
     if (hideInternal && tr.proStatus === 'VIREMENT_INTERNE') return false
     if (statusFilter !== 'all' && tr.proStatus !== statusFilter) return false
-    if (categoryFilter === 'uncategorized' && tr.expenseCategoryId != null) return false
-    if (typeof categoryFilter === 'number' && tr.expenseCategoryId !== categoryFilter) return false
+    if (categoryFilter === 'uncategorized' && tr.categoryId != null) return false
+    if (typeof categoryFilter === 'number' && tr.categoryId !== categoryFilter) return false
     return true
   }), [transactions, search, hideInternal, statusFilter, categoryFilter])
 

@@ -53,15 +53,18 @@ public class InternalTransferService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final ManualTransactionService manualTransactionService;
+    private final TransferCategoryService transferCategoryService;
 
     public InternalTransferService(
         TransactionRepository transactionRepository,
         AccountRepository accountRepository,
-        ManualTransactionService manualTransactionService
+        ManualTransactionService manualTransactionService,
+        TransferCategoryService transferCategoryService
     ) {
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.manualTransactionService = manualTransactionService;
+        this.transferCategoryService = transferCategoryService;
     }
 
     /**
@@ -88,7 +91,7 @@ public class InternalTransferService {
             Transaction b = group.get(1);
             if (a.getAmount().compareTo(b.getAmount().negate()) != 0) continue;
 
-            link(a, b);
+            link(a, b, memberId);
             linked++;
         }
         if (linked > 0) {
@@ -169,7 +172,7 @@ public class InternalTransferService {
             throw new IllegalArgumentException("One of these transactions is already linked");
         }
 
-        link(a, b);
+        link(a, b, memberId);
     }
 
     /** Reverts this leg (and its counterpart, if any) to NON_CLASSE, undoing a mistaken
@@ -185,12 +188,14 @@ public class InternalTransferService {
 
         a.setProStatus(ProStatus.NON_CLASSE);
         a.setLinkedTransactionId(null);
+        transferCategoryService.releaseFromTransfer(a);
         transactionRepository.save(a);
 
         if (linkedId != null) {
             transactionRepository.findByIdAndAccount_Member_Id(linkedId, memberId).ifPresent(b -> {
                 b.setProStatus(ProStatus.NON_CLASSE);
                 b.setLinkedTransactionId(null);
+                transferCategoryService.releaseFromTransfer(b);
                 transactionRepository.save(b);
             });
         }
@@ -211,6 +216,7 @@ public class InternalTransferService {
         }
         a.setProStatus(ProStatus.VIREMENT_INTERNE);
         a.setLinkedTransactionId(null);
+        transferCategoryService.fileAsTransfer(a, memberId);
         transactionRepository.save(a);
     }
 
@@ -252,15 +258,17 @@ public class InternalTransferService {
         Transaction target = transactionRepository.findByIdAndAccount_Member_Id(created.id(), memberId)
             .orElseThrow(() -> ResourceNotFoundException.transaction(created.id()));
 
-        link(source, target);
+        link(source, target, memberId);
         return created;
     }
 
-    private void link(Transaction a, Transaction b) {
+    private void link(Transaction a, Transaction b, Long memberId) {
         a.setProStatus(ProStatus.VIREMENT_INTERNE);
         a.setLinkedTransactionId(b.getId());
         b.setProStatus(ProStatus.VIREMENT_INTERNE);
         b.setLinkedTransactionId(a.getId());
+        transferCategoryService.fileAsTransfer(a, memberId);
+        transferCategoryService.fileAsTransfer(b, memberId);
         transactionRepository.save(a);
         transactionRepository.save(b);
     }

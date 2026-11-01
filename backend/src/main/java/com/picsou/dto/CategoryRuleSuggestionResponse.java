@@ -6,14 +6,14 @@ package com.picsou.dto;
  * over, filed under one category.
  *
  * {@code matchingCategorized} is how many already-categorized transactions back the guess
- * (all of them under {@code expenseCategoryId}); {@code matchingUncategorized} is how many
+ * (all of them under {@code categoryId}); {@code matchingUncategorized} is how many
  * currently-uncategorized transactions the rule would tag right away.
  * {@code dominantSharePercent} is the share of categorized matches that sit under the
  * suggested category -- only patterns at 80%+ are suggested at all.
  */
 public record CategoryRuleSuggestionResponse(
     String pattern,
-    Long expenseCategoryId,
+    Long categoryId,
     String categoryName,
     String categoryColor,
     int matchingCategorized,

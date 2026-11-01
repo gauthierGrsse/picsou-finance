@@ -2868,53 +2868,6 @@
       "no": "Non"
     }
   },
-  "expenseCategories": {
-    "sectionTitle": "Catégories de dépenses",
-    "sectionDescription": "Personnalise les catégories utilisées pour classer tes transactions",
-    "newCategory": "Nouvelle catégorie",
-    "editCategory": "Modifier la catégorie",
-    "nameLabel": "Nom",
-    "colorLabel": "Couleur",
-    "loading": "Chargement…",
-    "empty": "Aucune catégorie.",
-    "error": "Impossible d'enregistrer la catégorie",
-    "deleteTitle": "Supprimer la catégorie ?",
-    "deleteDescription": "Les transactions classées dans cette catégorie redeviennent non catégorisées.",
-    "typeLabel": "Type",
-    "parentLabel": "Catégorie parente",
-    "noParent": "Aucune (niveau supérieur)",
-    "type": {
-      "both": "Dépense et entrée",
-      "expense": "Dépense",
-      "income": "Entrée"
-    },
-    "budgetLabel": "Budget mensuel (optionnel)",
-    "budgetPlaceholder": "150",
-    "budgetHint": "Purement informatif -- affiché comme progression sur la carte du rythme mensuel, rien n'est bloqué au-delà.",
-    "budgetSuffix": "/mois"
-  },
-  "categoryRules": {
-    "sectionTitle": "Règles d'auto-catégorisation",
-    "sectionDescription": "Classe automatiquement les nouvelles transactions selon leur description",
-    "newRule": "Nouvelle règle",
-    "editRule": "Modifier la règle",
-    "patternLabel": "La description contient",
-    "patternPlaceholder": "carrefour",
-    "patternHint": "Insensible à la casse, correspond n'importe où dans la description.",
-    "categoryLabel": "Catégorie",
-    "statusLabel": "Fixer aussi le statut (optionnel)",
-    "noStatusChange": "Ne pas changer",
-    "loading": "Chargement…",
-    "empty": "Aucune règle pour le moment.",
-    "error": "Impossible d'enregistrer la règle",
-    "deleteTitle": "Supprimer cette règle ?",
-    "deleteDescription": "Les transactions déjà classées gardent leur catégorie et leur statut -- seules les prochaines correspondances s'arrêtent.",
-    "suggestionsTitle": "Règles suggérées",
-    "suggestionBasis": "d'après {{count}} transactions",
-    "suggestionWouldCatch": "{{count}} non catégorisées",
-    "suggestionAccept": "Ajouter",
-    "suggestionDismiss": "Ignorer"
-  },
   "proStatus": {
     "perso": "Personnel",
     "proARembourser": "Pro à rembourser",
@@ -2934,7 +2887,7 @@
     "title": "Abonnements & récurrents",
     "perMonthPrefix": "≈",
     "perMonthSuffix": "/mois",
-    "upcoming": "vers le {{day}}"
+    "nextDue": "le {{date}}"
   },
   "reimbursements": {
     "linkTitle": "Lier un remboursement",
@@ -3008,5 +2961,13 @@
     "amountMismatch": "Montant différent",
     "mismatchWarningTitle": "Les montants ne correspondent pas",
     "mismatchWarningDescription": "{{amountA}} vs {{amountB}} — les montants ne sont pas exactement opposés. Confirmez-vous qu'il s'agit bien des deux côtés du même virement ?"
+  },
+  "ruleSuggestions": {
+    "title": "Règles suggérées",
+    "hint": "D'après la façon dont tu as déjà classé tes transactions.",
+    "basis": "d'après {{count}} transactions",
+    "wouldCatch": "{{count}} non classées",
+    "accept": "Ajouter",
+    "dismiss": "Ignorer"
   }
 }

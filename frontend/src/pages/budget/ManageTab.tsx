@@ -33,6 +33,7 @@ import {
 import { formatDate, getLocale } from '@/lib/utils'
 import type { AiCategorizationMode, Category, CategoryKind, RuleMatchType } from '@/types/api'
 import { ColorDot } from './budget-utils'
+import { RuleSuggestionsCard } from './RuleSuggestionsCard'
 import { KIND_META } from './budget-meta'
 
 const KINDS: CategoryKind[] = ['INCOME', 'EXPENSE', 'TRANSFER']
@@ -576,6 +577,7 @@ export function ManageTab() {
       <LogoSettingsCard />
       <AiCategorizationCard />
       <CategoriesCard />
+      <RuleSuggestionsCard />
       <RulesCard />
     </div>
   )

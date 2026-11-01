@@ -50,6 +50,7 @@ class SyncServiceTest {
     @Mock RecurringDetectionService recurringDetectionService;
     @Mock RequisitionLifecycleWriter requisitionLifecycleWriter;
     @Mock BankTransactionImportService bankTransactionImportService;
+    @Mock InternalTransferService internalTransferService;
 
     SyncService syncService;
 
@@ -71,8 +72,8 @@ class SyncServiceTest {
             recurringDetectionService,
             requisitionLifecycleWriter,
             new BankLogoResolver(bankConnector),
-            bankTransactionImportService
-        );
+            bankTransactionImportService,
+            internalTransferService);
     }
 
     /**
@@ -146,6 +147,54 @@ class SyncServiceTest {
         ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
         verify(accountRepository).save(captor.capture());
         assertThat(captor.getValue().getLogoUrl()).isEqualTo("https://logos.example/bnp.png");
+    }
+
+    /** Each synced account may hold the second leg of a transfer whose first leg synced earlier. */
+    @Test
+    void completeConnection_linksInternalTransfersAfterImportingTransactions() {
+        Long memberId = 1L;
+        stubSingleAccountConnection(memberId);
+
+        syncService.completeConnection("oauth-code", null, memberId);
+
+        var order = org.mockito.Mockito.inOrder(bankTransactionImportService, internalTransferService);
+        order.verify(bankTransactionImportService).importFor(any(Account.class), any());
+        order.verify(internalTransferService).autoLinkByReference(memberId);
+    }
+
+    /** Linking transfers is a convenience: it must never turn a good balance sync into a failure. */
+    @Test
+    void completeConnection_survivesInternalTransferLinkingFailure() {
+        Long memberId = 1L;
+        stubSingleAccountConnection(memberId);
+        org.mockito.Mockito.doThrow(new IllegalStateException("boom")).when(internalTransferService).autoLinkByReference(memberId);
+
+        syncService.completeConnection("oauth-code", null, memberId);
+
+        verify(accountRepository).save(any(Account.class));
+    }
+
+    private void stubSingleAccountConnection(Long memberId) {
+        FamilyMember member = FamilyMember.builder().id(memberId).displayName("Owner").build();
+        Requisition requisition = Requisition.builder()
+            .id(10L).member(member).requisitionId("code-123").institutionId("BNP_PARIBAS::FR")
+            .institutionName("BNP Paribas").status(RequisitionStatus.CREATED).build();
+        when(requisitionRepository.findByStatusAndMemberIdOrderByCreatedAtDesc(RequisitionStatus.CREATED, memberId))
+            .thenReturn(List.of(requisition));
+        when(bankConnector.exchangeCode("oauth-code")).thenReturn("session-1");
+        when(bankConnector.fetchBalances("session-1")).thenReturn(
+            List.of(new AccountData("ext-1", "Compte Courant", "FR76...", "EUR", new BigDecimal("100"))));
+        when(accountRepository.findByExternalAccountIdAndMemberId("ext-1", memberId)).thenReturn(Optional.empty());
+        lenient().when(accountRepository.existsSoftDeletedByExternalAccountIdAndMemberId("ext-1", memberId)).thenReturn(false);
+        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> {
+            Account a = inv.getArgument(0);
+            a.setId(99L);
+            return a;
+        });
+        lenient().when(accountService.toResponse(any(Account.class)))
+            .thenReturn(new AccountResponse(99L, "Compte Courant", null, "BNP Paribas", "EUR",
+                new BigDecimal("100"), new BigDecimal("100"), null, null, false, "#6366f1", null,
+                null, null, null, null, null, null, null, null, false, null, null, null));
     }
 
     /** A retry that still sees no accounts must stay retryable instead of becoming a false success. */

@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Category, ExpenseCategory, ProStatus, Transaction, TransactionClassificationRequest } from '@/types/api'
+import type { Category, ProStatus, Transaction, TransactionClassificationRequest } from '@/types/api'
 import { TransactionRow } from '@/components/shared/TransactionRow'
 import { TransactionDetailSheet } from '@/components/shared/TransactionDetailSheet'
-import { ExpenseCategoryBadge } from '@/components/shared/ExpenseCategoryBadge'
+import { CategoryBadge } from '@/components/shared/CategoryBadge'
 import { ProStatusBadge } from '@/components/shared/ProStatusBadge'
 import { TransactionContextMenu } from '@/components/shared/TransactionContextMenu'
 import { Button } from '@/components/ui/button'
@@ -25,12 +25,11 @@ interface TransactionsListProps {
   onDelete?: (txId: number) => void
   onEdit?: (tx: Transaction) => void
   logoUrlFor?: (brandId: number | null | undefined) => string | null
+  /** The member's categories: filter options, badges, the right-click menu and the detail sheet. */
   categories?: Category[]
   onCategorize?: (txId: number, categoryId: number) => void
   /** Buttons rendered in the card header (add, import). The card stays visible when empty if set. */
   actions?: ReactNode
-  /** The member's expense categories (the pro/perso classification side), kept apart from `categories`. */
-  expenseCategories?: ExpenseCategory[]
   onClassify?: (tx: Transaction) => void
   onQuickClassify?: (tx: Transaction, data: TransactionClassificationRequest) => void
   onUnlinkTransfer?: (txId: number) => void
@@ -42,10 +41,9 @@ export function TransactionsList({
   onDelete,
   onEdit,
   logoUrlFor,
-  categories,
+  categories = [],
   onCategorize,
   actions,
-  expenseCategories = [],
   onClassify,
   onQuickClassify,
   onUnlinkTransfer,
@@ -72,9 +70,9 @@ export function TransactionsList({
     if (hideInternal && tr.proStatus === 'VIREMENT_INTERNE') return false
     if (statusFilter !== 'all' && tr.proStatus !== statusFilter) return false
     // The API omits null fields rather than sending null, so an uncategorized row arrives
-    // with expenseCategoryId undefined -- hence the loose != / == comparisons here.
-    if (categoryFilter === 'uncategorized' && tr.expenseCategoryId != null) return false
-    if (typeof categoryFilter === 'number' && tr.expenseCategoryId !== categoryFilter) return false
+    // with categoryId undefined -- hence the loose != / == comparisons here.
+    if (categoryFilter === 'uncategorized' && tr.categoryId != null) return false
+    if (typeof categoryFilter === 'number' && tr.categoryId !== categoryFilter) return false
     return true
   })
   const showYear = new Set(filtered.map(tr => tr.date.slice(0, 4))).size > 1
@@ -119,7 +117,7 @@ export function TransactionsList({
                   <option key={status} value={status}>{t(proStatusLabelKey(status))}</option>
                 ))}
               </select>
-              {expenseCategories.length > 0 && (
+              {categories.length > 0 && (
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value === 'all' || e.target.value === 'uncategorized' ? e.target.value : Number(e.target.value))}
@@ -127,7 +125,7 @@ export function TransactionsList({
                 >
                   <option value="all">{t('accounts.filterAllCategories')}</option>
                   <option value="uncategorized">{t('accounts.filterUncategorized')}</option>
-                  {expenseCategories.map(cat => (
+                  {categories.filter(cat => !cat.archived).map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
@@ -154,7 +152,7 @@ export function TransactionsList({
                       badges={
                         <>
                           {tr.proStatus !== 'NON_CLASSE' && <ProStatusBadge status={tr.proStatus} />}
-                          <ExpenseCategoryBadge categoryId={tr.expenseCategoryId} categories={expenseCategories} />
+                          <CategoryBadge categoryId={tr.categoryId} categories={categories} />
                         </>
                       }
                       trailing={(onClassify || onLinkTransfer || onUnlinkTransfer) ? (
@@ -197,10 +195,10 @@ export function TransactionsList({
                     <TransactionContextMenu
                       key={tr.id}
                       transaction={tr}
-                      categories={expenseCategories}
+                      categories={categories}
                       onQuickClassify={(change) => onQuickClassify(tr, {
                         proStatus: change.field === 'status' ? change.proStatus : tr.proStatus,
-                        expenseCategoryId: change.field === 'category' ? change.expenseCategoryId : (tr.expenseCategoryId ?? null),
+                        categoryId: change.field === 'category' ? change.categoryId : (tr.categoryId ?? null),
                       })}
                       onUnlinkTransfer={onUnlinkTransfer}
                       onLinkTransfer={onLinkTransfer}

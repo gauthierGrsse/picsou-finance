@@ -2,9 +2,7 @@ package com.picsou.controller;
 
 import com.picsou.dto.ExpenseDashboardResponse;
 import com.picsou.dto.ExpensePaceResponse;
-import com.picsou.dto.RecurringTransactionResponse;
 import com.picsou.service.ExpenseDashboardService;
-import com.picsou.service.RecurringTransactionService;
 import com.picsou.service.UserContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +22,6 @@ import static org.mockito.Mockito.when;
 class ExpenseDashboardControllerTest {
 
     @Mock ExpenseDashboardService expenseDashboardService;
-    @Mock RecurringTransactionService recurringTransactionService;
     @Mock UserContext userContext;
 
     @InjectMocks ExpenseDashboardController controller;
@@ -101,12 +98,4 @@ class ExpenseDashboardControllerTest {
         assertThat(actual).isSameAs(expected);
     }
 
-    @Test
-    void getRecurring_usesMemberIdFromUserContext() {
-        when(userContext.currentMemberId()).thenReturn(10L);
-        List<RecurringTransactionResponse> expected = List.of();
-        when(recurringTransactionService.getRecurring(10L)).thenReturn(expected);
-
-        assertThat(controller.getRecurring()).isSameAs(expected);
-    }
 }

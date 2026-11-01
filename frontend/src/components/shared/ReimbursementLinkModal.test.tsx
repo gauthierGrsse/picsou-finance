@@ -28,7 +28,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
     pricePerUnit: null,
     fees: null,
     proStatus: 'NON_CLASSE',
-    expenseCategoryId: null,
+    categoryId: null,
     reimbursementStatus: null,
     reimbursementId: null,
     ...overrides,

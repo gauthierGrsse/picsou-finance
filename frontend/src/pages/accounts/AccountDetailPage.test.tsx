@@ -38,7 +38,6 @@ vi.mock('@/features/accounts/hooks', () => ({
   useImportTRTransactions: hooks.useImportTRTransactions,
 }))
 
-vi.mock('@/features/expenseCategories/hooks', () => ({ useExpenseCategories: () => ({ data: [] }) }))
 vi.mock('@/features/internalTransfers/hooks', () => ({ useUnlinkTransfer: () => ({ mutate: vi.fn() }) }))
 vi.mock('@/components/shared/TransactionClassificationModal', () => ({ TransactionClassificationModal: () => null }))
 vi.mock('@/components/shared/InternalTransferLinkModal', () => ({ InternalTransferLinkModal: () => null }))

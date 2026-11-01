@@ -16,7 +16,7 @@ const pending: PendingReimbursements = {
     {
       id: 1, date: '2026-01-05', description: 'Repas client A', amount: -25, type: null, category: null,
       nativeCurrency: 'EUR', isManual: false, txType: null, ticker: null, name: null, quantity: null,
-      pricePerUnit: null, fees: null, proStatus: 'PRO_A_REMBOURSER', expenseCategoryId: null,
+      pricePerUnit: null, fees: null, proStatus: 'PRO_A_REMBOURSER', categoryId: null,
       reimbursementStatus: 'EN_ATTENTE', reimbursementId: null,
     },
   ],

@@ -5,12 +5,13 @@ import com.picsou.dto.TransactionResponse;
 import com.picsou.exception.ResourceNotFoundException;
 import com.picsou.model.Account;
 import com.picsou.model.AccountType;
-import com.picsou.model.ExpenseCategory;
+import com.picsou.model.Category;
+import com.picsou.model.CategoryKind;
 import com.picsou.model.ProStatus;
 import com.picsou.model.ReimbursementStatus;
 import com.picsou.model.Transaction;
 import com.picsou.repository.AccountRepository;
-import com.picsou.repository.ExpenseCategoryRepository;
+import com.picsou.repository.CategoryRepository;
 import com.picsou.repository.TransactionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +33,8 @@ class TransactionClassificationServiceTest {
 
     @Mock AccountRepository accountRepository;
     @Mock TransactionRepository transactionRepository;
-    @Mock ExpenseCategoryRepository expenseCategoryRepository;
+    @Mock CategoryRepository categoryRepository;
+    @Mock TransferCategoryService transferCategoryService;
 
     @InjectMocks TransactionClassificationService transactionClassificationService;
 
@@ -54,11 +56,11 @@ class TransactionClassificationServiceTest {
     void updateClassification_syncedTransaction_setsCategoryAndStatus() {
         Account account = syncedAccount();
         Transaction tx = syncedTransaction(account);
-        ExpenseCategory category = ExpenseCategory.builder().id(3L).name("Restauration").color("#f97316").build();
+        Category category = Category.builder().id(3L).name("Restaurants").kind(CategoryKind.EXPENSE).color("#f97316").build();
 
         when(accountRepository.findByIdAndMemberId(1L, 10L)).thenReturn(Optional.of(account));
         when(transactionRepository.findByIdAndAccountId(7L, 1L)).thenReturn(Optional.of(tx));
-        when(expenseCategoryRepository.findByIdAndMemberId(3L, 10L)).thenReturn(Optional.of(category));
+        when(categoryRepository.findByIdAndMemberId(3L, 10L)).thenReturn(Optional.of(category));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
 
         TransactionResponse result = transactionClassificationService.updateClassification(
@@ -67,7 +69,9 @@ class TransactionClassificationServiceTest {
         // Classification succeeds on a synced transaction -- unlike ManualTransactionService's
         // core-field edit, which is blocked for non-manual rows.
         assertThat(result.proStatus()).isEqualTo(ProStatus.PERSO);
-        assertThat(result.expenseCategoryId()).isEqualTo(3L);
+        assertThat(result.categoryId()).isEqualTo(3L);
+        // a category chosen here is the member's own: upstream's categorizer must not override it
+        assertThat(tx.isCategoryManual()).isTrue();
     }
 
     @Test
@@ -106,13 +110,58 @@ class TransactionClassificationServiceTest {
     }
 
     @Test
+    void updateClassification_withoutCategory_clearsAnExistingOne() {
+        Account account = syncedAccount();
+        Transaction tx = syncedTransaction(account);
+        tx.setCategoryRef(Category.builder().id(3L).name("Restaurants").kind(CategoryKind.EXPENSE).build());
+        tx.setCategoryManual(true);
+        when(accountRepository.findByIdAndMemberId(1L, 10L)).thenReturn(Optional.of(account));
+        when(transactionRepository.findByIdAndAccountId(7L, 1L)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TransactionResponse result = transactionClassificationService.updateClassification(
+            1L, 7L, 10L, new TransactionClassificationRequest(ProStatus.PERSO, null));
+
+        assertThat(result.categoryId()).isNull();
+        assertThat(tx.isCategoryManual()).isFalse();
+    }
+
+    @Test
+    void updateClassification_toInternalTransfer_filesTheTransactionUnderTheTransferCategory() {
+        Account account = syncedAccount();
+        Transaction tx = syncedTransaction(account);
+        when(accountRepository.findByIdAndMemberId(1L, 10L)).thenReturn(Optional.of(account));
+        when(transactionRepository.findByIdAndAccountId(7L, 1L)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        transactionClassificationService.updateClassification(
+            1L, 7L, 10L, new TransactionClassificationRequest(ProStatus.VIREMENT_INTERNE, null));
+
+        org.mockito.Mockito.verify(transferCategoryService).fileAsTransfer(tx, 10L);
+    }
+
+    @Test
+    void updateClassification_toAnyOtherStatus_doesNotTouchTheTransferCategory() {
+        Account account = syncedAccount();
+        Transaction tx = syncedTransaction(account);
+        when(accountRepository.findByIdAndMemberId(1L, 10L)).thenReturn(Optional.of(account));
+        when(transactionRepository.findByIdAndAccountId(7L, 1L)).thenReturn(Optional.of(tx));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        transactionClassificationService.updateClassification(
+            1L, 7L, 10L, new TransactionClassificationRequest(ProStatus.PERSO, null));
+
+        org.mockito.Mockito.verifyNoInteractions(transferCategoryService);
+    }
+
+    @Test
     void updateClassification_unknownCategory_throwsNotFound() {
         Account account = syncedAccount();
         Transaction tx = syncedTransaction(account);
 
         when(accountRepository.findByIdAndMemberId(1L, 10L)).thenReturn(Optional.of(account));
         when(transactionRepository.findByIdAndAccountId(7L, 1L)).thenReturn(Optional.of(tx));
-        when(expenseCategoryRepository.findByIdAndMemberId(999L, 10L)).thenReturn(Optional.empty());
+        when(categoryRepository.findByIdAndMemberId(999L, 10L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> transactionClassificationService.updateClassification(
             1L, 7L, 10L, new TransactionClassificationRequest(ProStatus.PERSO, 999L)))

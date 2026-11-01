@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { extractErrorMessage } from '@/lib/errors'
-import { buildCategoryTree, categoryTypeMatchesAmount, PRO_STATUS_OPTIONS } from '@/lib/constants'
-import type { ExpenseCategory, ProStatus, Transaction, TransactionClassificationRequest } from '@/types/api'
+import { buildCategoryTree, categoryKindMatchesAmount, PRO_STATUS_OPTIONS } from '@/lib/constants'
+import type { Category, ProStatus, Transaction, TransactionClassificationRequest } from '@/types/api'
 
 const selectControlClassName = "flex h-10 w-full rounded-xl border border-input bg-background text-foreground px-4 text-sm outline-none [color-scheme:light] dark:[color-scheme:dark]"
 
@@ -14,7 +14,7 @@ interface TransactionClassificationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   transaction: Transaction | null
-  categories: ExpenseCategory[]
+  categories: Category[]
   onSubmit: (data: TransactionClassificationRequest) => Promise<void>
   isLoading?: boolean
 }
@@ -54,7 +54,7 @@ export function TransactionClassificationModal({
 
 interface ClassificationFormProps {
   transaction: Transaction
-  categories: ExpenseCategory[]
+  categories: Category[]
   onOpenChange: (open: boolean) => void
   onSubmit: (data: TransactionClassificationRequest) => Promise<void>
   isLoading?: boolean
@@ -64,13 +64,13 @@ function ClassificationForm({ transaction, categories, onOpenChange, onSubmit, i
   const { t } = useTranslation()
   const [proStatus, setProStatus] = useState<ProStatus>(transaction.proStatus)
   const [categoryId, setCategoryId] = useState<string>(
-    transaction.expenseCategoryId != null ? String(transaction.expenseCategoryId) : ''
+    transaction.categoryId != null ? String(transaction.categoryId) : ''
   )
   const [error, setError] = useState<string | null>(null)
 
   // Same filter as the context menu's quick-classify: don't offer an EXPENSE-only category
   // when classifying an income credit, or vice versa. BOTH always shows.
-  const applicableCategories = categories.filter(c => categoryTypeMatchesAmount(c.type, transaction.amount))
+  const applicableCategories = categories.filter(c => !c.archived && categoryKindMatchesAmount(c.kind, transaction.amount))
   const categoryTree = buildCategoryTree(applicableCategories)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -79,7 +79,7 @@ function ClassificationForm({ transaction, categories, onOpenChange, onSubmit, i
     try {
       await onSubmit({
         proStatus,
-        expenseCategoryId: categoryId ? Number(categoryId) : null,
+        categoryId: categoryId ? Number(categoryId) : null,
       })
       onOpenChange(false)
     } catch (err) {

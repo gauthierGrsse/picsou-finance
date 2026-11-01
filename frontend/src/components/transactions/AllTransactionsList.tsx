@@ -1,9 +1,9 @@
 import { Fragment, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TriangleAlert, X } from 'lucide-react'
-import type { ExpenseCategory, Transaction } from '@/types/api'
+import type { Category, Transaction } from '@/types/api'
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay'
-import { ExpenseCategoryBadge } from '@/components/shared/ExpenseCategoryBadge'
+import { CategoryBadge } from '@/components/shared/CategoryBadge'
 import { ProStatusBadge } from '@/components/shared/ProStatusBadge'
 import { TransactionContextMenu, type QuickClassifyChange } from '@/components/shared/TransactionContextMenu'
 import { InternalTransferLinkModal } from '@/components/shared/InternalTransferLinkModal'
@@ -16,7 +16,7 @@ import { useUnlinkTransfer } from '@/features/internalTransfers/hooks'
 
 interface AllTransactionsListProps {
   transactions: Transaction[]
-  categories: ExpenseCategory[]
+  categories: Category[]
   /** categoryId -> amount above which a single expense in that category is flagged as
    * unusually large (half the category's historical monthly average -- see
    * TransactionsPage). Omit to show no flags at all, e.g. when browsing a period the
@@ -102,7 +102,7 @@ export function AllTransactionsList({ transactions, categories, unusualThreshold
         txId: target.id,
         data: {
           proStatus: change.field === 'status' ? change.proStatus : target.proStatus,
-          expenseCategoryId: change.field === 'category' ? change.expenseCategoryId : (target.expenseCategoryId ?? null),
+          categoryId: change.field === 'category' ? change.categoryId : (target.categoryId ?? null),
         },
       })
     }
@@ -157,7 +157,7 @@ export function AllTransactionsList({ transactions, categories, unusualThreshold
               <div className="space-y-0.5">
                 {grouped[date].map((tr, rowIdx) => {
                   const isSelected = visibleSelectedIds.has(tr.id)
-                  const threshold = tr.expenseCategoryId != null ? unusualThresholds?.get(tr.expenseCategoryId) : undefined
+                  const threshold = tr.categoryId != null ? unusualThresholds?.get(tr.categoryId) : undefined
                   const isUnusual = threshold != null && Math.abs(tr.amount) > threshold
                   const row = (
                     <div
@@ -179,7 +179,7 @@ export function AllTransactionsList({ transactions, categories, unusualThreshold
                           </span>
                         )}
                         {tr.proStatus !== 'NON_CLASSE' && <ProStatusBadge status={tr.proStatus} />}
-                        <ExpenseCategoryBadge categoryId={tr.expenseCategoryId} categories={categories} />
+                        <CategoryBadge categoryId={tr.categoryId} categories={categories} />
                         {isUnusual && (
                           <TooltipProvider>
                             <Tooltip>

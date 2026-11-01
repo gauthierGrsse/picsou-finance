@@ -40,6 +40,7 @@ public class SyncService {
     private final RequisitionLifecycleWriter requisitionLifecycleWriter;
     private final BankLogoResolver bankLogoResolver;
     private final BankTransactionImportService bankTransactionImportService;
+    private final InternalTransferService internalTransferService;
 
     /** How far back to pull transactions on each sync; dedup makes the overlap harmless. */
     private static final int TRANSACTION_LOOKBACK_DAYS = 90;
@@ -55,7 +56,8 @@ public class SyncService {
         RecurringDetectionService recurringDetectionService,
         RequisitionLifecycleWriter requisitionLifecycleWriter,
         BankLogoResolver bankLogoResolver,
-        BankTransactionImportService bankTransactionImportService
+        BankTransactionImportService bankTransactionImportService,
+        InternalTransferService internalTransferService
     ) {
         this.bankConnector = bankConnector;
         this.accountRepository = accountRepository;
@@ -68,6 +70,7 @@ public class SyncService {
         this.requisitionLifecycleWriter = requisitionLifecycleWriter;
         this.bankLogoResolver = bankLogoResolver;
         this.bankTransactionImportService = bankTransactionImportService;
+        this.internalTransferService = internalTransferService;
     }
 
     /**
@@ -543,8 +546,24 @@ public class SyncService {
         // is best-effort (it swallows provider failures) so that an ASPSP which serves
         // balances but refuses /transactions still produces the sync the user asked for.
         bankTransactionImportService.importFor(account, sessionId);
+        linkInternalTransfers(account.getMember().getId());
 
         return Optional.of(accountService.toResponse(account));
+    }
+
+    /**
+     * Pairs up the two legs of a transfer between the member's own accounts. Runs on every sync,
+     * not only when this account found new rows: a pair links once both legs exist, and the other
+     * leg may have been saved by an earlier sync or by a sibling account moments ago. Cheap and
+     * idempotent (already-linked rows are out of the pool). Best-effort like the import itself, so
+     * a failure here never turns a good balance sync into a failed one.
+     */
+    private void linkInternalTransfers(Long memberId) {
+        try {
+            internalTransferService.autoLinkByReference(memberId);
+        } catch (Exception ex) {
+            log.warn("Internal-transfer auto-link failed for member {}: {}", memberId, ex.getMessage());
+        }
     }
 
     /**

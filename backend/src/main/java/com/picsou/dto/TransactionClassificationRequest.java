@@ -5,6 +5,6 @@ import jakarta.validation.constraints.NotNull;
 
 public record TransactionClassificationRequest(
     @NotNull ProStatus proStatus,
-    Long expenseCategoryId
+    Long categoryId
 ) {
 }

@@ -58,6 +58,8 @@ vi.mock('@/features/expenseDashboard/hooks', () => ({
   useRecurringTransactions: () => ({ data: [], isLoading: false }),
 }))
 
+// the recurring card reads the budget module's confirmed series
+vi.mock('@/features/budget/hooks', () => ({ useRecurring: () => ({ data: [], isLoading: false }) }))
 vi.mock('@/features/goals/hooks', () => ({
   useGoals: () => ({ data: [] }),
 }))

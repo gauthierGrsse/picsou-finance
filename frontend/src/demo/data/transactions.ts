@@ -1,6 +1,6 @@
 import type { Transaction } from '@/types/api'
 
-const t = (fields: Omit<Transaction, 'isManual' | 'txType' | 'ticker' | 'name' | 'quantity' | 'pricePerUnit' | 'fees' | 'proStatus' | 'expenseCategoryId' | 'reimbursementStatus' | 'reimbursementId'>): Transaction => ({
+const t = (fields: Omit<Transaction, 'isManual' | 'txType' | 'ticker' | 'name' | 'quantity' | 'pricePerUnit' | 'fees' | 'proStatus' | 'categoryId' | 'reimbursementStatus' | 'reimbursementId'>): Transaction => ({
   ...fields,
   isManual: false,
   txType: null,
@@ -10,7 +10,7 @@ const t = (fields: Omit<Transaction, 'isManual' | 'txType' | 'ticker' | 'name' |
   pricePerUnit: null,
   fees: null,
   proStatus: 'NON_CLASSE',
-  expenseCategoryId: null,
+  categoryId: null,
   reimbursementStatus: null,
   reimbursementId: null,
 })

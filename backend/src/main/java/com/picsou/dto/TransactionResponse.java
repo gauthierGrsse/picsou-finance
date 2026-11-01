@@ -35,7 +35,6 @@ public record TransactionResponse(
     String accountName,
     BigDecimal fees,
     ProStatus proStatus,
-    Long expenseCategoryId,
     ReimbursementStatus reimbursementStatus,
     Long reimbursementId
 ) {
@@ -65,7 +64,7 @@ public record TransactionResponse(
         Long accountId,
         String accountName,
         BigDecimal fees) {
-        this(id, date, description, amount, type, category, nativeCurrency, createdAt, isManual, txType, ticker, name, quantity, pricePerUnit, categoryId, categoryName, counterparty, merchantLabel, merchantBrandId, aiSuggestedCategoryId, aiConfidence, accountId, accountName, fees, ProStatus.NON_CLASSE, null, null, null);
+        this(id, date, description, amount, type, category, nativeCurrency, createdAt, isManual, txType, ticker, name, quantity, pricePerUnit, categoryId, categoryName, counterparty, merchantLabel, merchantBrandId, aiSuggestedCategoryId, aiConfidence, accountId, accountName, fees, ProStatus.NON_CLASSE, null, null);
     }
 
     public static TransactionResponse from(Transaction t) {
@@ -95,7 +94,6 @@ public record TransactionResponse(
             t.getAccount().getName(),
             t.getFees(),
             t.getProStatus(),
-            t.getExpenseCategoryId(),
             t.getReimbursementStatus(),
             t.getReimbursementId()
         );
