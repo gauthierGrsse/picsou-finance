@@ -258,6 +258,18 @@ single rule is what keeps every total honest.
   twice, `assertNoEnvelopeOverlap` forbids a parent **and** any of its children both holding an
   envelope.
 
+- **Envelopes follow the fork's pro/perso classification** (`BudgetService.toResponse`,
+  `BudgetProBreakdown`, `Transaction#isSettledReimbursement`, `pages/budget/EnvelopeBar.tsx`).
+  An envelope's `spent` is no longer a raw `SUM(amount)` of the category: it loads the rows and
+  applies the same rule as the Expenses page. Own-account transfer legs (`VIREMENT_INTERNE`) and
+  professional spend whose reimbursement has landed (`PRO_A_REMBOURSER` + `REMBOURSE`) do not count;
+  everything else does, including professional spend still waiting for its reimbursement (the cash
+  has left the account). The response also carries `proBreakdown` -- personal, absorbed
+  professional, pending professional, unclassified (these four add up to `spent`) plus the
+  `reimbursed` amount that was left out -- and the envelope bar draws it as faded segments with a
+  legend. The rule lives in one place so the dashboard and the envelopes cannot drift apart; the
+  other budget pages (cash flow, spending, allocation) still read raw amounts.
+
 No migration was needed: `category.parent_id` + `slug` shipped in `V38` (M0) as foundation; M4 made
 the tree user-facing across Settings, the Spending breakdown, the drill, and Envelopes.
 
@@ -494,7 +506,8 @@ Enable Banking sync ─▶ SyncService.fetchTransactions ─▶ dedup ─▶ per
   periods, STALE precedence over LATE, excluded from `upcoming()`), activity feed (newest-first,
   price-change preferred, stale/user-confirmed excluded), context-aware undo
 - `BudgetCycleTest`, `BudgetServiceTest` (incl. **parent-envelope subtree rollup** + the
-  **overlap guard** rejecting a parent/child both budgeted), `CashflowServiceTest`,
+  **overlap guard** rejecting a parent/child both budgeted, and the **pro/perso split**: settled
+  reimbursements and transfer legs left out, pending pro spend counted), `CashflowServiceTest`,
   `AllocationServiceTest`, `SyncService` ingestion tests
 - `MerchantLogoServiceTest` — per-brand TTL cache, hits/misses cached separately, opt-in gate lives
   in the controller (not the service), graceful empty on a failing provider

@@ -17,6 +17,7 @@ import {
 import { useUpcomingDividends } from '@/features/dividends/hooks'
 import { formatDate } from '@/lib/utils'
 import { ColorDot } from './budget-utils'
+import { EnvelopeBar } from './EnvelopeBar'
 import { PeriodNavigator } from './PeriodNavigator'
 import { useBudgetPeriod } from './BudgetPeriodContext'
 
@@ -270,14 +271,7 @@ export function OverviewTab() {
                     <span className="truncate">{b.categoryName}</span>
                     <span className="ml-auto tabular-nums text-muted-foreground">{b.percent}%</span>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-md bg-muted"
-                    role="progressbar" aria-label={b.categoryName}
-                    aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(b.percent, 100)}
-                    aria-valuetext={`${b.percent}%`}>
-                    <div className={`h-full rounded-md ${
-                      b.overBudget ? 'bg-destructive' : b.percent >= 80 ? 'bg-amber-500' : 'bg-primary'}`}
-                      style={{ width: `${Math.min(b.percent, 100)}%` }} />
-                  </div>
+                  <EnvelopeBar budget={b} size="sm" />
                 </div>
               ))}
             </div>

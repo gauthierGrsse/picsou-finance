@@ -203,16 +203,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                                 @Param("from") LocalDate from,
                                                                 @Param("to") LocalDate to);
 
-    /** Sum of (signed) amounts for one category over a date range — used by envelopes. */
-    @Query("""
-        SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t
-        WHERE t.categoryRef.id = :categoryId AND t.date BETWEEN :from AND :to
-        """)
-    BigDecimal sumByCategoryIdAndDateBetween(@Param("categoryId") Long categoryId,
-                                             @Param("from") LocalDate from,
-                                             @Param("to") LocalDate to);
-
-    /** A member's transactions across several categories over a range, newest first (parent drill). */
+    /** A member's transactions across several categories over a range, newest first (parent drill, envelope spend). */
     @Query("""
         SELECT t FROM Transaction t
         WHERE t.account.member.id = :memberId AND t.categoryRef.id IN :categoryIds
@@ -223,15 +214,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                                   @Param("categoryIds") Collection<Long> categoryIds,
                                                                   @Param("from") LocalDate from,
                                                                   @Param("to") LocalDate to);
-
-    /** Sum of (signed) amounts across several categories over a range — parent envelope rollup. */
-    @Query("""
-        SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t
-        WHERE t.categoryRef.id IN :categoryIds AND t.date BETWEEN :from AND :to
-        """)
-    BigDecimal sumByCategoryIdInAndDateBetween(@Param("categoryIds") Collection<Long> categoryIds,
-                                               @Param("from") LocalDate from,
-                                               @Param("to") LocalDate to);
 
     /** Sum of (signed) amounts for a member, filtered by category kind, over a range. */
     @Query("""

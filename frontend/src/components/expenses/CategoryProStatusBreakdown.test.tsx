@@ -74,4 +74,51 @@ describe('CategoryProStatusBreakdown', () => {
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
+
+  describe('with splitByStatus off', () => {
+    const data: CategoryBreakdownItem[] = [
+      { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', proStatus: 'PERSO', total: 180 },
+      { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', proStatus: 'PRO_ABSORBE', total: 60 },
+      { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', proStatus: 'PRO_A_REMBOURSER', total: 20 },
+      { categoryId: 2, categoryName: 'Courses', categoryColor: '#22c55e', proStatus: 'PERSO', total: 150 },
+    ]
+
+    it('merges a category\'s statuses into one row holding their sum, with no status label', () => {
+      render(<CategoryProStatusBreakdown data={data} splitByStatus={false} />)
+
+      expect(screen.getAllByText('Restauration')).toHaveLength(1)
+      expect(screen.getByText(/^.260\.00$/)).toBeInTheDocument()
+      expect(screen.queryByText('proStatus.perso')).not.toBeInTheDocument()
+      expect(screen.queryByText('proStatus.proAbsorbe')).not.toBeInTheDocument()
+    })
+
+    it('ranks the merged rows by their combined total', () => {
+      // split, Courses (150) is the biggest single row; merged, Restauration (260) overtakes it
+      render(<CategoryProStatusBreakdown data={data} splitByStatus={false} />)
+
+      const names = screen.getAllByText(/Restauration|Courses/).map(el => el.textContent)
+      expect(names).toEqual(['Restauration', 'Courses'])
+    })
+
+    it('reports the category alone, with no status, when a merged row is clicked', () => {
+      const onSliceClick = vi.fn()
+
+      render(<CategoryProStatusBreakdown data={data} splitByStatus={false} onSliceClick={onSliceClick} />)
+      fireEvent.click(screen.getByText('Restauration'))
+
+      expect(onSliceClick).toHaveBeenCalledWith({ categoryId: 1, proStatus: null })
+    })
+
+    it('keeps uncategorized spend as a single row across statuses', () => {
+      const uncategorized: CategoryBreakdownItem[] = [
+        { categoryId: null, categoryName: null, categoryColor: null, proStatus: 'NON_CLASSE', total: 40 },
+        { categoryId: null, categoryName: null, categoryColor: null, proStatus: 'PERSO', total: 2 },
+      ]
+
+      render(<CategoryProStatusBreakdown data={uncategorized} splitByStatus={false} />)
+
+      expect(screen.getAllByText('expenseDashboard.uncategorized')).toHaveLength(1)
+      expect(screen.getByText(/^.42\.00$/)).toBeInTheDocument()
+    })
+  })
 })

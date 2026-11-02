@@ -5,6 +5,9 @@ import com.picsou.dto.BudgetResponse;
 import com.picsou.model.Budget;
 import com.picsou.model.Category;
 import com.picsou.model.CategoryKind;
+import com.picsou.model.ProStatus;
+import com.picsou.model.ReimbursementStatus;
+import com.picsou.model.Transaction;
 import com.picsou.repository.BudgetRepository;
 import com.picsou.repository.CategoryRepository;
 import com.picsou.repository.FamilyMemberRepository;
@@ -45,6 +48,21 @@ class BudgetServiceTest {
         return Budget.builder().id(1L).category(category).monthlyLimit(new BigDecimal(limit)).build();
     }
 
+    private static Transaction tx(String amount, ProStatus status, ReimbursementStatus reimbursement) {
+        return Transaction.builder()
+            .amount(new BigDecimal(amount)).proStatus(status).reimbursementStatus(reimbursement).build();
+    }
+
+    private static Transaction tx(String amount) {
+        return tx(amount, ProStatus.PERSO, null);
+    }
+
+    private void stubRows(List<Long> categoryIds, Transaction... rows) {
+        when(transactionRepository.findByMemberIdAndCategoryIdInAndDateBetween(
+            eq(MEMBER_ID), eq(categoryIds), any(LocalDate.class), any(LocalDate.class)))
+            .thenReturn(List.of(rows));
+    }
+
     @Test
     void findAll_computesSpentFromNegativeOutflow_underBudget() {
         when(budgetSettingsService.cycleStartDay(MEMBER_ID)).thenReturn(1);
@@ -54,8 +72,7 @@ class BudgetServiceTest {
         when(categoryRepository.findAllByMemberIdAndParentIdOrderBySortOrderAscIdAsc(MEMBER_ID, 5L))
             .thenReturn(List.of());
         // Expenses are stored negative — €150 spent shows up as -150.
-        when(transactionRepository.sumByCategoryIdAndDateBetween(eq(5L), any(LocalDate.class), any(LocalDate.class)))
-            .thenReturn(new BigDecimal("-150.00"));
+        stubRows(List.of(5L), tx("-100.00"), tx("-50.00"));
 
         List<BudgetResponse> result = service.findAll(MEMBER_ID);
 
@@ -76,8 +93,7 @@ class BudgetServiceTest {
         // Leaf category (no children) → envelope scores its own category, not a subtree rollup.
         when(categoryRepository.findAllByMemberIdAndParentIdOrderBySortOrderAscIdAsc(MEMBER_ID, 5L))
             .thenReturn(List.of());
-        when(transactionRepository.sumByCategoryIdAndDateBetween(eq(5L), any(LocalDate.class), any(LocalDate.class)))
-            .thenReturn(new BigDecimal("-250.00"));
+        stubRows(List.of(5L), tx("-250.00"));
 
         BudgetResponse r = service.findAll(MEMBER_ID).get(0);
 
@@ -95,8 +111,7 @@ class BudgetServiceTest {
         when(categoryRepository.findAllByMemberIdAndParentIdOrderBySortOrderAscIdAsc(MEMBER_ID, 5L))
             .thenReturn(List.of());
         // −120 spent then +20 refund nets to −100 → €100 spent.
-        when(transactionRepository.sumByCategoryIdAndDateBetween(eq(5L), any(LocalDate.class), any(LocalDate.class)))
-            .thenReturn(new BigDecimal("-100.00"));
+        stubRows(List.of(5L), tx("-120.00"), tx("20.00"));
 
         BudgetResponse r = service.findAll(MEMBER_ID).get(0);
 
@@ -114,9 +129,8 @@ class BudgetServiceTest {
         Category child2 = Category.builder().id(6L).kind(CategoryKind.EXPENSE).name("Loyer").color("#22c55e").build();
         when(categoryRepository.findAllByMemberIdAndParentIdOrderBySortOrderAscIdAsc(MEMBER_ID, 7L))
             .thenReturn(List.of(child1, child2));
-        // Subtree sum (parent's own + both children), stored negative.
-        when(transactionRepository.sumByCategoryIdInAndDateBetween(any(), any(LocalDate.class), any(LocalDate.class)))
-            .thenReturn(new BigDecimal("-800.00"));
+        // The parent's own rows and both children's, stored negative.
+        stubRows(List.of(7L, 5L, 6L), tx("-300.00"), tx("-400.00"), tx("-100.00"));
 
         BudgetResponse r = service.findAll(MEMBER_ID).get(0);
 
@@ -124,6 +138,87 @@ class BudgetServiceTest {
         assertThat(r.spent()).isEqualByComparingTo("800.00");
         assertThat(r.remaining()).isEqualByComparingTo("200.00");
         assertThat(r.overBudget()).isFalse();
+    }
+
+    @Test
+    void findAll_splitsSpentByProStatus_andTheBucketsAddUpToSpent() {
+        when(budgetSettingsService.cycleStartDay(MEMBER_ID)).thenReturn(1);
+        when(budgetRepository.findAllByMemberIdOrderByIdAsc(MEMBER_ID))
+            .thenReturn(List.of(budget(5L, "300.00")));
+        when(categoryRepository.findAllByMemberIdAndParentIdOrderBySortOrderAscIdAsc(MEMBER_ID, 5L))
+            .thenReturn(List.of());
+        stubRows(List.of(5L),
+            tx("-310.00", ProStatus.PERSO, null),
+            tx("-140.00", ProStatus.PRO_ABSORBE, null),
+            tx("-60.00", ProStatus.PRO_A_REMBOURSER, ReimbursementStatus.EN_ATTENTE),
+            tx("-25.00", ProStatus.NON_CLASSE, null));
+
+        BudgetResponse r = service.findAll(MEMBER_ID).get(0);
+
+        assertThat(r.proBreakdown().perso()).isEqualByComparingTo("310.00");
+        assertThat(r.proBreakdown().proAbsorbe()).isEqualByComparingTo("140.00");
+        assertThat(r.proBreakdown().proPending()).isEqualByComparingTo("60.00");
+        assertThat(r.proBreakdown().unclassified()).isEqualByComparingTo("25.00");
+        assertThat(r.proBreakdown().reimbursed()).isEqualByComparingTo("0");
+        // Pro spend still counts toward the cap: the cash has left the account.
+        assertThat(r.spent()).isEqualByComparingTo("535.00");
+        assertThat(r.overBudget()).isTrue();
+    }
+
+    @Test
+    void findAll_leavesSettledReimbursementsOut_butReportsThem() {
+        when(budgetSettingsService.cycleStartDay(MEMBER_ID)).thenReturn(1);
+        when(budgetRepository.findAllByMemberIdOrderByIdAsc(MEMBER_ID))
+            .thenReturn(List.of(budget(5L, "300.00")));
+        when(categoryRepository.findAllByMemberIdAndParentIdOrderBySortOrderAscIdAsc(MEMBER_ID, 5L))
+            .thenReturn(List.of());
+        stubRows(List.of(5L),
+            tx("-80.00", ProStatus.PERSO, null),
+            tx("-120.00", ProStatus.PRO_A_REMBOURSER, ReimbursementStatus.REMBOURSE));
+
+        BudgetResponse r = service.findAll(MEMBER_ID).get(0);
+
+        // The reimbursed 120 is a net-zero round trip, not spending: same rule as the dashboard.
+        assertThat(r.spent()).isEqualByComparingTo("80.00");
+        assertThat(r.remaining()).isEqualByComparingTo("220.00");
+        assertThat(r.proBreakdown().reimbursed()).isEqualByComparingTo("120.00");
+        assertThat(r.proBreakdown().proPending()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void findAll_ignoresInternalTransferLegs() {
+        when(budgetSettingsService.cycleStartDay(MEMBER_ID)).thenReturn(1);
+        when(budgetRepository.findAllByMemberIdOrderByIdAsc(MEMBER_ID))
+            .thenReturn(List.of(budget(5L, "300.00")));
+        when(categoryRepository.findAllByMemberIdAndParentIdOrderBySortOrderAscIdAsc(MEMBER_ID, 5L))
+            .thenReturn(List.of());
+        stubRows(List.of(5L),
+            tx("-50.00", ProStatus.PERSO, null),
+            tx("-200.00", ProStatus.VIREMENT_INTERNE, null));
+
+        BudgetResponse r = service.findAll(MEMBER_ID).get(0);
+
+        assertThat(r.spent()).isEqualByComparingTo("50.00");
+        assertThat(r.proBreakdown().perso()).isEqualByComparingTo("50.00");
+    }
+
+    @Test
+    void findAll_refundKeepsItsOwnBucket() {
+        when(budgetSettingsService.cycleStartDay(MEMBER_ID)).thenReturn(1);
+        when(budgetRepository.findAllByMemberIdOrderByIdAsc(MEMBER_ID))
+            .thenReturn(List.of(budget(5L, "300.00")));
+        when(categoryRepository.findAllByMemberIdAndParentIdOrderBySortOrderAscIdAsc(MEMBER_ID, 5L))
+            .thenReturn(List.of());
+        stubRows(List.of(5L),
+            tx("-100.00", ProStatus.PERSO, null),
+            tx("30.00", ProStatus.PERSO, null),
+            tx("-40.00", ProStatus.PRO_ABSORBE, null));
+
+        BudgetResponse r = service.findAll(MEMBER_ID).get(0);
+
+        assertThat(r.proBreakdown().perso()).isEqualByComparingTo("70.00");
+        assertThat(r.proBreakdown().proAbsorbe()).isEqualByComparingTo("40.00");
+        assertThat(r.spent()).isEqualByComparingTo("110.00");
     }
 
     @Test

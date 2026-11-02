@@ -14,12 +14,25 @@ import { PendingReimbursementsCard } from '@/components/expenses/PendingReimburs
 import { SuggestedTransfersCard } from '@/components/expenses/SuggestedTransfersCard'
 import { PeriodSelector, type PeriodMode } from '@/components/expenses/PeriodSelector'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import type { MonthlyExpenseTotal, ProStatus } from '@/types/api'
 
 const MONTH_MODE_EVOLUTION_MONTHS = 6
 const YEAR_OPTIONS_BACK = 5
 type DashboardView = 'expense' | 'income'
+
+/** Remembered locally, like the other chart-display choices: how someone likes to read a
+ * breakdown is not worth a server-side preference. */
+const SPLIT_BY_STATUS_STORAGE_KEY = 'picsou.expenses.splitByStatus'
+
+function storedSplitByStatus(): boolean {
+  try {
+    return window.localStorage.getItem(SPLIT_BY_STATUS_STORAGE_KEY) !== 'false'
+  } catch {
+    return true
+  }
+}
 
 function currentMonthValue() {
   const now = new Date()
@@ -52,6 +65,16 @@ export function ExpenseDashboardPage() {
   const [month, setMonth] = useState(currentMonthValue)
   const [year, setYear] = useState(currentYear)
   const [view, setView] = useState<DashboardView>('expense')
+  const [splitByStatus, setSplitByStatus] = useState(storedSplitByStatus)
+
+  function chooseSplitByStatus(next: boolean) {
+    setSplitByStatus(next)
+    try {
+      window.localStorage.setItem(SPLIT_BY_STATUS_STORAGE_KEY, String(next))
+    } catch {
+      // Private mode or blocked storage: the choice just doesn't outlive the page.
+    }
+  }
 
   const { periodStart, periodEnd, months } = useMemo(() => {
     if (mode === 'year') {
@@ -83,8 +106,9 @@ export function ExpenseDashboardPage() {
     : null
   const showMonthRanking = monthRanking != null && monthRanking.rank <= Math.ceil(monthRanking.outOf / 2)
 
-  function goToFilteredTransactions(slice: { categoryId: number | null; proStatus: ProStatus }) {
-    const params = new URLSearchParams({ status: slice.proStatus })
+  function goToFilteredTransactions(slice: { categoryId: number | null; proStatus: ProStatus | null }) {
+    const params = new URLSearchParams()
+    if (slice.proStatus) params.set('status', slice.proStatus)
     params.set('category', slice.categoryId != null ? String(slice.categoryId) : 'uncategorized')
     if (mode === 'year') {
       params.set('mode', 'year')
@@ -173,6 +197,13 @@ export function ExpenseDashboardPage() {
         </Card>
       </div>
 
+      <div className="flex justify-end">
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Switch checked={splitByStatus} onCheckedChange={chooseSplitByStatus} aria-label={t('expenseDashboard.splitByStatus')} />
+          {t('expenseDashboard.splitByStatus')}
+        </label>
+      </div>
+
       {/* Both sides shown together regardless of the toggle above -- "where does my income
           go" and "what am I spending on" are two different questions, not one you should
           have to click to switch between. */}
@@ -184,6 +215,7 @@ export function ExpenseDashboardPage() {
           <CardContent>
             <CategoryProStatusBreakdown
               data={expenseData.categoryBreakdown}
+              splitByStatus={splitByStatus}
               onSliceClick={goToFilteredTransactions}
               emptyLabel={t('expenseDashboard.noExpenses')}
             />
@@ -197,6 +229,7 @@ export function ExpenseDashboardPage() {
           <CardContent>
             <CategoryProStatusBreakdown
               data={incomeData.categoryBreakdown}
+              splitByStatus={splitByStatus}
               onSliceClick={goToFilteredTransactions}
               emptyLabel={t('expenseDashboard.noIncome')}
             />

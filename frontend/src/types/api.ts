@@ -1583,6 +1583,19 @@ export interface Budget {
   rollup: boolean
   cycleStart: string
   cycleEnd: string
+  proBreakdown: BudgetProBreakdown
+}
+
+/** What an envelope's `spent` is made of. The four spending buckets add up to `spent`;
+ * `reimbursed` is professional spend already paid back, left out of `spent` (as on the expenses
+ * page) and reported only to explain the gap with the raw category total. */
+export interface BudgetProBreakdown {
+  perso: number
+  proAbsorbe: number
+  /** Professional spend still waiting for its reimbursement -- it counts, the cash has left. */
+  proPending: number
+  unclassified: number
+  reimbursed: number
 }
 
 export interface BudgetRequest {

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Budget envelopes understand pro / perso.** An envelope no longer counts a professional
+  expense that has already been reimbursed, nor the legs of a transfer between your own accounts
+  (the same rule as the Expenses page), and its bar is drawn in segments: personal spend, absorbed
+  professional spend and professional spend still waiting to be reimbursed, with a legend and the
+  reimbursed amount that was left out. The same breakdown is in the API and the MCP envelope tools
+  (`proBreakdown`).
+- **Split by status toggle on the Expenses breakdown.** A switch above the two category
+  donuts chooses between one row per category and status ("Restauration perso",
+  "Restauration pro absorbé") and one row per category with its statuses added up. A merged
+  row opens the transactions of the whole category, whatever their status. The choice is
+  remembered in the browser; the default stays split.
 - **Instance-status alert for admins.** An admin sees a pop-up when a sidecar the household
   uses does not answer, or still runs an image from before the shared base images (typically
   a build that failed because `sidecar-python` or `sidecar-chromium` was missing), with the

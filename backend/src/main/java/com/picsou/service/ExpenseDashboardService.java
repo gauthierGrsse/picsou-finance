@@ -9,7 +9,6 @@ import com.picsou.model.Budget;
 import com.picsou.model.Category;
 import com.picsou.model.CategoryKind;
 import com.picsou.model.ProStatus;
-import com.picsou.model.ReimbursementStatus;
 import com.picsou.model.Transaction;
 import com.picsou.repository.BudgetRepository;
 import com.picsou.repository.CategoryRepository;
@@ -294,7 +293,7 @@ public class ExpenseDashboardService {
         Long categoryId = categoryIdOf(t);
         Category category = categoryId != null ? categoriesById.get(categoryId) : null;
         if (category != null && category.getKind() == CategoryKind.TRANSFER) return true;
-        if (t.getProStatus() == ProStatus.PRO_A_REMBOURSER && t.getReimbursementStatus() == ReimbursementStatus.REMBOURSE) return true;
+        if (t.isSettledReimbursement()) return true;
         int sign = t.getAmount().signum();
         return income ? sign <= 0 : sign >= 0;
     }

@@ -154,4 +154,12 @@ public class Transaction {
      * association. */
     @Column(name = "linked_transaction_id")
     private Long linkedTransactionId;
+
+    /** A professional expense (or its reimbursement) whose reimbursement has landed: a net-zero
+     * round trip, not real spending. {@link #proStatus} stays {@code PRO_A_REMBOURSER} -- only the
+     * reimbursement flag says it is settled. The one definition the expense dashboard and the
+     * budget envelopes both read, so they never disagree about what counts. */
+    public boolean isSettledReimbursement() {
+        return proStatus == ProStatus.PRO_A_REMBOURSER && reimbursementStatus == ReimbursementStatus.REMBOURSE;
+    }
 }

@@ -1,10 +1,12 @@
 package com.picsou.service.budget;
 
+import com.picsou.dto.BudgetProBreakdown;
 import com.picsou.dto.BudgetRequest;
 import com.picsou.dto.BudgetResponse;
 import com.picsou.exception.ResourceNotFoundException;
 import com.picsou.model.Budget;
 import com.picsou.model.Category;
+import com.picsou.model.Transaction;
 import com.picsou.repository.BudgetRepository;
 import com.picsou.repository.CategoryRepository;
 import com.picsou.repository.FamilyMemberRepository;
@@ -23,7 +25,9 @@ import java.util.List;
  * cycle. The "spent" figure is derived on read from categorized transactions in the current
  * cycle — never stored — so it always reflects the latest sync. Expense transactions are
  * stored as negative amounts (outflow), so spent = −Σ(signed amount): a refund in the same
- * category correctly reduces the spent total.
+ * category correctly reduces the spent total. Own-account transfers and professional expenses
+ * that have been reimbursed do not count (the same rule as the expense dashboard), and the
+ * response says how the rest splits between personal, professional and unclassified.
  */
 @Service
 @Transactional(readOnly = true)
@@ -102,24 +106,22 @@ public class BudgetService {
         boolean rollup = !children.isEmpty();
 
         // A parent envelope caps its whole subtree; a leaf envelope just its own category.
-        BigDecimal signed;
-        if (rollup) {
-            List<Long> ids = new ArrayList<>(children.size() + 1);
-            ids.add(category.getId());
-            for (Category child : children) {
-                ids.add(child.getId());
-            }
-            signed = transactionRepository.sumByCategoryIdInAndDateBetween(ids, cycle.start(), cycle.end());
-        } else {
-            signed = transactionRepository.sumByCategoryIdAndDateBetween(
-                category.getId(), cycle.start(), cycle.end());
+        List<Long> ids = new ArrayList<>(children.size() + 1);
+        ids.add(category.getId());
+        for (Category child : children) {
+            ids.add(child.getId());
         }
-        BigDecimal spent = signed.negate(); // outflow is negative → positive "spent"
+        // Rows rather than a SUM so each one can be read with its pro/perso status: a settled
+        // reimbursement is not spending (outflow is negative, hence the negation in the breakdown).
+        List<Transaction> rows = transactionRepository.findByMemberIdAndCategoryIdInAndDateBetween(
+            memberId, ids, cycle.start(), cycle.end());
+        BudgetProBreakdown proBreakdown = BudgetProBreakdown.of(rows);
+        BigDecimal spent = proBreakdown.spent();
         BigDecimal limit = budget.getMonthlyLimit();
         BigDecimal percent = limit.compareTo(BigDecimal.ZERO) > 0
             ? spent.divide(limit, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
             : BigDecimal.ZERO;
-        return BudgetResponse.from(budget, spent, percent, rollup, cycle.start(), cycle.end());
+        return BudgetResponse.from(budget, spent, percent, rollup, cycle.start(), cycle.end(), proBreakdown);
     }
 
     /**

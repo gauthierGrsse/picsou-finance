@@ -1,6 +1,7 @@
 import type {
   AllocationResponse,
   Budget,
+  BudgetProBreakdown,
   BudgetSettings,
   CashflowBucket,
   CashflowFlowResponse,
@@ -107,7 +108,19 @@ export const mockUncategorized: UncategorizedTransaction[] = [
 
 // `rollup` marks an envelope set on a *parent* category: its `spent` then covers the whole
 // subtree (here Loyer + Énergie under Logement). Leaf envelopes pass false.
-function envelope(id: number, cat: Category, limit: number, spent: number, rollup = false): Budget {
+function envelope(
+  id: number, cat: Category, limit: number, spent: number, rollup = false, pro: Partial<BudgetProBreakdown> = {},
+): Budget {
+  // Whatever is not described as pro is personal, so the buckets always add up to `spent`.
+  const proAbsorbe = pro.proAbsorbe ?? 0
+  const proPending = pro.proPending ?? 0
+  const proBreakdown: BudgetProBreakdown = {
+    perso: Math.round((spent - proAbsorbe - proPending) * 100) / 100,
+    proAbsorbe,
+    proPending,
+    unclassified: 0,
+    reimbursed: pro.reimbursed ?? 0,
+  }
   const remaining = Math.round((limit - spent) * 100) / 100
   const percent = limit > 0 ? Math.round((spent / limit) * 100) : 0
   return {
@@ -125,16 +138,17 @@ function envelope(id: number, cat: Category, limit: number, spent: number, rollu
     rollup,
     cycleStart: iso(CYCLE_START),
     cycleEnd: iso(CYCLE_END),
+    proBreakdown,
   }
 }
 
 export const mockBudgets: Budget[] = [
   envelope(1, mockCategories[1], 500, 412.3), // Courses
   envelope(2, mockCategories[2], 1100, 1100, true), // Logement (parent — rolls up Loyer + Énergie, at limit)
-  envelope(3, mockCategories[3], 200, 168.5), // Transport
+  envelope(3, mockCategories[3], 200, 168.5, false, { proAbsorbe: 38.5, reimbursed: 64 }), // Transport (some pro)
   envelope(4, mockCategories[4], 150, 187.9), // Loisirs (over)
   envelope(5, mockCategories[5], 90, 53.97), // Abonnements
-  envelope(6, mockCategories[6], 250, 134.2), // Restaurants
+  envelope(6, mockCategories[6], 250, 134.2, false, { proAbsorbe: 42.2, proPending: 26 }), // Restaurants (some pro)
 ]
 
 // ── Settings ──────────────────────────────────────────────────────────────────

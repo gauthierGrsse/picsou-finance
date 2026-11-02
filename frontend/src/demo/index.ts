@@ -1343,6 +1343,7 @@ handlers.set(key('POST', '/budgets'), (config) => {
     id: Date.now(), categoryId: body.categoryId ?? 0, categoryName: cat?.name ?? 'Catégorie',
     categoryKind: cat?.kind ?? 'EXPENSE', categoryColor: cat?.color ?? null, categoryIcon: null,
     monthlyLimit: limit, spent: 0, remaining: limit, percent: 0, overBudget: false, rollup: false,
+    proBreakdown: { perso: 0, proAbsorbe: 0, proPending: 0, unclassified: 0, reimbursed: 0 },
     cycleStart: mockBudgetSettings.currentCycleStart, cycleEnd: mockBudgetSettings.currentCycleEnd,
   }
 })

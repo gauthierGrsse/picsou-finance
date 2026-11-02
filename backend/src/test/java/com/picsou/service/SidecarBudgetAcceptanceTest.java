@@ -107,12 +107,13 @@ class SidecarBudgetAcceptanceTest {
             Budget.builder().id(1L).category(groceries).monthlyLimit(new BigDecimal("100.00")).build()));
         when(categoryRepository.findAllByMemberIdAndParentIdOrderBySortOrderAscIdAsc(MEMBER_ID, 11L))
             .thenReturn(List.of());
-        when(transactionRepository.sumByCategoryIdAndDateBetween(eq(11L), any(LocalDate.class), any(LocalDate.class)))
+        when(transactionRepository.findByMemberIdAndCategoryIdInAndDateBetween(
+                eq(MEMBER_ID), eq(List.of(11L)), any(LocalDate.class), any(LocalDate.class)))
             .thenAnswer(invocation -> stored.stream()
                 .filter(row -> row.getCategoryRef() != null && row.getCategoryRef().getId().equals(11L))
-                .filter(row -> !row.getDate().isBefore(invocation.getArgument(1))
-                    && !row.getDate().isAfter(invocation.getArgument(2)))
-                .map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add));
+                .filter(row -> !row.getDate().isBefore(invocation.getArgument(2))
+                    && !row.getDate().isAfter(invocation.getArgument(3)))
+                .toList());
         when(transactionRepository.findByMemberIdAndDateBetween(eq(MEMBER_ID), any(LocalDate.class), any(LocalDate.class)))
             .thenAnswer(invocation -> stored.stream()
                 .filter(row -> row.getAccount().getMember().getId().equals(MEMBER_ID))

@@ -11,6 +11,8 @@ import java.time.LocalDate;
  * {@code percent} are computed on read against the active payday cycle, never persisted.
  * {@code rollup} is true when the envelope's category is a parent — {@code spent} then covers the
  * whole subtree (the parent's own transactions plus every child's), so the UI can flag it.
+ * {@code proBreakdown} says how that {@code spent} splits between personal, professional and
+ * unclassified spending.
  */
 public record BudgetResponse(
     Long id,
@@ -26,10 +28,12 @@ public record BudgetResponse(
     boolean overBudget,
     boolean rollup,
     LocalDate cycleStart,
-    LocalDate cycleEnd
+    LocalDate cycleEnd,
+    BudgetProBreakdown proBreakdown
 ) {
     public static BudgetResponse from(
-        Budget b, BigDecimal spent, BigDecimal percent, boolean rollup, LocalDate cycleStart, LocalDate cycleEnd
+        Budget b, BigDecimal spent, BigDecimal percent, boolean rollup, LocalDate cycleStart, LocalDate cycleEnd,
+        BudgetProBreakdown proBreakdown
     ) {
         BigDecimal limit = b.getMonthlyLimit();
         BigDecimal remaining = limit.subtract(spent);
@@ -47,7 +51,8 @@ public record BudgetResponse(
             spent.compareTo(limit) > 0,
             rollup,
             cycleStart,
-            cycleEnd
+            cycleEnd,
+            proBreakdown
         );
     }
 }

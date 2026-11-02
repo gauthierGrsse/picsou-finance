@@ -9,7 +9,11 @@ import type { CategoryBreakdownItem, ProStatus } from '@/types/api'
 
 interface CategoryProStatusBreakdownProps {
   data: CategoryBreakdownItem[]
-  onSliceClick?: (item: { categoryId: number | null; proStatus: ProStatus }) => void
+  /** `proStatus` is null for a category shown as a whole (`splitByStatus` off). */
+  onSliceClick?: (item: { categoryId: number | null; proStatus: ProStatus | null }) => void
+  /** One slice per (category, status) pair, or one per category with the statuses summed.
+   * Defaults to split, which is what every caller showed before the toggle existed. */
+  splitByStatus?: boolean
   /** Shown in place of the chart when `data` has nothing to plot. Defaults to the
    * expense-dashboard's own "no expenses" copy since that's every existing caller. */
   emptyLabel?: string
@@ -20,29 +24,44 @@ const chartConfig = {
 } satisfies ChartConfig
 
 /** Donut + compact ranked list, one slice/row per non-zero (category, pro_status) pair --
- * e.g. "Restauration perso" and "Restauration pro_absorbe" render separately. Cell color
+ * e.g. "Restauration perso" and "Restauration pro_absorbe" render separately -- or, with
+ * `splitByStatus` off, one per category with its statuses added up. Cell color
  * comes straight from the category's own stored hex, same as Account.color feeding
  * DistributionPie: there are only 5 --chart-N tokens, not enough for an open-ended list. */
-export function CategoryProStatusBreakdown({ data, onSliceClick, emptyLabel }: CategoryProStatusBreakdownProps) {
+export function CategoryProStatusBreakdown({ data, onSliceClick, splitByStatus = true, emptyLabel }: CategoryProStatusBreakdownProps) {
   const { t } = useTranslation()
   const money = useMoney()
 
-  const items = useMemo(
-    () =>
-      data
-        .filter((d) => d.total > 0)
-        .map((d) => ({
-          id: `${d.categoryId ?? 'none'}-${d.proStatus}`,
-          categoryId: d.categoryId,
-          proStatus: d.proStatus,
-          name: d.categoryName ?? t('expenseDashboard.uncategorized'),
-          statusLabel: t(proStatusLabelKey(d.proStatus)),
-          color: d.categoryColor ?? 'var(--chart-5)',
-          total: d.total,
-        }))
-        .sort((a, b) => b.total - a.total),
-    [data, t],
-  )
+  const items = useMemo(() => {
+    const rows = new Map<string, {
+      id: string
+      categoryId: number | null
+      proStatus: ProStatus | null
+      name: string
+      statusLabel: string | null
+      color: string
+      total: number
+    }>()
+    for (const d of data) {
+      if (d.total <= 0) continue
+      const id = splitByStatus ? `${d.categoryId ?? 'none'}-${d.proStatus}` : `${d.categoryId ?? 'none'}`
+      const row = rows.get(id)
+      if (row) {
+        row.total += d.total
+        continue
+      }
+      rows.set(id, {
+        id,
+        categoryId: d.categoryId,
+        proStatus: splitByStatus ? d.proStatus : null,
+        name: d.categoryName ?? t('expenseDashboard.uncategorized'),
+        statusLabel: splitByStatus ? t(proStatusLabelKey(d.proStatus)) : null,
+        color: d.categoryColor ?? 'var(--chart-5)',
+        total: d.total,
+      })
+    }
+    return [...rows.values()].sort((a, b) => b.total - a.total)
+  }, [data, splitByStatus, t])
 
   if (items.length === 0) {
     return <p className="text-sm text-muted-foreground">{emptyLabel ?? t('expenseDashboard.noExpenses')}</p>
@@ -103,7 +122,7 @@ export function CategoryProStatusBreakdown({ data, onSliceClick, emptyLabel }: C
           >
             <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
             <span className="min-w-0 truncate">{item.name}</span>
-            <span className="shrink-0 text-xs text-muted-foreground">{item.statusLabel}</span>
+            {item.statusLabel && <span className="shrink-0 text-xs text-muted-foreground">{item.statusLabel}</span>}
             <CurrencyDisplay value={item.total} className="ml-auto shrink-0 tabular-nums text-muted-foreground" />
           </div>
         ))}

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ExpenseDashboardPage } from './ExpenseDashboardPage'
 import type { ExpenseDashboardResponse, ExpensePaceResponse, PendingReimbursements } from '@/types/api'
@@ -78,6 +78,11 @@ vi.mock('@/features/internalTransfers/hooks', () => ({
 }))
 
 describe('ExpenseDashboardPage', () => {
+  beforeEach(() => {
+    navigate.mockClear()
+    window.localStorage.clear()
+  })
+
   it('renders the total-this-period stat as the sum of the category breakdown', () => {
     render(<ExpenseDashboardPage />)
 
@@ -201,5 +206,61 @@ describe('ExpenseDashboardPage', () => {
     const now = new Date()
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
     expect(navigate).toHaveBeenCalledWith(`/transactions?status=PERSO&category=1&mode=month&month=${month}`)
+  })
+
+  describe('split by status toggle', () => {
+    const mixedStatuses: ExpenseDashboardResponse = {
+      ...expenseDashboard,
+      categoryBreakdown: [
+        { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', proStatus: 'PERSO', total: 400 },
+        { categoryId: 1, categoryName: 'Restauration', categoryColor: '#f97316', proStatus: 'PRO_ABSORBE', total: 100 },
+      ],
+    }
+
+    function withMixedStatuses() {
+      useExpenseDashboard.mockImplementation((_m, _s, _e, income) => ({ data: income ? incomeDashboard : mixedStatuses, isLoading: false }))
+    }
+
+    it('splits each category by status by default, and merges them when switched off', () => {
+      withMixedStatuses()
+      render(<ExpenseDashboardPage />)
+
+      expect(screen.getAllByText('Restauration')).toHaveLength(2)
+
+      fireEvent.click(screen.getByRole('switch', { name: 'expenseDashboard.splitByStatus' }))
+
+      expect(screen.getAllByText('Restauration')).toHaveLength(1)
+      expect(screen.getByText(/^.500\.00$/, { selector: '.tabular-nums' })).toBeInTheDocument()
+
+      useExpenseDashboard.mockImplementation(defaultDashboardImpl)
+    })
+
+    it('opens the transactions of the whole category, any status, from a merged row', () => {
+      withMixedStatuses()
+      render(<ExpenseDashboardPage />)
+
+      fireEvent.click(screen.getByRole('switch', { name: 'expenseDashboard.splitByStatus' }))
+      fireEvent.click(screen.getByText('Restauration'))
+
+      const now = new Date()
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      expect(navigate).toHaveBeenCalledWith(`/transactions?category=1&mode=month&month=${month}`)
+
+      useExpenseDashboard.mockImplementation(defaultDashboardImpl)
+    })
+
+    it('remembers the choice for the next visit', () => {
+      withMixedStatuses()
+      const { unmount } = render(<ExpenseDashboardPage />)
+      fireEvent.click(screen.getByRole('switch', { name: 'expenseDashboard.splitByStatus' }))
+      unmount()
+
+      render(<ExpenseDashboardPage />)
+
+      expect(screen.getByRole('switch', { name: 'expenseDashboard.splitByStatus' })).not.toBeChecked()
+      expect(screen.getAllByText('Restauration')).toHaveLength(1)
+
+      useExpenseDashboard.mockImplementation(defaultDashboardImpl)
+    })
   })
 })
